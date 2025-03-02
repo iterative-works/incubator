@@ -1,4 +1,15 @@
 {
   "name": "iw-incubator",
-  "packageManager": "yarn@4.6.0"
+  "packageManager": "yarn@4.6.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@floating-ui/utils": "^0.2.9",
+    "@shoelace-style/shoelace": "^2.20.0",
+    "htmx.org": "^2.0.4"
+  },
+  "devDependencies": {
+    "vite": "^6.2.0",
+    "vite-plugin-static-copy": "^2.3.0"
+  }
 }

@@ -1,0 +1,19 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+@import "@shoelace-style/shoelace/dist/themes/light.css";
+
+:root {
+    /* Changes the primary theme color to purple using primitives */
+    --sl-color-primary-50: theme(colors.blue.50);
+    --sl-color-primary-100: theme(colors.blue.100);
+    --sl-color-primary-200: theme(colors.blue.200);
+    --sl-color-primary-300: theme(colors.blue.300);
+    --sl-color-primary-400: theme(colors.blue.400);
+    --sl-color-primary-500: theme(colors.blue.500);
+    --sl-color-primary-600: theme(colors.blue.600);
+    --sl-color-primary-700: theme(colors.blue.700);
+    --sl-color-primary-800: theme(colors.blue.800);
+    --sl-color-primary-900: theme(colors.blue.900);
+    --sl-color-primary-950: theme(colors.blue.950);
+}

@@ -1,0 +1,71 @@
+package works.iterative.incubator.server
+
+import zio.*
+import org.http4s.*
+import org.http4s.server.websocket.WebSocketBuilder2
+import works.iterative.server.http.HttpServer
+import works.iterative.server.http.impl.blaze.BlazeHttpServer
+import works.iterative.scalatags.ScalatagsSupport
+import zio.logging.*
+import com.typesafe.config.ConfigFactory
+import zio.config.typesafe.TypesafeConfigProvider
+import works.iterative.server.http.ZIOWebModule
+import view.modules.*
+
+object Main extends ZIOAppDefault with ScalatagsSupport:
+
+    type AppEnv = Any
+
+    type AppTask[A] = RIO[AppEnv, A]
+
+    def configuredLogger(
+        loadConfig: => ZIO[Any, Config.Error, ConsoleLoggerConfig]
+    ): ZLayer[Any, Config.Error, Unit] =
+        ReconfigurableLogger
+            .make[Any, Config.Error, String, Any, ConsoleLoggerConfig](
+                loadConfig,
+                (config, _) => zio.logging.makeConsoleLogger(config),
+                Schedule.fixed(500.millis)
+            )
+            .installUnscoped
+
+    override val bootstrap: ZLayer[ZIOAppArgs, Any, Any] =
+        Runtime.removeDefaultLoggers >>> configuredLogger(
+            for
+                config <- ZIO.succeed(ConfigFactory.load("logger.conf"))
+                loggerConfig <- ConsoleLoggerConfig.load().withConfigProvider(
+                    TypesafeConfigProvider.fromTypesafeConfig(config)
+                )
+            yield loggerConfig
+        )
+
+    def routes(registry: ModuleRegistry): HttpRoutes[AppTask] =
+        ZIOWebModule.combineRoutes[AppEnv](registry.modules*)
+    end routes
+
+    def setupRoutes(
+        registry: ModuleRegistry
+        // authMiddleware: AuthMiddleware,
+        // errorHandling: ErrorHandlingMiddleware
+    )(wsb: WebSocketBuilder2[AppTask]): HttpRoutes[AppTask] =
+        // authMiddleware(errorHandling(routes(registry)))
+        routes(registry)
+
+    val program =
+        for
+            registry <- ZIO.service[ModuleRegistry]
+            // errorHandling <- ZIO.service[ErrorHandlingMiddleware]
+            // authMiddleware <- ZIO.service[AuthMiddleware]
+            _ <- HttpServer.serve[AppEnv](
+                setupRoutes(registry /* , authMiddleware, errorHandling*/ )
+            )
+        yield ()
+
+    def run =
+        for
+            _ <- program.provide(
+                BlazeHttpServer.layer,
+                ModuleRegistry.layer
+            )
+        yield ()
+end Main
