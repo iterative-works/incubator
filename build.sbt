@@ -23,8 +23,8 @@ lazy val root = (project in file("."))
         ),
         reStart / javaOptions += "-DLOG_LEVEL=DEBUG",
         reStart / envVars ++= Map(
-            "BASEURI" -> "/front",
-            "VITE_BASE" -> "http://localhost:5173/front/",
-            "VITE_DISTPATH" -> "./front/target/vite"
+            "BASEURI" -> "/",
+            "VITE_BASE" -> "http://localhost:5173/",
+            "VITE_DISTPATH" -> "./target/vite"
         )
     )

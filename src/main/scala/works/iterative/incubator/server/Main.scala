@@ -11,6 +11,7 @@ import com.typesafe.config.ConfigFactory
 import zio.config.typesafe.TypesafeConfigProvider
 import works.iterative.server.http.ZIOWebModule
 import view.modules.*
+import works.iterative.server.http.ScalatagsViteSupport
 
 object Main extends ZIOAppDefault with ScalatagsSupport:
 
@@ -65,7 +66,8 @@ object Main extends ZIOAppDefault with ScalatagsSupport:
         for
             _ <- program.provide(
                 BlazeHttpServer.layer,
-                ModuleRegistry.layer
+                ModuleRegistry.layer,
+                ScalatagsViteSupport.layer
             )
         yield ()
 end Main
