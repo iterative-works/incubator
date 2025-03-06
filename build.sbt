@@ -9,6 +9,7 @@ lazy val root = (project in file("."))
     // Auto activates for all projects, but make sure we have required dependencies
     .enablePlugins(VitePlugin, JavaServerAppPackaging, IWScalaProjectPlugin)
     .settings(
+        scalacOptions ++= Seq("-Xmax-inlines", "64"),
         IWDeps.useZIO(),
         IWDeps.zioLogging,
         IWDeps.http4sBlazeServer,
