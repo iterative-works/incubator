@@ -17,4 +17,39 @@
     --sl-color-primary-800: theme(colors.blue.800);
     --sl-color-primary-900: theme(colors.blue.900);
     --sl-color-primary-950: theme(colors.blue.950);
+
+    /* Colors */
+    /* Primary colors */
+    --color-primary: theme("colors.blue.600"); /* For primary buttons/badges */
+    --color-success: theme("colors.green.600"); /* For success buttons/badges */
+    --color-neutral: theme("colors.gray.500"); /* For neutral buttons/badges */
+
+    /* Text colors */
+    --text-primary: theme("colors.gray.900");
+    --text-secondary: theme("colors.gray.500");
+    --text-success: theme("colors.green.600");
+    --text-danger: theme("colors.red.600");
+
+    /* Background colors */
+    --bg-hover: theme("colors.gray.50");
+    --bg-header: theme("colors.gray.50");
+
+    /* Spacing */
+    --spacing-base: theme(
+        "spacing.4"
+    ); /* 1rem - Basic padding for containers */
+    --spacing-small: theme(
+        "spacing.2"
+    ); /* 0.5rem - Used for gaps between items */
+
+    /* Typography */
+    --font-size-heading: theme("fontSize.2xl"); /* 1.5rem */
+    --font-size-base: theme("fontSize.base");
+    --font-size-small: theme("fontSize.xs");
+
+    --font-weight-bold: theme("fontWeight.bold");
+
+    /* Border & Shadows */
+    --border-color: theme("colors.gray.200");
+    --border-width: theme("borderWidth.DEFAULT");
 }

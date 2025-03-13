@@ -19,6 +19,8 @@ import cats.data.Kleisli
 import cats.data.OptionT
 import cats.syntax.all.*
 import cats.Applicative
+import works.iterative.incubator.components.ScalatagsTailwindTable
+import scalatags.Text.all.*
 
 class TransactionImportModule(appShell: ScalatagsAppShell) extends ZIOWebModule[Any]
     with ScalatagsSupport:
@@ -85,6 +87,112 @@ class TransactionImportModule(appShell: ScalatagsAppShell) extends ZIOWebModule[
                             )
                         )
 
+            // Define the table columns
+            val columns = Seq(
+                // Checkbox column
+                ScalatagsTailwindTable.Column[TransactionRow](
+                    header = "",
+                    render = tx =>
+                        sl.Checkbox(id := s"select-${tx.id}"),
+                    className = _ => "w-10"
+                ),
+
+                // Date column
+                ScalatagsTailwindTable.Column[TransactionRow](
+                    header = "Date",
+                    render = tx =>
+                        span(tx.date.toString)
+                ),
+
+                // Description column
+                ScalatagsTailwindTable.Column[TransactionRow](
+                    header = "Description",
+                    render = tx =>
+                        div(
+                            div(
+                                tx.userIdentification.getOrElse("") +
+                                    tx.message.map(m => s" - $m").getOrElse("")
+                            ),
+                            div(cls := "text-xs text-gray-500")(
+                                s"Acc: ${tx.counterAccount.getOrElse("-")}, Bank: ${tx.counterBankName.getOrElse("-")}"
+                            )
+                        )
+                ),
+
+                // Amount column
+                ScalatagsTailwindTable.Column[TransactionRow](
+                    header = "Amount",
+                    render = tx =>
+                        span(
+                            formatAmount(tx.amount, tx.currency)
+                        ),
+                    className = tx =>
+                        if tx.amount < 0 then "text-red-600" else "text-green-600"
+                ),
+
+                // Status column
+                ScalatagsTailwindTable.Column[TransactionRow](
+                    header = "Status",
+                    render = tx =>
+                        statusBadge(tx.status)
+                ),
+
+                // Payee column
+                ScalatagsTailwindTable.Column[TransactionRow](
+                    header = "Payee",
+                    render = tx =>
+                        tx.status match
+                            case TransactionStatus.Imported =>
+                                div(cls := "text-gray-400 italic")(
+                                    "Not processed"
+                                )
+                            case _ =>
+                                sl.Input(
+                                    value := tx.suggestedPayeeName.getOrElse(""),
+                                    placeholder := "Enter payee name"
+                                )
+                ),
+
+                // Category column
+                ScalatagsTailwindTable.Column[TransactionRow](
+                    header = "Category",
+                    render = tx =>
+                        tx.status match
+                            case TransactionStatus.Imported =>
+                                div(cls := "text-gray-400 italic")(
+                                    "Not processed"
+                                )
+                            case _ =>
+                                sl.Select(
+                                    sl.Option(
+                                        value := tx.suggestedCategory.getOrElse(""),
+                                        selected := true
+                                    )(tx.suggestedCategory.getOrElse("Select category")),
+                                    sl.Option(value := "groceries")("Groceries"),
+                                    sl.Option(value := "dining")("Dining Out"),
+                                    sl.Option(value := "utilities")("Utilities"),
+                                    sl.Option(value := "transport")("Transportation"),
+                                    sl.Option(value := "housing")("Housing"),
+                                    sl.Option(value := "entertainment")("Entertainment"),
+                                    sl.Option(value := "income")("Income"),
+                                    sl.Option(value := "other")("Other")
+                                )
+                ),
+
+                // Actions column
+                ScalatagsTailwindTable.Column[TransactionRow](
+                    header = "Actions",
+                    render = tx =>
+                        actionButtons(tx)
+                )
+            )
+
+            val transactionTable = ScalatagsTailwindTable
+                .table(columns, transactions)
+                .withClass("border-collapse")
+                .withHeaderClasses(Seq("bg-gray-100"))
+                .render
+
             div(cls := "p-4")(
                 // Header with title and actions
                 div(cls := "flex justify-between items-center mb-4")(
@@ -120,110 +228,7 @@ class TransactionImportModule(appShell: ScalatagsAppShell) extends ZIOWebModule[
 
                 // Transaction table
                 div(cls := "overflow-x-auto")(
-                    table(cls := "min-w-full")(
-                        thead(cls := "bg-gray-50")(
-                            tr(
-                                th(cls := "p-4 text-left w-10")(
-                                    sl.Checkbox(id := "select-all")
-                                ),
-                                th(cls := "p-4 text-left")("Date"),
-                                th(cls := "p-4 text-left")("Description"),
-                                th(cls := "p-4 text-left")("Amount"),
-                                th(cls := "p-4 text-left")("Status"),
-                                th(cls := "p-4 text-left")("Payee"),
-                                th(cls := "p-4 text-left")("Category"),
-                                th(cls := "p-4 text-left")("Actions")
-                            )
-                        ),
-                        tbody(
-                            if transactions.isEmpty then
-                                tr(
-                                    td(colspan := "8", cls := "p-4 text-center")(
-                                        "No transactions found"
-                                    )
-                                )
-                            else
-                                transactions.map { transaction =>
-                                    tr(cls := "border-t hover:bg-gray-50")(
-                                        td(cls := "p-4")(
-                                            sl.Checkbox(id := s"select-${transaction.id}")
-                                        ),
-                                        td(cls := "p-4")(transaction.date.toString),
-                                        td(cls := "p-4")(
-                                            div(
-                                                transaction.userIdentification.getOrElse("") +
-                                                    transaction.message.map(m =>
-                                                        s" - $m"
-                                                    ).getOrElse("")
-                                            ),
-                                            div(cls := "text-xs text-gray-500")(
-                                                s"Acc: ${transaction.counterAccount.getOrElse("-")}, Bank: ${transaction.counterBankName.getOrElse("-")}"
-                                            )
-                                        ),
-                                        td(cls := s"p-4 ${
-                                                if transaction.amount < 0 then "text-red-600"
-                                                else "text-green-600"
-                                            }")(
-                                            formatAmount(transaction.amount, transaction.currency)
-                                        ),
-                                        td(cls := "p-4")(
-                                            statusBadge(transaction.status)
-                                        ),
-                                        td(cls := "p-4")(
-                                            transaction.status match
-                                                case TransactionStatus.Imported =>
-                                                    div(cls := "text-gray-400 italic")(
-                                                        "Not processed"
-                                                    )
-                                                case _ =>
-                                                    sl.Input(
-                                                        value := transaction.suggestedPayeeName.getOrElse(
-                                                            ""
-                                                        ),
-                                                        placeholder := "Enter payee name"
-                                                    )
-                                        ),
-                                        td(cls := "p-4")(
-                                            transaction.status match
-                                                case TransactionStatus.Imported =>
-                                                    div(cls := "text-gray-400 italic")(
-                                                        "Not processed"
-                                                    )
-                                                case _ =>
-                                                    sl.Select(
-                                                        sl.Option(
-                                                            value := transaction.suggestedCategory.getOrElse(
-                                                                ""
-                                                            ),
-                                                            selected := true
-                                                        )(transaction.suggestedCategory.getOrElse(
-                                                            "Select category"
-                                                        )),
-                                                        sl.Option(value := "groceries")(
-                                                            "Groceries"
-                                                        ),
-                                                        sl.Option(value := "dining")("Dining Out"),
-                                                        sl.Option(value := "utilities")(
-                                                            "Utilities"
-                                                        ),
-                                                        sl.Option(value := "transport")(
-                                                            "Transportation"
-                                                        ),
-                                                        sl.Option(value := "housing")("Housing"),
-                                                        sl.Option(value := "entertainment")(
-                                                            "Entertainment"
-                                                        ),
-                                                        sl.Option(value := "income")("Income"),
-                                                        sl.Option(value := "other")("Other")
-                                                    )
-                                        ),
-                                        td(cls := "p-4")(
-                                            actionButtons(transaction)
-                                        )
-                                    )
-                                }
-                        )
-                    )
+                    transactionTable
                 ),
 
                 // Pagination controls
