@@ -1,6 +1,10 @@
 [
   {
-    "id": "123456",
+    "id": {
+      "sourceAccount": "1234567890",
+      "sourceBank": "0100",
+      "id": "123456"
+    },
     "date": "2025-03-05",
     "amount": -1250.0,
     "currency": "CZK",
@@ -28,7 +32,11 @@
     "submittedAt": null
   },
   {
-    "id": "123457",
+    "id": {
+      "sourceAccount": "1234567890",
+      "sourceBank": "0100",
+      "id": "123457"
+    },
     "date": "2025-03-04",
     "amount": -850.75,
     "currency": "CZK",
@@ -56,7 +64,11 @@
     "submittedAt": null
   },
   {
-    "id": "123458",
+    "id": {
+      "sourceAccount": "1234567890",
+      "sourceBank": "0100",
+      "id": "123458"
+    },
     "date": "2025-03-03",
     "amount": 15000.0,
     "currency": "CZK",

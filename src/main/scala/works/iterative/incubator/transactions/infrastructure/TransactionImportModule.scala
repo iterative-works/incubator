@@ -8,9 +8,6 @@ import zio.interop.catz.*
 import zio.*
 import works.iterative.scalatags.ScalatagsSupport
 import works.iterative.scalatags.components.ScalatagsAppShell
-import java.time.{LocalDate, Instant}
-import zio.json.*
-import zio.stream.ZStream
 import scalatags.text.Frag
 import org.http4s.Response
 import org.http4s.Request
@@ -20,33 +17,24 @@ import cats.data.OptionT
 import cats.syntax.all.*
 import cats.Applicative
 import works.iterative.incubator.components.ScalatagsTailwindTable
-import scalatags.Text.all.*
+import service.TransactionRepository
 
-class TransactionImportModule(appShell: ScalatagsAppShell) extends ZIOWebModule[Any]
+class TransactionImportModule(appShell: ScalatagsAppShell)
+    extends ZIOWebModule[TransactionRepository]
     with ScalatagsSupport:
-    import TransactionImportModule.*
 
     object service:
         // Mock data for initial development
-        def getTransactions: Task[List[TransactionRow]] =
-            for
-                stream <- ZStream.fromResource("mock_transactions.json")
-                    .via(zio.stream.ZPipeline.utf8Decode)
-                    .runCollect
-                jsonStr = stream.mkString
-                transactions <- ZIO.fromEither(jsonStr.fromJson[List[TransactionRow]])
-                    .mapError(err =>
-                        new RuntimeException(s"Failed to parse transaction data: $err")
-                    )
-            yield transactions
+        def getTransactions: WebTask[Seq[Transaction]] =
+            ZIO.serviceWithZIO[TransactionRepository](_.find(TransactionQuery()))
 
-        def processWithAI(transactionIds: List[String]): UIO[Unit] = ZIO.unit // Stub for now
+        def processWithAI(transactionIds: Seq[String]): UIO[Unit] = ZIO.unit // Stub for now
 
-        def submitToYNAB(transactionIds: List[String]): UIO[Unit] = ZIO.unit // Stub for now
+        def submitToYNAB(transactionIds: Seq[String]): UIO[Unit] = ZIO.unit // Stub for now
     end service
 
     object view:
-        def transactionList(transactions: List[TransactionRow]): scalatags.Text.TypedTag[String] =
+        def transactionList(transactions: Seq[Transaction]): scalatags.Text.TypedTag[String] =
             import scalatags.Text.all.*
             import works.iterative.scalatags.sl as sl
 
@@ -62,7 +50,7 @@ class TransactionImportModule(appShell: ScalatagsAppShell) extends ZIOWebModule[
                     case TransactionStatus.Submitted =>
                         sl.Badge(sl.variant := "success")("Submitted")
 
-            def actionButtons(transaction: TransactionRow): scalatags.Text.TypedTag[String] =
+            def actionButtons(transaction: Transaction): scalatags.Text.TypedTag[String] =
                 transaction.status match
                     case TransactionStatus.Imported =>
                         div(cls := "flex gap-2")(
@@ -90,7 +78,7 @@ class TransactionImportModule(appShell: ScalatagsAppShell) extends ZIOWebModule[
             // Define the table columns
             val columns = Seq(
                 // Checkbox column
-                ScalatagsTailwindTable.Column[TransactionRow](
+                ScalatagsTailwindTable.Column[Transaction](
                     header = "",
                     render = tx =>
                         sl.Checkbox(id := s"select-${tx.id}"),
@@ -98,14 +86,14 @@ class TransactionImportModule(appShell: ScalatagsAppShell) extends ZIOWebModule[
                 ),
 
                 // Date column
-                ScalatagsTailwindTable.Column[TransactionRow](
+                ScalatagsTailwindTable.Column[Transaction](
                     header = "Date",
                     render = tx =>
                         span(tx.date.toString)
                 ),
 
                 // Description column
-                ScalatagsTailwindTable.Column[TransactionRow](
+                ScalatagsTailwindTable.Column[Transaction](
                     header = "Description",
                     render = tx =>
                         div(
@@ -120,7 +108,7 @@ class TransactionImportModule(appShell: ScalatagsAppShell) extends ZIOWebModule[
                 ),
 
                 // Amount column
-                ScalatagsTailwindTable.Column[TransactionRow](
+                ScalatagsTailwindTable.Column[Transaction](
                     header = "Amount",
                     render = tx =>
                         span(
@@ -131,14 +119,14 @@ class TransactionImportModule(appShell: ScalatagsAppShell) extends ZIOWebModule[
                 ),
 
                 // Status column
-                ScalatagsTailwindTable.Column[TransactionRow](
+                ScalatagsTailwindTable.Column[Transaction](
                     header = "Status",
                     render = tx =>
                         statusBadge(tx.status)
                 ),
 
                 // Payee column
-                ScalatagsTailwindTable.Column[TransactionRow](
+                ScalatagsTailwindTable.Column[Transaction](
                     header = "Payee",
                     render = tx =>
                         tx.status match
@@ -154,7 +142,7 @@ class TransactionImportModule(appShell: ScalatagsAppShell) extends ZIOWebModule[
                 ),
 
                 // Category column
-                ScalatagsTailwindTable.Column[TransactionRow](
+                ScalatagsTailwindTable.Column[Transaction](
                     header = "Category",
                     render = tx =>
                         tx.status match
@@ -180,7 +168,7 @@ class TransactionImportModule(appShell: ScalatagsAppShell) extends ZIOWebModule[
                 ),
 
                 // Actions column
-                ScalatagsTailwindTable.Column[TransactionRow](
+                ScalatagsTailwindTable.Column[Transaction](
                     header = "Actions",
                     render = tx =>
                         actionButtons(tx)
@@ -268,49 +256,4 @@ class TransactionImportModule(appShell: ScalatagsAppShell) extends ZIOWebModule[
                 )
         }
     end routes
-end TransactionImportModule
-
-object TransactionImportModule:
-    case class TransactionRow(
-        // Source data from FIO
-        id: String, // Unique ID from FIO (column_22)
-        date: java.time.LocalDate, // Transaction date
-        amount: BigDecimal, // Transaction amount
-        currency: String, // Currency code (e.g., CZK)
-        counterAccount: Option[String], // Counter account number
-        counterBankCode: Option[String], // Counter bank code
-        counterBankName: Option[String], // Name of the counter bank
-        variableSymbol: Option[String], // Variable symbol
-        constantSymbol: Option[String], // Constant symbol
-        specificSymbol: Option[String], // Specific symbol
-        userIdentification: Option[String], // User identification
-        message: Option[String], // Message for recipient
-        transactionType: String, // Transaction type
-        comment: Option[String], // Comment
-
-        // Processing state
-        status: TransactionStatus, // Imported, Categorized, Submitted
-
-        // AI computed/processed fields for YNAB
-        suggestedPayeeName: Option[String], // AI suggested payee name
-        suggestedCategory: Option[String], // AI suggested category
-        suggestedMemo: Option[String], // AI cleaned/processed memo
-
-        // User overrides (if user wants to adjust AI suggestions)
-        overridePayeeName: Option[String], // User override for payee
-        overrideCategory: Option[String], // User override for category
-        overrideMemo: Option[String], // User override for memo
-
-        // YNAB integration fields
-        ynabTransactionId: Option[String], // ID assigned by YNAB after submission
-        ynabAccountId: Option[String], // YNAB account ID where transaction was submitted
-
-        // Metadata
-        importedAt: java.time.Instant, // When this transaction was imported
-        processedAt: Option[java.time.Instant], // When AI processed this
-        submittedAt: Option[java.time.Instant] // When submitted to YNAB
-    ) derives JsonDecoder
-
-    enum TransactionStatus derives JsonDecoder:
-        case Imported, Categorized, Submitted
 end TransactionImportModule

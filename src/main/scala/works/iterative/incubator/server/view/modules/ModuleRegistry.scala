@@ -1,4 +1,5 @@
-package works.iterative.incubator.server.view.modules
+package works.iterative.incubator.server
+package view.modules
 
 import works.iterative.server.http.ZIOWebModule
 import zio.*
@@ -20,7 +21,7 @@ class ModuleRegistry(
     private val assetsModule = AssetsModule(viteConfig)
     private val transactionImportModule = TransactionImportModule(appShell)
 
-    def modules: List[ZIOWebModule[Any]] = List(
+    def modules: List[ZIOWebModule[AppEnv]] = List(
         helloWorldModule.widen,
         assetsModule.widen,
         transactionImportModule.widen

@@ -16,16 +16,23 @@ lazy val root = (project in file("."))
         IWDeps.logbackClassic,
         IWDeps.scalatags,
         IWDeps.chimney,
+        IWDeps.magnumZIO,
+        IWDeps.magnumPG,
         libraryDependencies ++= Seq(
             "works.iterative.support" %% "iw-support-server-http" % iwSupportVersion,
             "works.iterative.support" %% "iw-support-ui" % iwSupportVersion,
             "works.iterative.support" %% "iw-support-ui-scalatags" % iwSupportVersion,
-            "works.iterative.support" %% "iw-support-forms-http" % iwSupportVersion
+            "works.iterative.support" %% "iw-support-forms-http" % iwSupportVersion,
+            "org.postgresql" % "postgresql" % "42.7.5",
+            "com.zaxxer" % "HikariCP" % "6.2.1"
         ),
         reStart / javaOptions += "-DLOG_LEVEL=DEBUG",
         reStart / envVars ++= Map(
             "BASEURI" -> "/",
             "VITE_BASE" -> "http://localhost:5173/",
-            "VITE_DISTPATH" -> "./target/vite"
+            "VITE_DISTPATH" -> "./target/vite",
+            "PG_URL" -> "jdbc:postgresql://storage:5432/incubator",
+            "PG_USERNAME" -> "incubator",
+            "PG_PASSWORD" -> "*****"
         )
     )

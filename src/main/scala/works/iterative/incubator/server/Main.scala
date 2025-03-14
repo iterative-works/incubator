@@ -12,12 +12,9 @@ import zio.config.typesafe.TypesafeConfigProvider
 import works.iterative.server.http.ZIOWebModule
 import view.modules.*
 import works.iterative.server.http.ScalatagsViteSupport
+import works.iterative.incubator.transactions.infrastructure.PostgreSQLTransactionRepository
 
 object Main extends ZIOAppDefault with ScalatagsSupport:
-
-    type AppEnv = Any
-
-    type AppTask[A] = RIO[AppEnv, A]
 
     def configuredLogger(
         loadConfig: => ZIO[Any, Config.Error, ConsoleLoggerConfig]
@@ -64,10 +61,11 @@ object Main extends ZIOAppDefault with ScalatagsSupport:
 
     def run =
         for
-            _ <- program.provide(
+            _ <- program.provideSome[Scope](
                 BlazeHttpServer.layer,
                 ModuleRegistry.layer,
-                ScalatagsViteSupport.layer
+                ScalatagsViteSupport.layer,
+                PostgreSQLTransactionRepository.layer
             )
         yield ()
 end Main
