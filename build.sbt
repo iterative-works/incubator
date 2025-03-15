@@ -32,7 +32,6 @@ lazy val root = (project in file("."))
             "VITE_BASE" -> "http://localhost:5173/",
             "VITE_DISTPATH" -> "./target/vite",
             "PG_URL" -> "jdbc:postgresql://storage:5432/incubator",
-            "PG_USERNAME" -> "incubator",
-            "PG_PASSWORD" -> "*****"
+            "PG_USERNAME" -> "incubator"
         )
     )
