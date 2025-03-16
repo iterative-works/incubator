@@ -13,16 +13,60 @@ import java.time.LocalDate
 import java.time.Instant
 
 class PostgreSQLTransactionRepository(xa: Transactor) extends TransactionRepository:
-    import PostgreSQLTransactionRepository.transactionRepo
+    import PostgreSQLTransactionRepository.{transactionRepo, TransactionDTO}
 
     override def find(filter: TransactionQuery): UIO[Seq[Transaction]] =
         xa.transact:
-            transactionRepo.findAll.map(_.toTransaction)
+            val spec = Spec[TransactionDTO]
+                .where(
+                    filter.id.map(tid =>
+                        sql"source_account = ${tid.sourceAccount} AND source_bank = ${tid.sourceBank} AND transaction_id = ${tid.id}"
+                    ).getOrElse(sql"")
+                )
+                .where(
+                    filter.status.map(status => sql"status = ${status}").getOrElse(sql"")
+                )
+                .where(
+                    filter.amount.map(amount => sql"amount = ${amount}").getOrElse(sql"")
+                )
+                .where(
+                    filter.currency.map(currency => sql"currency = ${currency}").getOrElse(sql"")
+                )
+                .where(
+                    filter.createdBefore.map(createdBefore =>
+                        sql"created_at < ${java.sql.Timestamp.from(createdBefore)}"
+                    ).getOrElse(sql"")
+                )
+                .where(
+                    filter.createdAfter.map(createdAfter =>
+                        sql"created_at > ${java.sql.Timestamp.from(createdAfter)}"
+                    ).getOrElse(sql"")
+                )
+            transactionRepo.findAll(spec).map(_.toTransaction)
+        .orDie
+    end find
+
+    override def save(key: TransactionId, value: Transaction): UIO[Unit] =
+        xa.transact:
+            if findById(key).isDefined then
+                transactionRepo.update(PostgreSQLTransactionRepository.Transaction.fromModel(value))
+            else
+                transactionRepo.insert(PostgreSQLTransactionRepository.Transaction.fromModel(value))
         .orDie
 
-    override def save(key: TransactionId, value: Transaction): UIO[Unit] = ???
-    override def load(id: TransactionId): UIO[Option[Transaction]] = ???
-    override def loadAll(ids: Seq[TransactionId]): UIO[Seq[Transaction]] = ???
+    private def findById(tid: TransactionId)(using DbCon) =
+        transactionRepo.findAll(
+            Spec[TransactionDTO]
+                .where(
+                    sql"source_account = ${tid.sourceAccount} AND source_bank = ${tid.sourceBank} AND transaction_id = ${tid.id}"
+                )
+                .limit(1)
+        ).headOption
+
+    override def load(id: TransactionId): UIO[Option[Transaction]] =
+        xa.connect:
+            findById(id).map(_.toTransaction)
+        .orDie
 end PostgreSQLTransactionRepository
 
 object PostgreSQLTransactionRepository:
@@ -31,20 +75,29 @@ object PostgreSQLTransactionRepository:
     // Use ZoneId instead of ZoneOffset
     val pragueZone = java.time.ZoneId.of("Europe/Prague")
 
-    given DbCodec[LocalDate] = DbCodec.OffsetDateTimeCodec.biMap(
+    given DbCodec[LocalDate] = DbCodec.SqlDateCodec.biMap(
         d => d.toLocalDate,
-        d => d.atStartOfDay().atZone(pragueZone).toOffsetDateTime()
+        d => java.sql.Date.valueOf(d)
     )
 
-    given DbCodec[Instant] = DbCodec.OffsetDateTimeCodec.biMap(
+    given DbCodec[Instant] = DbCodec.SqlTimestampCodec.biMap(
         i => i.toInstant,
-        i => i.atZone(pragueZone).toOffsetDateTime()
+        i => java.sql.Timestamp.from(i)
     )
 
+    @SqlName("transaction_status")
+    @Table(PostgresDbType, SqlNameMapper.CamelToUpperSnakeCase)
+    enum TransactionStatusDTO derives DbCodec:
+        case Imported, Categorized, Submitted
+    end TransactionStatusDTO
+
+    @SqlName("transaction")
     @Table(PostgresDbType, SqlNameMapper.CamelToSnakeCase)
-    case class Transaction(
+    case class TransactionDTO(
         // Source data from FIO
-        id: TransactionId, // Unique ID from FIO (column_22)
+        sourceAccount: String,
+        sourceBank: String,
+        transactionId: String, // Unique ID from FIO (column_22)
         date: java.time.LocalDate, // Transaction date
         amount: BigDecimal, // Transaction amount
         currency: String, // Currency code (e.g., CZK)
@@ -60,7 +113,7 @@ object PostgreSQLTransactionRepository:
         comment: Option[String], // Comment
 
         // Processing state
-        status: TransactionStatus, // Imported, Categorized, Submitted
+        status: TransactionStatusDTO, // Imported, Categorized, Submitted
 
         // AI computed/processed fields for YNAB
         suggestedPayeeName: Option[String], // AI suggested payee name
@@ -80,11 +133,25 @@ object PostgreSQLTransactionRepository:
         importedAt: java.time.Instant, // When this transaction was imported
         processedAt: Option[java.time.Instant], // When AI processed this
         submittedAt: Option[java.time.Instant] // When submitted to YNAB
-    ):
-        def toTransaction: transactions.Transaction = this.transformInto[transactions.Transaction]
+    ) derives DbCodec:
+        def toTransaction: Transaction = this.into[Transaction]
+            .withFieldComputed(
+                _.id,
+                t => TransactionId(t.sourceAccount, t.sourceBank, t.transactionId)
+            )
+            .transform
+    end TransactionDTO
+
+    object Transaction:
+        def fromModel(model: Transaction): TransactionDTO =
+            model.into[TransactionDTO]
+                .withFieldComputed(_.sourceAccount, _.id.sourceAccount)
+                .withFieldComputed(_.sourceBank, _.id.sourceBank)
+                .withFieldComputed(_.transactionId, _.id.id)
+                .transform
     end Transaction
 
-    val transactionRepo = Repo[Transaction, Transaction, TransactionId]
+    val transactionRepo = Repo[TransactionDTO, TransactionDTO, Null]
 
     val layer: ZLayer[Scope, Throwable, TransactionRepository] =
         val dsLayer: ZLayer[Scope, Throwable, DataSource] = ZLayer.scoped:

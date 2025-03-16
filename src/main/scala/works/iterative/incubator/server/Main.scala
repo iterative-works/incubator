@@ -13,6 +13,8 @@ import works.iterative.server.http.ZIOWebModule
 import view.modules.*
 import works.iterative.server.http.ScalatagsViteSupport
 import works.iterative.incubator.transactions.infrastructure.PostgreSQLTransactionRepository
+import works.iterative.incubator.transactions.infrastructure.adapter.fio.FioTransactionImportService
+import works.iterative.incubator.transactions.infrastructure.adapter.fio.FioClient
 
 object Main extends ZIOAppDefault with ScalatagsSupport:
 
@@ -65,7 +67,9 @@ object Main extends ZIOAppDefault with ScalatagsSupport:
                 BlazeHttpServer.layer,
                 ModuleRegistry.layer,
                 ScalatagsViteSupport.layer,
-                PostgreSQLTransactionRepository.layer
+                PostgreSQLTransactionRepository.layer,
+                FioTransactionImportService.layer,
+                FioClient.live
             )
         yield ()
 end Main

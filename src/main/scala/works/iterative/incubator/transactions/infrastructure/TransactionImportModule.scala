@@ -18,15 +18,36 @@ import cats.syntax.all.*
 import cats.Applicative
 import works.iterative.incubator.components.ScalatagsTailwindTable
 import service.TransactionRepository
+import service.TransactionImportService
+import java.time.LocalDate
+import org.http4s.headers.Location
+import org.http4s.Uri
 
 class TransactionImportModule(appShell: ScalatagsAppShell)
-    extends ZIOWebModule[TransactionRepository]
+    extends ZIOWebModule[TransactionRepository & TransactionImportService]
     with ScalatagsSupport:
 
     object service:
-        // Mock data for initial development
-        def getTransactions: WebTask[Seq[Transaction]] =
-            ZIO.serviceWithZIO[TransactionRepository](_.find(TransactionQuery()))
+        // Get transactions from repository
+        def getTransactions(using
+            req: Request[WebTask]
+        ): WebTask[(Seq[Transaction], Option[String])] =
+            for
+                transactions <-
+                    ZIO.serviceWithZIO[TransactionRepository](_.find(TransactionQuery()))
+            yield (transactions, req.params.get("importStatus"))
+
+        // Import transactions for yesterday
+        def importYesterdayTransactions: WebTask[String] =
+            val today = LocalDate.now()
+            val yesterday = today.minusDays(1)
+            ZIO.serviceWithZIO[TransactionImportService](
+                _.importTransactions(yesterday, today)
+            ).fold(
+                err => s"Failed to import transactions: $err",
+                count => s"Successfully imported $count transactions"
+            )
+        end importYesterdayTransactions
 
         def processWithAI(transactionIds: Seq[String]): UIO[Unit] = ZIO.unit // Stub for now
 
@@ -34,7 +55,10 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
     end service
 
     object view:
-        def transactionList(transactions: Seq[Transaction]): scalatags.Text.TypedTag[String] =
+        def transactionList(
+            transactions: Seq[Transaction],
+            importStatus: Option[String] = None
+        ): scalatags.Text.TypedTag[String] =
             import scalatags.Text.all.*
             import works.iterative.scalatags.sl as sl
 
@@ -185,8 +209,21 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
                 // Header with title and actions
                 div(cls := "flex justify-between items-center mb-4")(
                     h1(cls := "text-2xl font-bold")("Transaction Import"),
-                    sl.Button(sl.variant := "primary")("Import New Transactions")
+
+                    // Import button - simplified for testing
+                    form(action := "/transactions/import-yesterday", method := "post")(
+                        sl.Button(sl.variant := "primary", `type` := "submit")(
+                            "Import Yesterday's Transactions"
+                        )
+                    )
                 ),
+
+                // Import status message (if available)
+                importStatus.map(status =>
+                    div(cls := "mb-4 p-4 bg-green-100 text-green-800 rounded")(
+                        status
+                    )
+                ).getOrElse(frag()),
 
                 // Filters and controls
                 div(cls := "mb-4 flex gap-2 flex-wrap")(
@@ -246,13 +283,36 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
             provide: Request[WebTask] ?=> WebTask[A],
             render: A => Frag
         ): Request[WebTask] => WebTask[Response[WebTask]] =
-            provide(using _).flatMap(data => Ok(appShell.wrap("Transactions", render(data))))
+            req =>
+                provide(using req).flatMap(data =>
+                    Ok(appShell.wrap("Transactions", render(data)))
+                )
+
+        def respondZIOFull[A](
+            provide: Request[WebTask] ?=> WebTask[A],
+            reply: A => WebTask[Response[WebTask]]
+        ): Request[WebTask] => WebTask[Response[WebTask]] =
+            req =>
+                provide(using req).flatMap(resp => reply(resp))
 
         of[WebTask] {
+            // Main transaction listing page
             case GET -> Root / "transactions" =>
                 respondZIO(
                     service.getTransactions,
-                    view.transactionList
+                    (data, status) => view.transactionList(data, status)
+                )
+
+            // Handle the import-yesterday button submission
+            case POST -> Root / "transactions" / "import-yesterday" =>
+                respondZIOFull(
+                    service.importYesterdayTransactions,
+                    importStatus =>
+                        // Redirect back to the transactions page with status message
+                        SeeOther(Location(Uri.unsafeFromString("/transactions").withQueryParam(
+                            "importStatus",
+                            importStatus
+                        )))
                 )
         }
     end routes
