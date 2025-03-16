@@ -24,7 +24,8 @@ lazy val root = (project in file("."))
             "works.iterative.support" %% "iw-support-ui-scalatags" % iwSupportVersion,
             "works.iterative.support" %% "iw-support-forms-http" % iwSupportVersion,
             "org.postgresql" % "postgresql" % "42.7.5",
-            "com.zaxxer" % "HikariCP" % "6.2.1"
+            "com.zaxxer" % "HikariCP" % "6.2.1",
+            "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.43.0" % Test
         ),
         reStart / javaOptions += "-DLOG_LEVEL=DEBUG",
         reStart / envVars ++= Map(
@@ -33,5 +34,6 @@ lazy val root = (project in file("."))
             "VITE_DISTPATH" -> "./target/vite",
             "PG_URL" -> "jdbc:postgresql://storage:5432/incubator",
             "PG_USERNAME" -> "incubator"
-        )
+        ),
+        Test / fork := true
     )
