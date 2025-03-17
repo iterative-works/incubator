@@ -5,7 +5,6 @@ import org.http4s.*
 import org.http4s.server.websocket.WebSocketBuilder2
 import works.iterative.server.http.HttpServer
 import works.iterative.server.http.impl.blaze.BlazeHttpServer
-import works.iterative.scalatags.ScalatagsSupport
 import zio.logging.*
 import com.typesafe.config.ConfigFactory
 import zio.config.typesafe.TypesafeConfigProvider
@@ -16,7 +15,7 @@ import works.iterative.incubator.transactions.infrastructure.PostgreSQLTransacti
 import works.iterative.incubator.transactions.infrastructure.adapter.fio.FioTransactionImportService
 import works.iterative.incubator.transactions.infrastructure.adapter.fio.FioClient
 
-object Main extends ZIOAppDefault with ScalatagsSupport:
+object Main extends ZIOAppDefault:
 
     def configuredLogger(
         loadConfig: => ZIO[Any, Config.Error, ConsoleLoggerConfig]
