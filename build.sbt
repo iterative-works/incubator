@@ -100,6 +100,7 @@ lazy val root = (project in file("."))
             "PG_URL" -> "jdbc:postgresql://storage:5432/incubator",
             "PG_USERNAME" -> "incubator"
         ),
+        reStart / aggregate := false,
         Test / fork := true
     )
     .dependsOn(ynabImporterInfrastructure, ynabImporterWeb)

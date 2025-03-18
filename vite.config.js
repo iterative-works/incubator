@@ -2,6 +2,9 @@ import { defineConfig } from "vite";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import colors from "tailwindcss/colors";
+import typography from "@tailwindcss/typography";
+import forms from "@tailwindcss/forms";
 
 const appPath = ".";
 const modelPath = ".";
@@ -17,6 +20,10 @@ export default defineConfig(({ mode }) => {
           __dirname,
           `${appPath}/src/main/static/stylesheets`,
         ),
+        "ynab-importer": path.resolve(
+          __dirname,
+          `${appPath}/ynab-importer/web/src/main/static`,
+        ),
       },
     },
     // base: "/front/",
@@ -25,12 +32,24 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: path.resolve(__dirname, "main.js"),
+          "ynab-importer": path.resolve(
+            __dirname,
+            `${appPath}/ynab-importer/web/src/main/static/js/main.js`,
+          ),
         },
       },
       outDir: "./target/vite",
     },
     plugins: [
-      tailwindcss(),
+      tailwindcss({
+        content: ["./src/main/scala/**/*.scala"],
+        safelist: [
+          { pattern: /^fill-/ },
+          { pattern: /^text-/ },
+          { pattern: /^bg-/ },
+        ],
+        plugins: [typography, forms],
+      }),
       viteStaticCopy({
         targets: [
           {
