@@ -48,6 +48,8 @@ lazy val ynabImporterInfrastructure = (project in file("ynab-importer/infrastruc
         IWDeps.sttpClient3Core,
         IWDeps.sttpClient3Lib("async-http-client-backend-zio"),
         libraryDependencies ++= Seq(
+            "org.flywaydb" % "flyway-core" % "11.4.0",
+            "org.flywaydb" % "flyway-database-postgresql" % "11.4.0",
             "org.postgresql" % "postgresql" % "42.7.5",
             "com.zaxxer" % "HikariCP" % "6.2.1"
         )
