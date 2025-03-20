@@ -4,9 +4,6 @@ package infrastructure
 
 import zio.*
 import service.TransactionRepository
-import javax.sql.DataSource
-import com.zaxxer.hikari.HikariConfig
-import com.zaxxer.hikari.HikariDataSource
 import com.augustnagro.magnum.PostgresDbType
 import com.augustnagro.magnum.magzio.*
 import java.time.LocalDate
@@ -153,32 +150,13 @@ object PostgreSQLTransactionRepository:
 
     val transactionRepo = Repo[TransactionDTO, TransactionDTO, Null]
 
-    val layer: ZLayer[Scope, Throwable, TransactionRepository] =
-        val dsLayer: ZLayer[Scope, Throwable, DataSource] = ZLayer.scoped:
-            for
-                _ <- ZIO.attempt(Class.forName("org.postgresql.Driver"))
-                config <- ZIO.config[PostgreSQLConfig](PostgreSQLConfig.config)
-                dataSource <- ZIO.attempt {
-                    val conf = HikariConfig()
-                    conf.setJdbcUrl(config.jdbcUrl)
-                    conf.setUsername(config.username)
-                    conf.setPassword(config.password)
-                    conf.setMaximumPoolSize(10)
-                    conf.setMinimumIdle(5)
-                    conf.setConnectionTimeout(30000)
-                    conf.setIdleTimeout(600000)
-                    conf.setMaxLifetime(1800000)
-                    conf.setInitializationFailTimeout(-1)
-                    HikariDataSource(conf)
-                }
-            yield dataSource
-        val tsLayer: ZLayer[Scope, Throwable, Transactor] =
-            dsLayer.flatMap(env => Transactor.layer(env.get[DataSource]))
-
-        tsLayer >>> ZLayer {
-            for
-                transactor <- ZIO.service[Transactor]
-            yield PostgreSQLTransactionRepository(transactor)
+    val layer: ZLayer[PostgreSQLTransactor, Nothing, TransactionRepository] =
+        ZLayer.fromFunction { (ts: PostgreSQLTransactor) =>
+            PostgreSQLTransactionRepository(ts.transactor)
         }
-    end layer
+        
+    val fullLayer: ZLayer[Scope, Throwable, TransactionRepository] =
+        PostgreSQLDataSource.managedLayer >>> 
+        PostgreSQLTransactor.managedLayer >>> 
+        layer
 end PostgreSQLTransactionRepository

@@ -11,7 +11,7 @@ import zio.config.typesafe.TypesafeConfigProvider
 import works.iterative.server.http.ZIOWebModule
 import view.modules.*
 import works.iterative.server.http.ScalatagsViteSupport
-import works.iterative.incubator.transactions.infrastructure.PostgreSQLTransactionRepository
+import works.iterative.incubator.transactions.infrastructure.PosgreSQLDatabaseModule
 import works.iterative.incubator.transactions.infrastructure.adapter.fio.FioTransactionImportService
 import works.iterative.incubator.transactions.infrastructure.adapter.fio.FioClient
 
@@ -66,7 +66,7 @@ object Main extends ZIOAppDefault:
                 BlazeHttpServer.layer,
                 ModuleRegistry.layer,
                 ScalatagsViteSupport.layer,
-                PostgreSQLTransactionRepository.layer,
+                PosgreSQLDatabaseModule.layerWithMigrations, // Use the database module with migrations
                 FioTransactionImportService.layer,
                 FioClient.live
             )
