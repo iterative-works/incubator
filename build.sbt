@@ -4,6 +4,11 @@ ThisBuild / scalaVersion := scala3Version
 
 lazy val iwSupportVersion = "0.1.9-SNAPSHOT"
 
+ThisBuild / resolvers ++= Seq(
+    "IW releases" at "https://dig.iterative.works/maven/releases",
+    "IW snapshots" at "https://dig.iterative.works/maven/snapshots"
+)
+
 // Common dependencies
 lazy val commonDependencies = IWDeps.useZIO() ++ Seq(
     IWDeps.zioLogging,
@@ -44,11 +49,20 @@ lazy val ynabImporterInfrastructure = (project in file("ynab-importer/infrastruc
         IWDeps.sttpClient3Lib("async-http-client-backend-zio"),
         libraryDependencies ++= Seq(
             "org.postgresql" % "postgresql" % "42.7.5",
-            "com.zaxxer" % "HikariCP" % "6.2.1",
-            "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.43.0" % Test
+            "com.zaxxer" % "HikariCP" % "6.2.1"
         )
     )
     .dependsOn(ynabImporterCore)
+
+lazy val ynabImporterInfrastructureIT = (project in file("ynab-importer/infrastructure-it"))
+    .settings(name := "ynab-importer-infrastructure-it")
+    .enablePlugins(IWScalaProjectPlugin)
+    .settings(commonDependencies)
+    .settings(publish / skip := true)
+    .settings(
+        libraryDependencies += "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.43.0" % Test
+    )
+    .dependsOn(ynabImporterCore, ynabImporterInfrastructure)
 
 lazy val ynabImporterApp = (project in file("ynab-importer/app"))
     .settings(name := "ynab-importer-app")
