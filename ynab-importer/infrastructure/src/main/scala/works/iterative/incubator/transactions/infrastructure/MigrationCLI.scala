@@ -9,14 +9,24 @@ object MigrationCLI extends ZIOAppDefault:
     enum Command:
         case Migrate, Clean, Info, Validate, Help
 
-    // Parse command from args
-    def parseCommand(args: Chunk[String]): Command =
-        args.headOption match
+    // Parse command from args and extract locations
+    def parseCommand(args: Chunk[String]): (Command, List[String]) =
+        val command = args.headOption match
             case Some("migrate")  => Command.Migrate
             case Some("clean")    => Command.Clean
             case Some("info")     => Command.Info
             case Some("validate") => Command.Validate
             case _                => Command.Help
+
+        // Extract additional locations if provided
+        val locations =
+            if args.size > 1 && command != Command.Help then
+                args.drop(1).toList
+            else
+                List.empty
+
+        (command, locations)
+    end parseCommand
 
     def printHelp: UIO[Unit] =
         Console.printLine(
@@ -24,32 +34,43 @@ object MigrationCLI extends ZIOAppDefault:
       |Database Migration CLI
       |
       |Available commands:
-      |  migrate   - Run all pending migrations
-      |  clean     - Remove all objects from the database
-      |  info      - Print information about migrations
-      |  validate  - Verify migrations are properly applied
-      |  help      - Show this help
+      |  migrate [locations...]  - Run all pending migrations (optional additional classpath locations)
+      |  clean                   - Remove all objects from the database
+      |  info                    - Print information about migrations
+      |  validate                - Verify migrations are properly applied
+      |  help                    - Show this help
+      |
+      |Examples:
+      |  migrate                 - Run migrations from default locations
+      |  migrate classpath:other/migrations - Run migrations from default and additional locations
       """.stripMargin
         ).orDie
 
     def program: ZIO[ZIOAppArgs & PostgreSQLDataSource & Scope, Throwable, Unit] =
         for
             args <- getArgs
-            command = parseCommand(args)
+            (command, locations) = parseCommand(args)
+            // Use default config or append additional locations to default
+            config = if locations.nonEmpty then
+                FlywayConfig(locations =
+                    FlywayConfig.DefaultLocation :: locations
+                )
+            else
+                FlywayConfig.default
             _ <- command match
                 case Command.Migrate =>
-                    ZIO.logInfo("Running migrations...") *>
-                        PosgreSQLDatabaseModule.migrate
+                    ZIO.logInfo(s"Running migrations with locations: ${
+                            if locations.isEmpty then "default" else locations.mkString(", ")
+                        }") *>
+                        PosgreSQLDatabaseModule.migrate(locations)
                 case Command.Clean =>
                     ZIO.logInfo("Cleaning database...") *>
                         ZIO.scoped {
                             for
-                                ds <- ZIO.service[PostgreSQLDataSource].provideSome[Scope](
-                                    PostgreSQLDataSource.managedLayer
-                                )
+                                ds <- ZIO.service[PostgreSQLDataSource]
                                 migrator <- ZIO.service[FlywayMigrationService].provideSome[
                                     Scope & PostgreSQLDataSource
-                                ](FlywayMigrationService.layer)
+                                ](FlywayMigrationService.layerWithConfig(config))
                                 _ <- migrator.clean()
                             yield ()
                         }
@@ -57,12 +78,10 @@ object MigrationCLI extends ZIOAppDefault:
                     ZIO.logInfo("Migration information:") *>
                         ZIO.scoped {
                             for
-                                ds <- ZIO.service[PostgreSQLDataSource].provideSome[Scope](
-                                    PostgreSQLDataSource.managedLayer
-                                )
+                                ds <- ZIO.service[PostgreSQLDataSource]
                                 migrator <- ZIO.service[FlywayMigrationService].provideSome[
                                     Scope & PostgreSQLDataSource
-                                ](FlywayMigrationService.layer)
+                                ](FlywayMigrationService.layerWithConfig(config))
                                 _ <- migrator.info()
                             yield ()
                         }
@@ -70,12 +89,11 @@ object MigrationCLI extends ZIOAppDefault:
                     ZIO.logInfo("Validating migrations...") *>
                         ZIO.scoped {
                             for
-                                ds <- ZIO.service[PostgreSQLDataSource].provideSome[Scope](
-                                    PostgreSQLDataSource.managedLayer
-                                )
+                                ds <- ZIO.service[PostgreSQLDataSource]
+                                // Use default config or append additional locations to default
                                 migrator <- ZIO.service[FlywayMigrationService].provideSome[
                                     Scope & PostgreSQLDataSource
-                                ](FlywayMigrationService.layer)
+                                ](FlywayMigrationService.layerWithConfig(config))
                                 _ <- migrator.validate()
                                 _ <- ZIO.logInfo("Migrations are valid.")
                             yield ()
@@ -83,6 +101,8 @@ object MigrationCLI extends ZIOAppDefault:
                 case Command.Help =>
                     printHelp
         yield ()
+        end for
+    end program
 
     override def run: ZIO[Scope & ZIOAppArgs, Throwable, Unit] =
         program.provideSome[Scope & ZIOAppArgs](PostgreSQLDataSource.managedLayer)

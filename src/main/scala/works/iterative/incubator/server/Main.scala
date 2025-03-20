@@ -61,14 +61,14 @@ object Main extends ZIOAppDefault:
         yield ()
 
     def run =
-        for
-            _ <- program.provideSome[Scope](
-                BlazeHttpServer.layer,
-                ModuleRegistry.layer,
-                ScalatagsViteSupport.layer,
-                PosgreSQLDatabaseModule.layerWithMigrations, // Use the database module with migrations
-                FioTransactionImportService.layer,
-                FioClient.live
-            )
-        yield ()
+        program.provideSome[Scope](
+            BlazeHttpServer.layer,
+            ModuleRegistry.layer,
+            ScalatagsViteSupport.layer,
+            // The default migration location is automatically included
+            PosgreSQLDatabaseModule.layerWithMigrations(),
+            FioTransactionImportService.layer,
+            FioClient.live
+        )
+    end run
 end Main
