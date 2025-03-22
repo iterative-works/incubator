@@ -120,7 +120,6 @@ class PostgreSQLTransactionProcessingStateRepository(xa: Transactor)
 end PostgreSQLTransactionProcessingStateRepository
 
 object PostgreSQLTransactionProcessingStateRepository:
-    import io.scalaland.chimney.dsl.*
 
     @SqlName("transaction_status")
     @Table(PostgresDbType, SqlNameMapper.CamelToUpperSnakeCase)
