@@ -21,9 +21,10 @@ Integration tests use TestContainers to spin up a PostgreSQL database in a Docke
 
 Before committing changes or creating a pull request, always run the following commands to ensure your code is clean and working properly:
 
-1. `sbtn clean` - Clean all compiled artifacts to ensure a fresh build
-2. `sbtn compile` - Compile the code and verify there are no compiler warnings
-3. `sbtn test` - Run all tests to ensure everything is working correctly
+1. `sbtn scalafmtAll` - Format code according to our style guide
+2. `sbtn clean` - Clean all compiled artifacts to ensure a fresh build
+3. `sbtn compile` - Compile the code and verify there are no compiler warnings
+4. `sbtn test` - Run all tests to ensure everything is working correctly
 
 This cycle helps catch issues early and ensures that our codebase remains clean and maintainable.
 
