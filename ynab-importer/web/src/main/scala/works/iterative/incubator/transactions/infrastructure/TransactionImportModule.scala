@@ -32,7 +32,8 @@ import org.http4s.Uri
   */
 class TransactionImportModule(appShell: ScalatagsAppShell)
     extends ZIOWebModule[
-        TransactionRepository & TransactionProcessingStateRepository & TransactionManagerService & TransactionProcessor
+        TransactionRepository & TransactionProcessingStateRepository & 
+        TransactionManagerService & TransactionProcessor
     ]
     with ScalatagsSupport:
 

@@ -13,7 +13,7 @@ We usually use metals for development. It is useful to run sbt server separately
 
 ### Integration Testing
 
-Integration tests use TestContainers to spin up a PostgreSQL database in a Docker container. The schema is created directly with SQL commands for each test to ensure a clean environment. While Flyway is used for migrations in the production code, the integration tests set up the schema manually to avoid migration-related issues in the test context.
+Integration tests use TestContainers to spin up a PostgreSQL database in a Docker container. The database schema is managed using Flyway migrations, ensuring consistency between tests and production environments. Before each test, Flyway cleans the database and applies all migrations to create a fresh schema.
 
 ## Development Workflow
 
@@ -27,11 +27,22 @@ Before committing changes or creating a pull request, always run the following c
 2. `sbtn clean` - Clean all compiled artifacts to ensure a fresh build
 3. `sbtn compile` - Compile the code and verify there are no compiler warnings
 4. `sbtn test` - Run all tests to ensure everything is working correctly
+5. `sbtn ynabImporterInfrastructureIT/test` - Run integration tests separately
 
 This cycle helps catch issues early and ensures that our codebase remains clean and maintainable.
 
+## Environment Composition
+
+The application uses ZIO's environment for dependency injection. When adding new modules or services:
+
+1. **Define service interfaces** in the core module
+2. **Implement services** in the infrastructure module
+3. **Update AppEnv type** in `src/main/scala/works/iterative/incubator/server/AppEnv.scala` to include any new services
+4. **Add service layers** to `Main.scala` in the `run` method
+5. **Never use asInstanceOf** for environment compatibility - instead, properly extend the AppEnv type
+
 ## Code Style Guidelines
-- **Architecture**: Follow Functional Core/Imperative Shell pattern (see principles.md)
+- **Architecture**: Follow Functional Core/Imperative Shell pattern (see principles.md and ynab-importer/doc/architecture.md)
 - **Formatting**:
   - 4-space indentation, 100 column limit
   - Use new Scala 3 syntax without braces

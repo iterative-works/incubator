@@ -111,31 +111,25 @@ class DefaultTransactionProcessor(
     /** Mark transactions as submitted to YNAB
       */
     override def markTransactionsAsSubmitted(
-        transactionIds: Seq[TransactionId],
-        ynabIds: Seq[String],
+        submissionData: Seq[(TransactionId, String)],
         ynabAccountId: String
     ): Task[Int] =
-        if transactionIds.length != ynabIds.length then
-            ZIO.fail(new IllegalArgumentException(
-                s"Transaction IDs and YNAB IDs must have the same length: ${transactionIds.length} != ${ynabIds.length}"
-            ))
-        else
-            ZIO.foldLeft(transactionIds.zip(ynabIds))(0) { (count, pair) =>
-                val (transactionId, ynabId) = pair
-                for
-                    // Load current processing state
-                    stateOpt <- processingStateRepository.load(transactionId)
+        ZIO.foldLeft(submissionData)(0) { (count, pair) =>
+            val (transactionId, ynabId) = pair
+            for
+                // Load current processing state
+                stateOpt <- processingStateRepository.load(transactionId)
 
-                    updatedCount <- stateOpt match
-                        case None        => ZIO.succeed(count)
-                        case Some(state) =>
-                            // Update the state with YNAB submission info
-                            val updatedState = state.withYnabSubmission(ynabId, ynabAccountId)
-                            processingStateRepository.save(transactionId, updatedState)
-                                .as(count + 1)
-                yield updatedCount
-                end for
-            }
+                updatedCount <- stateOpt match
+                    case None        => ZIO.succeed(count)
+                    case Some(state) =>
+                        // Update the state with YNAB submission info
+                        val updatedState = state.withYnabSubmission(ynabId, ynabAccountId)
+                        processingStateRepository.save(transactionId, updatedState)
+                            .as(count + 1)
+            yield updatedCount
+            end for
+        }
     end markTransactionsAsSubmitted
 end DefaultTransactionProcessor
 

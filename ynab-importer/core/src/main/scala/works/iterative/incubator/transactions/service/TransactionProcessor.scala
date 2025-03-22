@@ -40,18 +40,15 @@ trait TransactionProcessor:
 
     /** Mark transactions as submitted to YNAB
       *
-      * @param transactionIds
-      *   The IDs of the transactions that were submitted
-      * @param ynabIds
-      *   The YNAB transaction IDs assigned to them
+      * @param submissionData
+      *   Pairs of transaction IDs and their corresponding YNAB transaction IDs
       * @param ynabAccountId
       *   The YNAB account ID they were submitted to
       * @return
       *   The number of transactions marked as submitted
       */
     def markTransactionsAsSubmitted(
-        transactionIds: Seq[TransactionId],
-        ynabIds: Seq[String],
+        submissionData: Seq[(TransactionId, String)],
         ynabAccountId: String
     ): Task[Int]
 end TransactionProcessor

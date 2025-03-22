@@ -24,7 +24,7 @@ class ModuleRegistry(
     def modules: List[ZIOWebModule[AppEnv]] = List(
         helloWorldModule.widen,
         assetsModule.widen,
-        transactionImportModule.widen.asInstanceOf[ZIOWebModule[AppEnv]]
+        transactionImportModule.widen
     )
 end ModuleRegistry
 
