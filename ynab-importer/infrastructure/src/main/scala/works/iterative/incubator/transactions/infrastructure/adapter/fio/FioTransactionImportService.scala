@@ -15,8 +15,15 @@ class FioTransactionImportService(
     sourceAccountRepository: SourceAccountRepository
 ) extends TransactionImportService:
 
+    // Simple in-memory cache using ZIO Ref
+    private val sourceAccountCache: Ref[Map[(String, String), Long]] = Unsafe.unsafe { implicit unsafe =>
+        Ref.unsafe.make(Map.empty[(String, String), Long])
+    }
+
     override def importTransactions(from: LocalDate, to: LocalDate): Task[Int] =
         for
+            // Clear the cache at the beginning of each import batch
+            _ <- sourceAccountCache.set(Map.empty)
             response <- fioClient.fetchTransactions(from, to)
             transactions <- mapFioTransactionsToModel(response)
             _ <- ZIO.foreachDiscard(transactions) { transaction =>
@@ -27,6 +34,8 @@ class FioTransactionImportService(
 
     override def importNewTransactions(lastId: Option[Long]): Task[Int] =
         for
+            // Clear the cache at the beginning of each import batch
+            _ <- sourceAccountCache.set(Map.empty)
             id <- ZIO.fromOption(lastId).orElse(ZIO.succeed(0L))
             response <- fioClient.fetchNewTransactions(id)
             transactions <- mapFioTransactionsToModel(response)
@@ -39,14 +48,34 @@ class FioTransactionImportService(
     private def mapFioTransactionsToModel(response: FioResponse): Task[List[Transaction]] =
         val accountId = response.accountStatement.info.accountId
         val bankId = response.accountStatement.info.bankId
-
-        // Find the source account by account ID and bank ID
-        sourceAccountRepository.find(
-            SourceAccountQuery(accountId = Some(accountId), bankId = Some(bankId))
-        ).map(_.headOption) flatMap {
-            case Some(sourceAccount) =>
+        
+        // Try to get the source account ID from the cache first
+        val key = (accountId, bankId)
+        
+        sourceAccountCache.get.flatMap { cache =>
+            cache.get(key) match {
+                case Some(id) => 
+                    // Cache hit
+                    ZIO.succeed(Some(id))
+                case None => 
+                    // Cache miss, query the database and cache the result
+                    sourceAccountRepository.find(
+                        SourceAccountQuery(accountId = Some(accountId), bankId = Some(bankId))
+                    ).flatMap { accounts =>
+                        accounts.headOption match {
+                            case Some(sourceAccount) =>
+                                // Update cache with the found source account ID
+                                sourceAccountCache.update(_ + (key -> sourceAccount.id))
+                                    .as(Some(sourceAccount.id))
+                            case None => 
+                                ZIO.succeed(None)
+                        }
+                    }
+            }
+        } flatMap {
+            case Some(sourceAccountId) =>
                 // We found the matching source account
-                ZIO.succeed(mapTransactions(response, sourceAccount.id))
+                ZIO.succeed(mapTransactions(response, sourceAccountId))
             case None =>
                 // No matching source account found - this is an error condition
                 ZIO.fail(new RuntimeException(
