@@ -11,6 +11,18 @@ We usually use metals for development. It is useful to run sbt server separately
 - **Run with specific test**: `sbtn "ynabImporterInfrastructureIT/testOnly *PostgreSQLTransactionRepositorySpec -- -t 'should save and retrieve a transaction'"`
 - **Format code**: `sbtn scalafmtAll`
 
+## Development Workflow
+
+### Pre-commit/Pre-PR Checklist
+
+Before committing changes or creating a pull request, always run the following commands to ensure your code is clean and working properly:
+
+1. `sbtn clean` - Clean all compiled artifacts to ensure a fresh build
+2. `sbtn compile` - Compile the code and verify there are no compiler warnings
+3. `sbtn test` - Run all tests to ensure everything is working correctly
+
+This cycle helps catch issues early and ensures that our codebase remains clean and maintainable.
+
 ## Code Style Guidelines
 - **Architecture**: Follow Functional Core/Imperative Shell pattern (see principles.md)
 - **Formatting**:
