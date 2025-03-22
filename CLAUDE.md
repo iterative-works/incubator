@@ -19,6 +19,8 @@ Integration tests use TestContainers to spin up a PostgreSQL database in a Docke
 
 ### Pre-commit/Pre-PR Checklist
 
+We are using Github, repository iterative-works/iw-incubator. Each set of changes should be tested locally before pushing to the remote repository and creating a pull request. A standard review process is followed to ensure code quality and consistency.
+
 Before committing changes or creating a pull request, always run the following commands to ensure your code is clean and working properly:
 
 1. `sbtn scalafmtAll` - Format code according to our style guide
