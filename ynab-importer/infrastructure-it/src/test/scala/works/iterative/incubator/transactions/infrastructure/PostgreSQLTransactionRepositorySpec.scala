@@ -14,6 +14,7 @@ import service.{TransactionRepository, TransactionProcessingStateRepository, Sou
 import scala.annotation.nowarn
 import zio.test.TestAspect.sequential
 import org.flywaydb.core.Flyway
+import org.flywaydb.core.api.output.MigrateResult
 
 object PostgreSQLTransactionRepositorySpec extends ZIOSpecDefault:
     private val postgresImage = DockerImageName.parse("postgres:17-alpine")
@@ -82,7 +83,12 @@ object PostgreSQLTransactionRepositorySpec extends ZIOSpecDefault:
         processingStateRepositoryLayer ++ 
         sourceAccountRepositoryLayer
 
-    // Schema setup for the test database - create tables directly instead of using Flyway
+    // Create PostgreSQLDataSource from DataSource for Flyway
+    val postgreSQLDataSourceLayer = dataSourceLayer >>> ZLayer {
+        ZIO.service[DataSource].map(ds => PostgreSQLDataSource(ds))
+    }
+    
+    // For tests, we'll manually create the schema directly
     @nowarn("msg=unused value of type Int")
     val setupDbSchema = ZIO.serviceWithZIO[Transactor] { xa =>
         xa.transact:
