@@ -107,6 +107,12 @@ The database schema reflects our event-centric model:
 - Infrastructure implementations in the shell
 - Generic operations with domain-specific queries
 
+### Performance Optimization
+- In-memory caching using ZIO Ref for thread-safety
+- Caching frequently accessed reference data (like SourceAccount)
+- Cache invalidation at logical boundaries (e.g., import batch starts)
+- Unit tests to verify caching behavior
+
 ### Data Transfer and Mapping
 - DTOs for database communication
 - Chimney for type-safe transformations

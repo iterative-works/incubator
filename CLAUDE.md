@@ -39,5 +39,9 @@ This cycle helps catch issues early and ensures that our codebase remains clean 
   - Methods express intent (e.g., `findBySourceAccount` vs `getByAccount`)
 - **Types**: Full type annotations for public APIs, immutable by default
 - **Error Handling**: Use ZIO effects for error tracking, never throw exceptions
+- **Performance Optimizations**:
+  - Use caching for repeated database lookups (prefer ZIO Ref for thread-safety)
+  - Clear caches at appropriate boundaries to avoid stale data
+  - Document caching behavior in comments and test thoroughly
 - **Testing**: Write tests first, focus on domain invariants
 - **Comments**: Explain "why", not "what" - code should be self-documenting
