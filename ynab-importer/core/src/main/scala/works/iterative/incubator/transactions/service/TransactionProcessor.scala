@@ -6,15 +6,15 @@ import zio.*
 /** Service responsible for processing imported transactions
   *
   * This service is responsible for:
-  * 1. Creating initial processing state records for imported transactions
-  * 2. Applying categorization and processing to transactions
-  * 3. Managing the transaction processing lifecycle
+  *   1. Creating initial processing state records for imported transactions 2. Applying
+  *      categorization and processing to transactions 3. Managing the transaction processing
+  *      lifecycle
   */
 trait TransactionProcessor:
     /** Initialize processing state for newly imported transactions
       *
-      * This method scans for transactions that don't have a processing state
-      * and creates the initial processing state for them.
+      * This method scans for transactions that don't have a processing state and creates the
+      * initial processing state for them.
       *
       * @return
       *   The number of transactions initialized
@@ -23,8 +23,8 @@ trait TransactionProcessor:
 
     /** Process transactions that are in the imported state
       *
-      * This method applies categorization and other processing to transactions
-      * that are in the imported state, moving them to the categorized state.
+      * This method applies categorization and other processing to transactions that are in the
+      * imported state, moving them to the categorized state.
       *
       * @return
       *   The number of transactions processed

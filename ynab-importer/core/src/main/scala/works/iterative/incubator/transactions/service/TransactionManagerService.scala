@@ -6,16 +6,15 @@ import java.time.LocalDate
 
 /** High-level service that coordinates transaction import and processing
   *
-  * This service combines the transaction import and processing lifecycle into a single
-  * orchestrated workflow.
+  * This service combines the transaction import and processing lifecycle into a single orchestrated
+  * workflow.
   */
 trait TransactionManagerService:
     /** Import and process transactions from a date range
       *
       * This method:
-      * 1. Imports transactions from the specified date range
-      * 2. Initializes processing state for the newly imported transactions
-      * 3. Processes the imported transactions
+      *   1. Imports transactions from the specified date range 2. Initializes processing state for
+      *      the newly imported transactions 3. Processes the imported transactions
       *
       * @param from
       *   Start date for the import range
@@ -32,9 +31,8 @@ trait TransactionManagerService:
     /** Import and process new transactions since the last import
       *
       * This method:
-      * 1. Imports new transactions since the last import
-      * 2. Initializes processing state for the newly imported transactions
-      * 3. Processes the imported transactions
+      *   1. Imports new transactions since the last import 2. Initializes processing state for the
+      *      newly imported transactions 3. Processes the imported transactions
       *
       * @param lastId
       *   Optional ID of the last imported transaction
@@ -55,13 +53,13 @@ object TransactionManagerService:
     ):
         /** Total number of transactions affected */
         def totalAffected: Int = importedCount
-        
+
         /** Were any transactions imported? */
         def hasImported: Boolean = importedCount > 0
-        
+
         /** Were all imported transactions initialized? */
         def allInitialized: Boolean = initializedCount >= importedCount
-        
+
         /** A human-readable summary string */
         def summaryString: String =
             s"Imported: $importedCount, Initialized: $initializedCount, Processed: $processedCount"

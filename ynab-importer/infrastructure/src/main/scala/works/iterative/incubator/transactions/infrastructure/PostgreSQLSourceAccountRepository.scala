@@ -67,7 +67,7 @@ class PostgreSQLSourceAccountRepository(xa: Transactor) extends SourceAccountRep
         // Load the account, modify it, then save it through the standard save method
         for
             accountOpt <- load(id)
-            _ <- ZIO.foreach(accountOpt)(account => 
+            _ <- ZIO.foreach(accountOpt)(account =>
                 save(id, account.copy(lastSyncTime = Some(syncTime)))
             )
         yield ()
@@ -84,7 +84,9 @@ class PostgreSQLSourceAccountRepository(xa: Transactor) extends SourceAccountRep
         xa.connect:
             val spec = Spec[SourceAccountDTO]
                 .where(sql"active = true")
-                .where(sql"last_sync_time IS NULL OR last_sync_time < ${java.sql.Timestamp.from(cutoffTime)}")
+                .where(
+                    sql"last_sync_time IS NULL OR last_sync_time < ${java.sql.Timestamp.from(cutoffTime)}"
+                )
             sourceAccountRepo.findAll(spec).map(_.toModel)
         .orDie
 end PostgreSQLSourceAccountRepository

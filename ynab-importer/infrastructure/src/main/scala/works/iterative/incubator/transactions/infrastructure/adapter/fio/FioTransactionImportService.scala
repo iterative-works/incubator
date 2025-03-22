@@ -16,9 +16,9 @@ class FioTransactionImportService(
 ) extends TransactionImportService:
 
     // Simple in-memory cache using ZIO Ref
-    private val sourceAccountCache: Ref[Map[(String, String), Long]] = Unsafe.unsafe { implicit unsafe =>
-        Ref.unsafe.make(Map.empty[(String, String), Long])
-    }
+    private val sourceAccountCache: Ref[Map[(String, String), Long]] =
+        Unsafe.unsafely:
+            Ref.unsafe.make(Map.empty[(String, String), Long])
 
     override def importTransactions(from: LocalDate, to: LocalDate): Task[Int] =
         for
@@ -48,30 +48,28 @@ class FioTransactionImportService(
     private def mapFioTransactionsToModel(response: FioResponse): Task[List[Transaction]] =
         val accountId = response.accountStatement.info.accountId
         val bankId = response.accountStatement.info.bankId
-        
+
         // Try to get the source account ID from the cache first
         val key = (accountId, bankId)
-        
+
         sourceAccountCache.get.flatMap { cache =>
-            cache.get(key) match {
-                case Some(id) => 
+            cache.get(key) match
+                case Some(id) =>
                     // Cache hit
                     ZIO.succeed(Some(id))
-                case None => 
+                case None =>
                     // Cache miss, query the database and cache the result
                     sourceAccountRepository.find(
                         SourceAccountQuery(accountId = Some(accountId), bankId = Some(bankId))
                     ).flatMap { accounts =>
-                        accounts.headOption match {
+                        accounts.headOption match
                             case Some(sourceAccount) =>
                                 // Update cache with the found source account ID
                                 sourceAccountCache.update(_ + (key -> sourceAccount.id))
                                     .as(Some(sourceAccount.id))
-                            case None => 
+                            case None =>
                                 ZIO.succeed(None)
-                        }
                     }
-            }
         } flatMap {
             case Some(sourceAccountId) =>
                 // We found the matching source account
@@ -82,13 +80,17 @@ class FioTransactionImportService(
                     s"No source account found for account ID $accountId and bank ID $bankId"
                 ))
         }
+    end mapFioTransactionsToModel
 
     /** Maps FIO transaction data to our domain model
-     * 
-     * @param response The parsed FIO API response
-     * @param sourceAccountId The resolved internal source account ID
-     * @return List of domain Transaction objects
-     */
+      *
+      * @param response
+      *   The parsed FIO API response
+      * @param sourceAccountId
+      *   The resolved internal source account ID
+      * @return
+      *   List of domain Transaction objects
+      */
     private def mapTransactions(response: FioResponse, sourceAccountId: Long): List[Transaction] =
         response.accountStatement.transactionList.transaction.map { fioTx =>
             val txId = fioTx.column22.map(_.value.toString).getOrElse(
@@ -139,17 +141,17 @@ class FioTransactionImportService(
                 // Set metadata
                 importedAt = Instant.now()
             )
-            
+
             transaction
         }
 end FioTransactionImportService
 
 object FioTransactionImportService:
     val layer: ZLayer[
-        FioClient & 
-        TransactionRepository & 
-        SourceAccountRepository, 
-        Config.Error, 
+        FioClient &
+            TransactionRepository &
+            SourceAccountRepository,
+        Config.Error,
         TransactionImportService
     ] =
         ZLayer {

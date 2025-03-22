@@ -25,18 +25,19 @@ import java.time.LocalDate
 import org.http4s.headers.Location
 import org.http4s.Uri
 
-/**
- * Web module for transaction import and management
- * 
- * This module provides UI for importing transactions, viewing them, and managing their processing state.
- */
+/** Web module for transaction import and management
+  *
+  * This module provides UI for importing transactions, viewing them, and managing their processing
+  * state.
+  */
 class TransactionImportModule(appShell: ScalatagsAppShell)
-    extends ZIOWebModule[TransactionRepository & TransactionProcessingStateRepository & TransactionManagerService & TransactionProcessor]
+    extends ZIOWebModule[
+        TransactionRepository & TransactionProcessingStateRepository & TransactionManagerService & TransactionProcessor
+    ]
     with ScalatagsSupport:
 
-    /**
-     * Case class to combine Transaction with its processing state for the UI
-     */
+    /** Case class to combine Transaction with its processing state for the UI
+      */
     case class TransactionWithState(
         transaction: Transaction,
         state: Option[TransactionProcessingState]
@@ -50,7 +51,7 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
         def counterBankName = transaction.counterBankName
         def userIdentification = transaction.userIdentification
         def message = transaction.message
-        
+
         // Processing state related accessors with fallbacks
         def status = state.map(_.status).getOrElse(TransactionStatus.Imported)
         def suggestedPayeeName = state.flatMap(_.suggestedPayeeName)
@@ -74,17 +75,17 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
                 transactions <- ZIO.serviceWithZIO[TransactionRepository](
                     _.find(TransactionQuery())
                 )
-                
+
                 // Get all processing states
                 processingStates <- ZIO.serviceWithZIO[TransactionProcessingStateRepository](
                     _.find(TransactionProcessingStateQuery())
                 )
-                
+
                 // Group processing states by transaction ID for efficient lookup
                 statesByTxId = processingStates.groupBy(_.transactionId)
-                
+
                 // Combine transactions with their states
-                combined = transactions.map(tx => 
+                combined = transactions.map(tx =>
                     TransactionWithState(tx, statesByTxId.get(tx.id).flatMap(_.headOption))
                 )
             yield (combined, req.params.get("importStatus"))
@@ -97,10 +98,10 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
                 _.importAndProcessTransactions(yesterday, today)
             ).fold(
                 err => s"Failed to import transactions: $err",
-                summary => 
+                summary =>
                     s"Successfully imported ${summary.importedCount} transactions, " +
-                    s"initialized ${summary.initializedCount}, " +
-                    s"processed ${summary.processedCount}"
+                        s"initialized ${summary.initializedCount}, " +
+                        s"processed ${summary.processedCount}"
             )
         end importYesterdayTransactions
 
@@ -109,18 +110,21 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
             // For now we'll just call our processor to process all imported transactions
             ZIO.serviceWithZIO[TransactionProcessor](
                 _.processImportedTransactions()
-            ).catchAll(err => 
+            ).catchAll(err =>
                 ZIO.logError(s"Failed to process transactions: $err") *> ZIO.succeed(0)
             )
-            
+
         // Submit transactions to YNAB
-        def submitToYNAB(transactionIds: Seq[TransactionId]): WebTask[Seq[(Transaction, TransactionProcessingState)]] = 
+        def submitToYNAB(transactionIds: Seq[TransactionId])
+            : WebTask[Seq[(Transaction, TransactionProcessingState)]] =
             // This is a stub that just gets transactions ready for submission
             // In a real implementation, you'd call a YNAB API client here
             ZIO.serviceWithZIO[TransactionProcessor](
                 _.findTransactionsReadyForSubmission()
-            ).catchAll(err => 
-                ZIO.logError(s"Failed to find transactions ready for submission: $err") *> ZIO.succeed(Seq.empty)
+            ).catchAll(err =>
+                ZIO.logError(
+                    s"Failed to find transactions ready for submission: $err"
+                ) *> ZIO.succeed(Seq.empty)
             )
     end service
 
@@ -175,7 +179,9 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
                 ScalatagsTailwindTable.Column[TransactionWithState](
                     header = "",
                     render = tx =>
-                        sl.Checkbox(id := s"select-${tx.id.sourceAccountId}-${tx.id.transactionId}"),
+                        sl.Checkbox(
+                            id := s"select-${tx.id.sourceAccountId}-${tx.id.transactionId}"
+                        ),
                     className = _ => "w-10"
                 ),
 

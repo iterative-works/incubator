@@ -41,7 +41,7 @@ object PosgreSQLDatabaseModule:
             FlywayConfig(locations = FlywayConfig.DefaultLocation :: additionalLocations)
         else
             FlywayConfig.default
-    
+
     /** Creates a ZLayer with all repositories and runs migrations first
       *
       * @param additionalLocations

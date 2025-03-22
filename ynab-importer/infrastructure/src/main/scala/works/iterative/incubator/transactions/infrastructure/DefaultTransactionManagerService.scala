@@ -15,7 +15,7 @@ class DefaultTransactionManagerService(
 ) extends TransactionManagerService:
 
     import TransactionManagerService.ImportSummary
-    
+
     override def importAndProcessTransactions(
         from: LocalDate,
         to: LocalDate
@@ -23,31 +23,35 @@ class DefaultTransactionManagerService(
         for
             // Step 1: Import transactions
             importedCount <- importService.importTransactions(from, to)
-            
+
             // Step 2: Initialize processing state for imported transactions
             initializedCount <- processor.initializeNewTransactions()
-            
+
             // Step 3: Process the imported transactions
             processedCount <- processor.processImportedTransactions()
         yield ImportSummary(importedCount, initializedCount, processedCount)
-    
+
     override def importAndProcessNewTransactions(
         lastId: Option[Long] = None
     ): Task[ImportSummary] =
         for
             // Step 1: Import new transactions
             importedCount <- importService.importNewTransactions(lastId)
-            
+
             // Step 2: Initialize processing state for imported transactions
             initializedCount <- processor.initializeNewTransactions()
-            
+
             // Step 3: Process the imported transactions
             processedCount <- processor.processImportedTransactions()
         yield ImportSummary(importedCount, initializedCount, processedCount)
 end DefaultTransactionManagerService
 
 object DefaultTransactionManagerService:
-    val layer: ZLayer[TransactionImportService & TransactionProcessor, Nothing, TransactionManagerService] =
+    val layer: ZLayer[
+        TransactionImportService & TransactionProcessor,
+        Nothing,
+        TransactionManagerService
+    ] =
         ZLayer {
             for
                 importService <- ZIO.service[TransactionImportService]
