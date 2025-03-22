@@ -14,6 +14,8 @@ import works.iterative.server.http.ScalatagsViteSupport
 import works.iterative.incubator.transactions.infrastructure.PosgreSQLDatabaseModule
 import works.iterative.incubator.transactions.infrastructure.adapter.fio.FioTransactionImportService
 import works.iterative.incubator.transactions.infrastructure.adapter.fio.FioClient
+import works.iterative.incubator.transactions.infrastructure.DefaultTransactionProcessor
+import works.iterative.incubator.transactions.infrastructure.DefaultTransactionManagerService
 
 object Main extends ZIOAppDefault:
 
@@ -68,7 +70,9 @@ object Main extends ZIOAppDefault:
             // The default migration location is automatically included
             PosgreSQLDatabaseModule.layerWithMigrations(),
             FioTransactionImportService.layer,
-            FioClient.live
+            FioClient.live,
+            DefaultTransactionProcessor.layer,
+            DefaultTransactionManagerService.layer
         )
     end run
 end Main

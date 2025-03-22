@@ -7,13 +7,11 @@ import java.time.LocalDate
 import java.time.Instant
 import service.TransactionImportService
 import service.TransactionRepository
-import service.TransactionProcessingStateRepository
 import service.SourceAccountRepository
 
 class FioTransactionImportService(
     fioClient: FioClient,
     transactionRepository: TransactionRepository,
-    processingStateRepository: TransactionProcessingStateRepository,
     sourceAccountRepository: SourceAccountRepository
 ) extends TransactionImportService:
 
@@ -22,13 +20,8 @@ class FioTransactionImportService(
             response <- fioClient.fetchTransactions(from, to)
             transactions <- mapFioTransactionsToModel(response)
             _ <- ZIO.foreachDiscard(transactions) { transaction =>
-                for
-                    // First save the immutable transaction
-                    _ <- transactionRepository.save(transaction.id, transaction)
-                    // Then create and save the initial processing state
-                    initialState = TransactionProcessingState.initial(transaction)
-                    _ <- processingStateRepository.save(transaction.id, initialState)
-                yield ()
+                // Only save the immutable transaction
+                transactionRepository.save(transaction.id, transaction)
             }
         yield transactions.size
 
@@ -38,13 +31,8 @@ class FioTransactionImportService(
             response <- fioClient.fetchNewTransactions(id)
             transactions <- mapFioTransactionsToModel(response)
             _ <- ZIO.foreachDiscard(transactions) { transaction =>
-                for
-                    // First save the immutable transaction
-                    _ <- transactionRepository.save(transaction.id, transaction)
-                    // Then create and save the initial processing state
-                    initialState = TransactionProcessingState.initial(transaction)
-                    _ <- processingStateRepository.save(transaction.id, initialState)
-                yield ()
+                // Only save the immutable transaction
+                transactionRepository.save(transaction.id, transaction)
             }
         yield transactions.size
 
@@ -131,7 +119,6 @@ object FioTransactionImportService:
     val layer: ZLayer[
         FioClient & 
         TransactionRepository & 
-        TransactionProcessingStateRepository & 
         SourceAccountRepository, 
         Config.Error, 
         TransactionImportService
@@ -140,8 +127,7 @@ object FioTransactionImportService:
             for
                 client <- ZIO.service[FioClient]
                 txRepo <- ZIO.service[TransactionRepository]
-                stateRepo <- ZIO.service[TransactionProcessingStateRepository]
                 sourceRepo <- ZIO.service[SourceAccountRepository]
-            yield FioTransactionImportService(client, txRepo, stateRepo, sourceRepo)
+            yield FioTransactionImportService(client, txRepo, sourceRepo)
         }
 end FioTransactionImportService

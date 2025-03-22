@@ -20,6 +20,8 @@ import works.iterative.incubator.components.ScalatagsTailwindTable
 import service.TransactionRepository
 import service.TransactionProcessingStateRepository
 import service.TransactionImportService
+import service.TransactionProcessor
+import service.TransactionManagerService
 import java.time.LocalDate
 import org.http4s.headers.Location
 import org.http4s.Uri
@@ -30,7 +32,7 @@ import org.http4s.Uri
  * This module provides UI for importing transactions, viewing them, and managing their processing state.
  */
 class TransactionImportModule(appShell: ScalatagsAppShell)
-    extends ZIOWebModule[TransactionRepository & TransactionProcessingStateRepository & TransactionImportService]
+    extends ZIOWebModule[TransactionRepository & TransactionProcessingStateRepository & TransactionManagerService & TransactionProcessor]
     with ScalatagsSupport:
 
     /**
@@ -88,20 +90,39 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
                 )
             yield (combined, req.params.get("importStatus"))
 
-        // Import transactions for yesterday
+        // Import and process transactions for yesterday
         def importYesterdayTransactions: WebTask[String] =
             val today = LocalDate.now()
             val yesterday = today.minusDays(1)
-            ZIO.serviceWithZIO[TransactionImportService](
-                _.importTransactions(yesterday, today)
+            ZIO.serviceWithZIO[TransactionManagerService](
+                _.importAndProcessTransactions(yesterday, today)
             ).fold(
                 err => s"Failed to import transactions: $err",
-                count => s"Successfully imported $count transactions"
+                summary => 
+                    s"Successfully imported ${summary.importedCount} transactions, " +
+                    s"initialized ${summary.initializedCount}, " +
+                    s"processed ${summary.processedCount}"
             )
         end importYesterdayTransactions
 
-        def processWithAI(transactionIds: Seq[TransactionId]): UIO[Unit] = ZIO.unit // Stub for now
-        def submitToYNAB(transactionIds: Seq[TransactionId]): UIO[Unit] = ZIO.unit // Stub for now
+        // Process transactions with AI categorization
+        def processWithAI(transactionIds: Seq[TransactionId]): WebTask[Int] =
+            // For now we'll just call our processor to process all imported transactions
+            ZIO.serviceWithZIO[TransactionProcessor](
+                _.processImportedTransactions()
+            ).catchAll(err => 
+                ZIO.logError(s"Failed to process transactions: $err") *> ZIO.succeed(0)
+            )
+            
+        // Submit transactions to YNAB
+        def submitToYNAB(transactionIds: Seq[TransactionId]): WebTask[Seq[(Transaction, TransactionProcessingState)]] = 
+            // This is a stub that just gets transactions ready for submission
+            // In a real implementation, you'd call a YNAB API client here
+            ZIO.serviceWithZIO[TransactionProcessor](
+                _.findTransactionsReadyForSubmission()
+            ).catchAll(err => 
+                ZIO.logError(s"Failed to find transactions ready for submission: $err") *> ZIO.succeed(Seq.empty)
+            )
     end service
 
     object view:
