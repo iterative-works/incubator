@@ -18,24 +18,75 @@ import cats.syntax.all.*
 import cats.Applicative
 import works.iterative.incubator.components.ScalatagsTailwindTable
 import service.TransactionRepository
+import service.TransactionProcessingStateRepository
 import service.TransactionImportService
 import java.time.LocalDate
 import org.http4s.headers.Location
 import org.http4s.Uri
 
+/**
+ * Web module for transaction import and management
+ * 
+ * This module provides UI for importing transactions, viewing them, and managing their processing state.
+ */
 class TransactionImportModule(appShell: ScalatagsAppShell)
-    extends ZIOWebModule[TransactionRepository & TransactionImportService]
+    extends ZIOWebModule[TransactionRepository & TransactionProcessingStateRepository & TransactionImportService]
     with ScalatagsSupport:
 
+    /**
+     * Case class to combine Transaction with its processing state for the UI
+     */
+    case class TransactionWithState(
+        transaction: Transaction,
+        state: Option[TransactionProcessingState]
+    ):
+        // Convenience accessors to avoid lots of transaction.x and state.get.y in the view
+        def id = transaction.id
+        def date = transaction.date
+        def amount = transaction.amount
+        def currency = transaction.currency
+        def counterAccount = transaction.counterAccount
+        def counterBankName = transaction.counterBankName
+        def userIdentification = transaction.userIdentification
+        def message = transaction.message
+        
+        // Processing state related accessors with fallbacks
+        def status = state.map(_.status).getOrElse(TransactionStatus.Imported)
+        def suggestedPayeeName = state.flatMap(_.suggestedPayeeName)
+        def suggestedCategory = state.flatMap(_.suggestedCategory)
+        def suggestedMemo = state.flatMap(_.suggestedMemo)
+        def overridePayeeName = state.flatMap(_.overridePayeeName)
+        def overrideCategory = state.flatMap(_.overrideCategory)
+        def overrideMemo = state.flatMap(_.overrideMemo)
+        def effectivePayeeName = state.flatMap(_.effectivePayeeName)
+        def effectiveCategory = state.flatMap(_.effectiveCategory)
+        def effectiveMemo = state.flatMap(_.effectiveMemo)
+    end TransactionWithState
+
     object service:
-        // Get transactions from repository
-        def getTransactions(using
+        // Get transactions with their processing states
+        def getTransactionsWithState(using
             req: Request[WebTask]
-        ): WebTask[(Seq[Transaction], Option[String])] =
+        ): WebTask[(Seq[TransactionWithState], Option[String])] =
             for
-                transactions <-
-                    ZIO.serviceWithZIO[TransactionRepository](_.find(TransactionQuery()))
-            yield (transactions, req.params.get("importStatus"))
+                // Get all transactions
+                transactions <- ZIO.serviceWithZIO[TransactionRepository](
+                    _.find(TransactionQuery())
+                )
+                
+                // Get all processing states
+                processingStates <- ZIO.serviceWithZIO[TransactionProcessingStateRepository](
+                    _.find(TransactionProcessingStateQuery())
+                )
+                
+                // Group processing states by transaction ID for efficient lookup
+                statesByTxId = processingStates.groupBy(_.transactionId)
+                
+                // Combine transactions with their states
+                combined = transactions.map(tx => 
+                    TransactionWithState(tx, statesByTxId.get(tx.id).flatMap(_.headOption))
+                )
+            yield (combined, req.params.get("importStatus"))
 
         // Import transactions for yesterday
         def importYesterdayTransactions: WebTask[String] =
@@ -49,14 +100,13 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
             )
         end importYesterdayTransactions
 
-        def processWithAI(transactionIds: Seq[String]): UIO[Unit] = ZIO.unit // Stub for now
-
-        def submitToYNAB(transactionIds: Seq[String]): UIO[Unit] = ZIO.unit // Stub for now
+        def processWithAI(transactionIds: Seq[TransactionId]): UIO[Unit] = ZIO.unit // Stub for now
+        def submitToYNAB(transactionIds: Seq[TransactionId]): UIO[Unit] = ZIO.unit // Stub for now
     end service
 
     object view:
         def transactionList(
-            transactions: Seq[Transaction],
+            transactions: Seq[TransactionWithState],
             importStatus: Option[String] = None
         ): scalatags.Text.TypedTag[String] =
             import scalatags.Text.all.*
@@ -74,8 +124,8 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
                     case TransactionStatus.Submitted =>
                         sl.Badge(sl.variant := "success")("Submitted")
 
-            def actionButtons(transaction: Transaction): scalatags.Text.TypedTag[String] =
-                transaction.status match
+            def actionButtons(tx: TransactionWithState): scalatags.Text.TypedTag[String] =
+                tx.status match
                     case TransactionStatus.Imported =>
                         div(cls := "flex gap-2")(
                             sl.Button(sl.size := "small", sl.variant := "primary")(
@@ -102,22 +152,22 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
             // Define the table columns
             val columns = Seq(
                 // Checkbox column
-                ScalatagsTailwindTable.Column[Transaction](
+                ScalatagsTailwindTable.Column[TransactionWithState](
                     header = "",
                     render = tx =>
-                        sl.Checkbox(id := s"select-${tx.id}"),
+                        sl.Checkbox(id := s"select-${tx.id.sourceAccountId}-${tx.id.transactionId}"),
                     className = _ => "w-10"
                 ),
 
                 // Date column
-                ScalatagsTailwindTable.Column[Transaction](
+                ScalatagsTailwindTable.Column[TransactionWithState](
                     header = "Date",
                     render = tx =>
                         span(tx.date.toString)
                 ),
 
                 // Description column
-                ScalatagsTailwindTable.Column[Transaction](
+                ScalatagsTailwindTable.Column[TransactionWithState](
                     header = "Description",
                     render = tx =>
                         div(
@@ -132,7 +182,7 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
                 ),
 
                 // Amount column
-                ScalatagsTailwindTable.Column[Transaction](
+                ScalatagsTailwindTable.Column[TransactionWithState](
                     header = "Amount",
                     render = tx =>
                         span(
@@ -143,14 +193,14 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
                 ),
 
                 // Status column
-                ScalatagsTailwindTable.Column[Transaction](
+                ScalatagsTailwindTable.Column[TransactionWithState](
                     header = "Status",
                     render = tx =>
                         statusBadge(tx.status)
                 ),
 
                 // Payee column
-                ScalatagsTailwindTable.Column[Transaction](
+                ScalatagsTailwindTable.Column[TransactionWithState](
                     header = "Payee",
                     render = tx =>
                         tx.status match
@@ -160,13 +210,13 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
                                 )
                             case _ =>
                                 sl.Input(
-                                    value := tx.suggestedPayeeName.getOrElse(""),
+                                    value := tx.effectivePayeeName.getOrElse(""),
                                     placeholder := "Enter payee name"
                                 )
                 ),
 
                 // Category column
-                ScalatagsTailwindTable.Column[Transaction](
+                ScalatagsTailwindTable.Column[TransactionWithState](
                     header = "Category",
                     render = tx =>
                         tx.status match
@@ -177,9 +227,9 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
                             case _ =>
                                 sl.Select(
                                     sl.Option(
-                                        value := tx.suggestedCategory.getOrElse(""),
+                                        value := tx.effectiveCategory.getOrElse(""),
                                         selected := true
-                                    )(tx.suggestedCategory.getOrElse("Select category")),
+                                    )(tx.effectiveCategory.getOrElse("Select category")),
                                     sl.Option(value := "groceries")("Groceries"),
                                     sl.Option(value := "dining")("Dining Out"),
                                     sl.Option(value := "utilities")("Utilities"),
@@ -192,7 +242,7 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
                 ),
 
                 // Actions column
-                ScalatagsTailwindTable.Column[Transaction](
+                ScalatagsTailwindTable.Column[TransactionWithState](
                     header = "Actions",
                     render = tx =>
                         actionButtons(tx)
@@ -299,7 +349,7 @@ class TransactionImportModule(appShell: ScalatagsAppShell)
             // Main transaction listing page
             case GET -> Root / "transactions" =>
                 respondZIO(
-                    service.getTransactions,
+                    service.getTransactionsWithState,
                     (data, status) => view.transactionList(data, status)
                 )
 

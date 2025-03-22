@@ -12,6 +12,7 @@ import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import service.SourceAccountRepository
 import scala.annotation.nowarn
 import zio.test.TestAspect.sequential
+import org.flywaydb.core.Flyway
 
 object PostgreSQLSourceAccountRepositorySpec extends ZIOSpecDefault:
     private val postgresImage = DockerImageName.parse("postgres:17-alpine")
@@ -61,7 +62,7 @@ object PostgreSQLSourceAccountRepositorySpec extends ZIOSpecDefault:
             yield PostgreSQLSourceAccountRepository(transactor)
         }
 
-    // Schema setup for the test database
+    // Schema setup for the test database - create tables directly instead of using Flyway
     @nowarn("msg=unused value of type Int")
     val setupDbSchema = ZIO.serviceWithZIO[Transactor] { xa =>
         xa.transact:
@@ -72,9 +73,14 @@ object PostgreSQLSourceAccountRepositorySpec extends ZIOSpecDefault:
 
             sql"""-- Create the source_account table
             CREATE TABLE source_account (
-                id BIGSERIAL PRIMARY KEY,
+                id BIGINT PRIMARY KEY,
                 account_id VARCHAR(255) NOT NULL,
                 bank_id VARCHAR(255) NOT NULL,
+                name VARCHAR(255) NOT NULL DEFAULT 'Unnamed Account',
+                currency VARCHAR(3) NOT NULL DEFAULT 'CZK',
+                ynab_account_id VARCHAR(255),
+                active BOOLEAN NOT NULL DEFAULT true,
+                last_sync_time TIMESTAMP WITH TIME ZONE,
                 UNIQUE(account_id, bank_id)
             );""".update.run()
         .orDie
@@ -85,7 +91,12 @@ object PostgreSQLSourceAccountRepositorySpec extends ZIOSpecDefault:
         SourceAccount(
             id = id,
             accountId = "123456789",
-            bankId = "0800"
+            bankId = "0800",
+            name = "Test Account",
+            currency = "CZK",
+            ynabAccountId = None,
+            active = true,
+            lastSyncTime = None
         )
 
     def spec = suite("PostgreSQLSourceAccountRepository")(

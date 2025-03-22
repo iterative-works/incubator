@@ -10,9 +10,10 @@ import com.dimafeng.testcontainers.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import javax.sql.DataSource
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
-import service.TransactionRepository
+import service.{TransactionRepository, TransactionProcessingStateRepository, SourceAccountRepository}
 import scala.annotation.nowarn
 import zio.test.TestAspect.sequential
+import org.flywaydb.core.Flyway
 
 object PostgreSQLTransactionRepositorySpec extends ZIOSpecDefault:
     private val postgresImage = DockerImageName.parse("postgres:17-alpine")
@@ -54,26 +55,43 @@ object PostgreSQLTransactionRepositorySpec extends ZIOSpecDefault:
     val transactorLayer =
         dataSourceLayer.flatMap(env => Transactor.layer(env.get[DataSource]))
 
-    // Setup the repository layer for testing
-    val repositoryLayer =
+    // Setup the repository layers for testing
+    val transactionRepositoryLayer =
         transactorLayer >+> ZLayer {
             for
                 transactor <- ZIO.service[Transactor]
             yield PostgreSQLTransactionRepository(transactor)
         }
+        
+    val processingStateRepositoryLayer =
+        transactorLayer >+> ZLayer {
+            for
+                transactor <- ZIO.service[Transactor]
+            yield PostgreSQLTransactionProcessingStateRepository(transactor)
+        }
+        
+    val sourceAccountRepositoryLayer =
+        transactorLayer >+> ZLayer {
+            for
+                transactor <- ZIO.service[Transactor]
+            yield PostgreSQLSourceAccountRepository(transactor)
+        }
+        
+    val repositoryLayer = 
+        transactionRepositoryLayer ++ 
+        processingStateRepositoryLayer ++ 
+        sourceAccountRepositoryLayer
 
-    // Schema setup for the test database
+    // Schema setup for the test database - create tables directly instead of using Flyway
     @nowarn("msg=unused value of type Int")
     val setupDbSchema = ZIO.serviceWithZIO[Transactor] { xa =>
         xa.transact:
             // Reset
             sql"""
+            DROP TABLE IF EXISTS transaction_processing_state CASCADE;
             DROP TABLE IF EXISTS transaction CASCADE;
+            DROP TABLE IF EXISTS source_account CASCADE;
             DROP TYPE IF EXISTS transaction_status CASCADE;
-            DROP INDEX IF EXISTS idx_transaction_status;
-            DROP INDEX IF EXISTS idx_transaction_date;
-            DROP INDEX IF EXISTS idx_transaction_imported_at;
-            DROP INDEX IF EXISTS idx_transaction_ynab_transaction_id;
             """.update.run()
 
             sql"""
@@ -81,69 +99,104 @@ object PostgreSQLTransactionRepositorySpec extends ZIOSpecDefault:
             CREATE TYPE transaction_status AS ENUM ('Imported', 'Categorized', 'Submitted');
             """.update.run()
 
-            sql"""-- Create the transactions table
-            CREATE TABLE transaction (
-                -- Composite primary key from TransactionId (using concatenated form for simplicity)
-                source_account VARCHAR(255) NOT NULL,
-                source_bank VARCHAR(255) NOT NULL,
-                transaction_id VARCHAR(255) NOT NULL,
+            sql"""-- Create the source_account table
+            CREATE TABLE source_account (
+                id BIGINT PRIMARY KEY,
+                account_id VARCHAR(255) NOT NULL,
+                bank_id VARCHAR(255) NOT NULL,
+                name VARCHAR(255) NOT NULL DEFAULT 'Unnamed Account',
+                currency VARCHAR(3) NOT NULL DEFAULT 'CZK',
+                ynab_account_id VARCHAR(255),
+                active BOOLEAN NOT NULL DEFAULT true,
+                last_sync_time TIMESTAMP WITH TIME ZONE,
+                UNIQUE(account_id, bank_id)
+            );""".update.run()
 
-                -- Source data from FIO
+            sql"""-- Create transaction table (immutable events)
+            CREATE TABLE transaction (
+                -- Primary key and identifiers
+                source_account_id BIGINT NOT NULL,
+                transaction_id VARCHAR(255) NOT NULL,
+                
+                -- Transaction details
                 date DATE NOT NULL,
                 amount DECIMAL(19, 4) NOT NULL,
-                currency VARCHAR(3) NOT NULL,
+                currency VARCHAR(10) NOT NULL,
+                
+                -- Counterparty information
                 counter_account VARCHAR(255),
                 counter_bank_code VARCHAR(255),
                 counter_bank_name VARCHAR(255),
+                
+                -- Additional transaction details
                 variable_symbol VARCHAR(255),
                 constant_symbol VARCHAR(255),
                 specific_symbol VARCHAR(255),
-                user_identification TEXT,
+                user_identification VARCHAR(255),
                 message TEXT,
                 transaction_type VARCHAR(255) NOT NULL,
                 comment TEXT,
+                
+                -- Metadata
+                imported_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                
+                -- Composite primary key
+                PRIMARY KEY (source_account_id, transaction_id),
+                
+                -- Foreign key to source_account
+                CONSTRAINT fk_transaction_source_account
+                    FOREIGN KEY (source_account_id)
+                    REFERENCES source_account(id)
+            );""".update.run()
 
+            sql"""-- Create transaction_processing_state table
+            CREATE TABLE transaction_processing_state (
+                -- Reference to transaction
+                source_account_id BIGINT NOT NULL,
+                transaction_id VARCHAR(255) NOT NULL,
+                
                 -- Processing state
-                -- TODO: use enum instead of varchar after next Magnum release (>2.0.0-M1 or >1.3.1)
-                -- There is a support for enums in the next release, it's already in master
-                -- https://github.com/AugustNagro/magnum/pull/100
-                status VARCHAR(255) NOT NULL,
-
+                status VARCHAR(20) NOT NULL,
+                
                 -- AI computed/processed fields for YNAB
                 suggested_payee_name VARCHAR(255),
                 suggested_category VARCHAR(255),
                 suggested_memo TEXT,
-
+                
                 -- User overrides
                 override_payee_name VARCHAR(255),
                 override_category VARCHAR(255),
                 override_memo TEXT,
-
+                
                 -- YNAB integration fields
                 ynab_transaction_id VARCHAR(255),
                 ynab_account_id VARCHAR(255),
-
-                -- Metadata
-                imported_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                
+                -- Processing timestamps
                 processed_at TIMESTAMP WITH TIME ZONE,
                 submitted_at TIMESTAMP WITH TIME ZONE,
-
-                -- Define the primary key
-                PRIMARY KEY (source_account, source_bank, transaction_id)
+                
+                -- Primary key (same as transaction)
+                PRIMARY KEY (source_account_id, transaction_id),
+                
+                -- Foreign key to transaction
+                CONSTRAINT fk_processing_state_transaction
+                    FOREIGN KEY (source_account_id, transaction_id)
+                    REFERENCES transaction(source_account_id, transaction_id)
             );""".update.run()
 
-            sql"""-- Create indexes for common query patterns
-            CREATE INDEX idx_transaction_status ON transaction (status);""".update.run()
-            sql"""CREATE INDEX idx_transaction_date ON transaction (date);""".update.run()
-            sql"""CREATE INDEX idx_transaction_imported_at ON transaction (imported_at);""".update.run()
-            sql"""CREATE INDEX idx_transaction_ynab_transaction_id ON transaction (ynab_transaction_id) WHERE ynab_transaction_id IS NOT NULL;""".update.run()
+            sql"""-- Create indexes for performance
+            CREATE INDEX idx_transaction_date ON transaction(date);
+            CREATE INDEX idx_transaction_source_account ON transaction(source_account_id);
+            CREATE INDEX idx_transaction_imported_at ON transaction(imported_at);
+            CREATE INDEX idx_processing_state_status ON transaction_processing_state(status);""".update.run()
         .orDie
     }
 
     // Create sample transaction for testing
     def createSampleTransaction: Transaction =
         Transaction(
-            id = TransactionId(sourceAccount = "123456", sourceBank = "0800", id = "TX123"),
+            id = TransactionId(sourceAccountId = 1L, transactionId = "TX123"),
             date = LocalDate.now(),
             amount = BigDecimal("500.00"),
             currency = "CZK",
@@ -157,55 +210,84 @@ object PostgreSQLTransactionRepositorySpec extends ZIOSpecDefault:
             message = Some("Test payment"),
             transactionType = "PAYMENT",
             comment = Some("Test comment"),
-            status = TransactionStatus.Imported,
-            suggestedPayeeName = None,
-            suggestedCategory = None,
-            suggestedMemo = None,
-            overridePayeeName = None,
-            overrideCategory = None,
-            overrideMemo = None,
-            ynabTransactionId = None,
-            ynabAccountId = None,
-            importedAt = Instant.now(),
-            processedAt = None,
-            submittedAt = None
+            importedAt = Instant.now()
         )
+        
+    // Create sample transaction processing state for testing
+    def createSampleProcessingState(transaction: Transaction): TransactionProcessingState =
+        TransactionProcessingState.initial(transaction)
 
     def spec = suite("PostgreSQLTransactionRepository")(
         test("should save and retrieve a transaction") {
             for
                 // Setup
                 _ <- setupDbSchema
-                repository <- ZIO.service[TransactionRepository]
+                transactionRepo <- ZIO.service[TransactionRepository]
+                stateRepo <- ZIO.service[TransactionProcessingStateRepository]
+                
+                // Create a source account first (to satisfy foreign key)
+                sourceAccountRepo <- ZIO.service[SourceAccountRepository]
+                sourceAccount = SourceAccount(
+                    id = 1L,
+                    accountId = "123456",
+                    bankId = "0800",
+                    name = "Test Account",
+                    currency = "CZK"
+                )
+                _ <- sourceAccountRepo.save(sourceAccount.id, sourceAccount)
+                
+                // Create a transaction
                 transaction = createSampleTransaction
+                processingState = createSampleProcessingState(transaction)
 
                 // Execute
-                _ <- repository.save(transaction.id, transaction)
-                retrieved <- repository.load(transaction.id)
+                _ <- transactionRepo.save(transaction.id, transaction)
+                _ <- stateRepo.save(processingState.transactionId, processingState)
+                retrievedTx <- transactionRepo.load(transaction.id)
+                retrievedState <- stateRepo.load(transaction.id)
             yield
             // Assert
             assertTrue(
-                retrieved.isDefined,
-                retrieved.get.id == transaction.id,
-                retrieved.get.amount == transaction.amount,
-                retrieved.get.date == transaction.date
+                retrievedTx.isDefined,
+                retrievedTx.get.id == transaction.id,
+                retrievedTx.get.amount == transaction.amount,
+                retrievedTx.get.date == transaction.date,
+                retrievedState.isDefined,
+                retrievedState.get.status == TransactionStatus.Imported
             )
         },
         test("should find transactions by query") {
             for
                 // Setup
                 _ <- setupDbSchema
-                repository <- ZIO.service[TransactionRepository]
+                transactionRepo <- ZIO.service[TransactionRepository]
+                stateRepo <- ZIO.service[TransactionProcessingStateRepository]
+                
+                // Create a source account first (to satisfy foreign key)
+                sourceAccountRepo <- ZIO.service[SourceAccountRepository]
+                sourceAccount = SourceAccount(
+                    id = 1L,
+                    accountId = "123456",
+                    bankId = "0800",
+                    name = "Test Account",
+                    currency = "CZK"
+                )
+                _ <- sourceAccountRepo.save(sourceAccount.id, sourceAccount)
+                
                 transaction1 = createSampleTransaction
                 transaction2 = createSampleTransaction.copy(
-                    id = TransactionId("123456", "0800", "TX124"),
+                    id = TransactionId(sourceAccountId = 1L, transactionId = "TX124"),
                     amount = BigDecimal("1000.00")
                 )
+                processingState1 = createSampleProcessingState(transaction1)
+                processingState2 = createSampleProcessingState(transaction2)
 
                 // Execute
-                _ <- repository.save(transaction1.id, transaction1)
-                _ <- repository.save(transaction2.id, transaction2)
-                results <- repository.find(TransactionQuery())
+                _ <- transactionRepo.save(transaction1.id, transaction1)
+                _ <- transactionRepo.save(transaction2.id, transaction2)
+                _ <- stateRepo.save(processingState1.transactionId, processingState1)
+                _ <- stateRepo.save(processingState2.transactionId, processingState2)
+                results <- transactionRepo.find(TransactionQuery())
             yield
             // Assert
             assertTrue(
@@ -218,17 +300,34 @@ object PostgreSQLTransactionRepositorySpec extends ZIOSpecDefault:
             for
                 // Setup
                 _ <- setupDbSchema
-                repository <- ZIO.service[TransactionRepository]
+                transactionRepo <- ZIO.service[TransactionRepository]
+                stateRepo <- ZIO.service[TransactionProcessingStateRepository]
+                
+                // Create a source account first (to satisfy foreign key)
+                sourceAccountRepo <- ZIO.service[SourceAccountRepository]
+                sourceAccount = SourceAccount(
+                    id = 1L,
+                    accountId = "123456",
+                    bankId = "0800",
+                    name = "Test Account",
+                    currency = "CZK"
+                )
+                _ <- sourceAccountRepo.save(sourceAccount.id, sourceAccount)
+                
                 transaction1 = createSampleTransaction
                 transaction2 = createSampleTransaction.copy(
-                    id = TransactionId("123456", "0800", "TX124"),
+                    id = TransactionId(sourceAccountId = 1L, transactionId = "TX124"),
                     amount = BigDecimal("1000.00")
                 )
+                processingState1 = createSampleProcessingState(transaction1)
+                processingState2 = createSampleProcessingState(transaction2)
 
                 // Execute
-                _ <- repository.save(transaction1.id, transaction1)
-                _ <- repository.save(transaction2.id, transaction2)
-                results <- repository.find(TransactionQuery(amount = Some(1000.0)))
+                _ <- transactionRepo.save(transaction1.id, transaction1)
+                _ <- transactionRepo.save(transaction2.id, transaction2)
+                _ <- stateRepo.save(processingState1.transactionId, processingState1)
+                _ <- stateRepo.save(processingState2.transactionId, processingState2)
+                results <- transactionRepo.find(TransactionQuery(amountMin = Some(BigDecimal("1000.00")), amountMax = Some(BigDecimal("1000.00"))))
             yield
             // Assert
             assertTrue(
@@ -237,33 +336,48 @@ object PostgreSQLTransactionRepositorySpec extends ZIOSpecDefault:
                 results.head.amount == transaction2.amount
             )
         },
-        test("should update an existing transaction") {
+        test("should update transaction processing state") {
             for
                 // Setup
                 _ <- setupDbSchema
-                repository <- ZIO.service[TransactionRepository]
+                transactionRepo <- ZIO.service[TransactionRepository]
+                stateRepo <- ZIO.service[TransactionProcessingStateRepository]
+                
+                // Create a source account first (to satisfy foreign key)
+                sourceAccountRepo <- ZIO.service[SourceAccountRepository]
+                sourceAccount = SourceAccount(
+                    id = 1L,
+                    accountId = "123456",
+                    bankId = "0800",
+                    name = "Test Account",
+                    currency = "CZK"
+                )
+                _ <- sourceAccountRepo.save(sourceAccount.id, sourceAccount)
+                
                 transaction = createSampleTransaction
+                processingState = createSampleProcessingState(transaction)
 
                 // Execute - first save
-                _ <- repository.save(transaction.id, transaction)
+                _ <- transactionRepo.save(transaction.id, transaction)
+                _ <- stateRepo.save(processingState.transactionId, processingState)
 
-                // Update the transaction
-                updatedTransaction = transaction.copy(
-                    status = TransactionStatus.Categorized,
-                    suggestedPayeeName = Some("Test Payee"),
-                    suggestedCategory = Some("Test Category")
+                // Update the processing state
+                updatedState = processingState.withAICategorization(
+                    payeeName = Some("Test Payee"),
+                    category = Some("Test Category"),
+                    memo = Some("Test Memo")
                 )
 
-                // Save the updated transaction and retrieve
-                _ <- repository.save(transaction.id, updatedTransaction)
-                retrieved <- repository.load(transaction.id)
+                // Save the updated state and retrieve
+                _ <- stateRepo.save(updatedState.transactionId, updatedState)
+                retrievedState <- stateRepo.load(transaction.id)
             yield
             // Assert
             assertTrue(
-                retrieved.isDefined,
-                retrieved.get.status == TransactionStatus.Categorized,
-                retrieved.get.suggestedPayeeName.contains("Test Payee"),
-                retrieved.get.suggestedCategory.contains("Test Category")
+                retrievedState.isDefined,
+                retrievedState.get.status == TransactionStatus.Categorized,
+                retrievedState.get.suggestedPayeeName.contains("Test Payee"),
+                retrievedState.get.suggestedCategory.contains("Test Category")
             )
         }
     ).provideSomeShared[Scope](

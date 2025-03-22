@@ -7,19 +7,27 @@ import java.time.LocalDate
 import java.time.Instant
 import service.TransactionImportService
 import service.TransactionRepository
+import service.TransactionProcessingStateRepository
 
 class FioTransactionImportService(
     fioClient: FioClient,
-    repository: TransactionRepository
+    transactionRepository: TransactionRepository,
+    processingStateRepository: TransactionProcessingStateRepository
 ) extends TransactionImportService:
 
     override def importTransactions(from: LocalDate, to: LocalDate): Task[Int] =
         for
             response <- fioClient.fetchTransactions(from, to)
             transactions = mapFioTransactionsToModel(response)
-            _ <- ZIO.foreachDiscard(transactions)(tx =>
-                repository.save(tx.id, tx)
-            )
+            _ <- ZIO.foreachDiscard(transactions) { transaction =>
+                for
+                    // First save the immutable transaction
+                    _ <- transactionRepository.save(transaction.id, transaction)
+                    // Then create and save the initial processing state
+                    initialState = TransactionProcessingState.initial(transaction)
+                    _ <- processingStateRepository.save(transaction.id, initialState)
+                yield ()
+            }
         yield transactions.size
 
     override def importNewTransactions(lastId: Option[Long]): Task[Int] =
@@ -27,14 +35,25 @@ class FioTransactionImportService(
             id <- ZIO.fromOption(lastId).orElse(ZIO.succeed(0L))
             response <- fioClient.fetchNewTransactions(id)
             transactions = mapFioTransactionsToModel(response)
-            _ <- ZIO.foreachDiscard(transactions)(tx =>
-                repository.save(tx.id, tx)
-            )
+            _ <- ZIO.foreachDiscard(transactions) { transaction =>
+                for
+                    // First save the immutable transaction
+                    _ <- transactionRepository.save(transaction.id, transaction)
+                    // Then create and save the initial processing state
+                    initialState = TransactionProcessingState.initial(transaction)
+                    _ <- processingStateRepository.save(transaction.id, initialState)
+                yield ()
+            }
         yield transactions.size
 
     private def mapFioTransactionsToModel(response: FioResponse): List[Transaction] =
         val accountId = response.accountStatement.info.accountId
         val bankId = response.accountStatement.info.bankId
+
+        // We need to retrieve the source account ID from the database based on accountId and bankId
+        // For now, we'll hardcode it to 1L as a placeholder
+        // In a real implementation, we would query the SourceAccountRepository
+        val sourceAccountId = 1L 
 
         response.accountStatement.transactionList.transaction.map { fioTx =>
             val txId = fioTx.column22.map(_.value.toString).getOrElse(
@@ -56,13 +75,9 @@ class FioTransactionImportService(
             // Get currency from column14 (based on example JSON)
             val currency = fioTx.column14.map(_.value).getOrElse("CZK")
 
-            // Map other fields correctly based on the example JSON structure
-            Transaction(
-                id = TransactionId(
-                    sourceAccount = accountId,
-                    sourceBank = bankId,
-                    id = txId
-                ),
+            // Create the immutable Transaction object
+            val transaction = Transaction(
+                id = TransactionId(sourceAccountId, txId),
                 date = date,
                 amount = BigDecimal(amount),
                 currency = currency,
@@ -86,39 +101,22 @@ class FioTransactionImportService(
                 transactionType = fioTx.column8.map(_.value).getOrElse("Unknown"),
                 // Comment is column25
                 comment = fioTx.column25.map(_.value),
-
-                // Set initial status
-                status = TransactionStatus.Imported,
-
-                // Initialize AI fields as None
-                suggestedPayeeName = None,
-                suggestedCategory = None,
-                suggestedMemo = None,
-
-                // Initialize user overrides as None
-                overridePayeeName = None,
-                overrideCategory = None,
-                overrideMemo = None,
-
-                // Initialize YNAB fields as None
-                ynabTransactionId = None,
-                ynabAccountId = None,
-
                 // Set metadata
-                importedAt = Instant.now(),
-                processedAt = None,
-                submittedAt = None
+                importedAt = Instant.now()
             )
+            
+            transaction
         }
     end mapFioTransactionsToModel
 end FioTransactionImportService
 
 object FioTransactionImportService:
-    val layer: ZLayer[FioClient & TransactionRepository, Config.Error, TransactionImportService] =
+    val layer: ZLayer[FioClient & TransactionRepository & TransactionProcessingStateRepository, Config.Error, TransactionImportService] =
         ZLayer {
             for
                 client <- ZIO.service[FioClient]
-                repo <- ZIO.service[TransactionRepository]
-            yield FioTransactionImportService(client, repo)
+                txRepo <- ZIO.service[TransactionRepository]
+                stateRepo <- ZIO.service[TransactionProcessingStateRepository]
+            yield FioTransactionImportService(client, txRepo, stateRepo)
         }
 end FioTransactionImportService

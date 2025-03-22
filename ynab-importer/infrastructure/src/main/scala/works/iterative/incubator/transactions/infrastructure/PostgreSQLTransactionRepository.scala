@@ -9,53 +9,102 @@ import com.augustnagro.magnum.magzio.*
 import java.time.LocalDate
 import java.time.Instant
 
+/** PostgreSQL implementation of TransactionRepository
+  *
+  * This repository implements storage and retrieval of immutable Transaction events in a PostgreSQL
+  * database.
+  */
 class PostgreSQLTransactionRepository(xa: Transactor) extends TransactionRepository:
     import PostgreSQLTransactionRepository.{transactionRepo, TransactionDTO}
 
     override def find(filter: TransactionQuery): UIO[Seq[Transaction]] =
         xa.transact:
             val spec = Spec[TransactionDTO]
+                // Handle the ID filter
                 .where(
                     filter.id.map(tid =>
-                        sql"source_account = ${tid.sourceAccount} AND source_bank = ${tid.sourceBank} AND transaction_id = ${tid.id}"
+                        sql"source_account_id = ${tid.sourceAccountId} AND transaction_id = ${tid.transactionId}"
+                    ).getOrElse(sql"")
+                )
+                // Handle direct sourceAccountId filter
+                .where(
+                    filter.sourceAccountId.map(id =>
+                        sql"source_account_id = ${id}"
+                    ).getOrElse(sql"")
+                )
+                // Handle date range filters
+                .where(
+                    filter.dateFrom.map(date =>
+                        sql"date >= ${java.sql.Date.valueOf(date)}"
                     ).getOrElse(sql"")
                 )
                 .where(
-                    filter.status.map(status => sql"status = ${status}").getOrElse(sql"")
+                    filter.dateTo.map(date =>
+                        sql"date <= ${java.sql.Date.valueOf(date)}"
+                    ).getOrElse(sql"")
                 )
+                // Handle amount range filters
                 .where(
-                    filter.amount.map(amount => sql"amount = ${amount}").getOrElse(sql"")
-                )
-                .where(
-                    filter.currency.map(currency => sql"currency = ${currency}").getOrElse(sql"")
-                )
-                .where(
-                    filter.createdBefore.map(createdBefore =>
-                        sql"created_at < ${java.sql.Timestamp.from(createdBefore)}"
+                    filter.amountMin.map(amount =>
+                        sql"amount >= ${amount}"
                     ).getOrElse(sql"")
                 )
                 .where(
-                    filter.createdAfter.map(createdAfter =>
-                        sql"created_at > ${java.sql.Timestamp.from(createdAfter)}"
+                    filter.amountMax.map(amount =>
+                        sql"amount <= ${amount}"
                     ).getOrElse(sql"")
                 )
+                // Handle other simple filters
+                .where(
+                    filter.currency.map(currency =>
+                        sql"currency = ${currency}"
+                    ).getOrElse(sql"")
+                )
+                .where(
+                    filter.counterAccount.map(account =>
+                        sql"counter_account = ${account}"
+                    ).getOrElse(sql"")
+                )
+                .where(
+                    filter.variableSymbol.map(symbol =>
+                        sql"variable_symbol = ${symbol}"
+                    ).getOrElse(sql"")
+                )
+                // Handle import time range filters
+                .where(
+                    filter.importedBefore.map(time =>
+                        sql"imported_at < ${java.sql.Timestamp.from(time)}"
+                    ).getOrElse(sql"")
+                )
+                .where(
+                    filter.importedAfter.map(time =>
+                        sql"imported_at > ${java.sql.Timestamp.from(time)}"
+                    ).getOrElse(sql"")
+                )
+
+            // Convert DTOs to domain models
             transactionRepo.findAll(spec).map(_.toTransaction)
         .orDie
     end find
 
     override def save(key: TransactionId, value: Transaction): UIO[Unit] =
         xa.transact:
+            val dto = PostgreSQLTransactionRepository.Transaction.fromModel(value)
             if findById(key).isDefined then
-                transactionRepo.update(PostgreSQLTransactionRepository.Transaction.fromModel(value))
+                // Transactions are immutable, so we should not update them
+                // but we'll allow it in the implementation for now
+                transactionRepo.update(dto)
             else
-                transactionRepo.insert(PostgreSQLTransactionRepository.Transaction.fromModel(value))
+                transactionRepo.insert(dto)
+            end if
         .orDie
 
+    /** Find a transaction by its ID */
     private def findById(tid: TransactionId)(using DbCon) =
         transactionRepo.findAll(
             Spec[TransactionDTO]
                 .where(
-                    sql"source_account = ${tid.sourceAccount} AND source_bank = ${tid.sourceBank} AND transaction_id = ${tid.id}"
+                    sql"source_account_id = ${tid.sourceAccountId} AND transaction_id = ${tid.transactionId}"
                 )
                 .limit(1)
         ).headOption
@@ -64,6 +113,10 @@ class PostgreSQLTransactionRepository(xa: Transactor) extends TransactionReposit
         xa.connect:
             findById(id).map(_.toTransaction)
         .orDie
+
+    /** Find all transactions for a specific source account */
+    def findBySourceAccount(sourceAccountId: Long): UIO[Seq[Transaction]] =
+        find(TransactionQuery(sourceAccountId = Some(sourceAccountId)))
 end PostgreSQLTransactionRepository
 
 object PostgreSQLTransactionRepository:
@@ -82,59 +135,39 @@ object PostgreSQLTransactionRepository:
         i => java.sql.Timestamp.from(i)
     )
 
-    @SqlName("transaction_status")
-    @Table(PostgresDbType, SqlNameMapper.CamelToUpperSnakeCase)
-    enum TransactionStatusDTO derives DbCodec:
-        case Imported, Categorized, Submitted
-    end TransactionStatusDTO
-
     @SqlName("transaction")
     @Table(PostgresDbType, SqlNameMapper.CamelToSnakeCase)
     case class TransactionDTO(
-        // Source data from FIO
-        sourceAccount: String,
-        sourceBank: String,
-        transactionId: String, // Unique ID from FIO (column_22)
-        date: java.time.LocalDate, // Transaction date
-        amount: BigDecimal, // Transaction amount
-        currency: String, // Currency code (e.g., CZK)
-        counterAccount: Option[String], // Counter account number
-        counterBankCode: Option[String], // Counter bank code
-        counterBankName: Option[String], // Name of the counter bank
-        variableSymbol: Option[String], // Variable symbol
-        constantSymbol: Option[String], // Constant symbol
-        specificSymbol: Option[String], // Specific symbol
-        userIdentification: Option[String], // User identification
-        message: Option[String], // Message for recipient
-        transactionType: String, // Transaction type
-        comment: Option[String], // Comment
+        // Core identity
+        sourceAccountId: Long,
+        transactionId: String,
 
-        // Processing state
-        status: TransactionStatusDTO, // Imported, Categorized, Submitted
+        // Transaction details
+        date: LocalDate,
+        amount: BigDecimal,
+        currency: String,
 
-        // AI computed/processed fields for YNAB
-        suggestedPayeeName: Option[String], // AI suggested payee name
-        suggestedCategory: Option[String], // AI suggested category
-        suggestedMemo: Option[String], // AI cleaned/processed memo
+        // Counterparty information
+        counterAccount: Option[String],
+        counterBankCode: Option[String],
+        counterBankName: Option[String],
 
-        // User overrides (if user wants to adjust AI suggestions)
-        overridePayeeName: Option[String], // User override for payee
-        overrideCategory: Option[String], // User override for category
-        overrideMemo: Option[String], // User override for memo
+        // Additional transaction details
+        variableSymbol: Option[String],
+        constantSymbol: Option[String],
+        specificSymbol: Option[String],
+        userIdentification: Option[String],
+        message: Option[String],
+        transactionType: String,
+        comment: Option[String],
 
-        // YNAB integration fields
-        ynabTransactionId: Option[String], // ID assigned by YNAB after submission
-        ynabAccountId: Option[String], // YNAB account ID where transaction was submitted
-
-        // Metadata
-        importedAt: java.time.Instant, // When this transaction was imported
-        processedAt: Option[java.time.Instant], // When AI processed this
-        submittedAt: Option[java.time.Instant] // When submitted to YNAB
+        // When this transaction was imported
+        importedAt: Instant
     ) derives DbCodec:
         def toTransaction: Transaction = this.into[Transaction]
             .withFieldComputed(
                 _.id,
-                t => TransactionId(t.sourceAccount, t.sourceBank, t.transactionId)
+                dto => TransactionId(dto.sourceAccountId, dto.transactionId)
             )
             .transform
     end TransactionDTO
@@ -142,9 +175,8 @@ object PostgreSQLTransactionRepository:
     object Transaction:
         def fromModel(model: Transaction): TransactionDTO =
             model.into[TransactionDTO]
-                .withFieldComputed(_.sourceAccount, _.id.sourceAccount)
-                .withFieldComputed(_.sourceBank, _.id.sourceBank)
-                .withFieldComputed(_.transactionId, _.id.id)
+                .withFieldComputed(_.sourceAccountId, _.id.sourceAccountId)
+                .withFieldComputed(_.transactionId, _.id.transactionId)
                 .transform
     end Transaction
 
@@ -154,9 +186,9 @@ object PostgreSQLTransactionRepository:
         ZLayer.fromFunction { (ts: PostgreSQLTransactor) =>
             PostgreSQLTransactionRepository(ts.transactor)
         }
-        
+
     val fullLayer: ZLayer[Scope, Throwable, TransactionRepository] =
-        PostgreSQLDataSource.managedLayer >>> 
-        PostgreSQLTransactor.managedLayer >>> 
-        layer
+        PostgreSQLDataSource.managedLayer >>>
+            PostgreSQLTransactor.managedLayer >>>
+            layer
 end PostgreSQLTransactionRepository
