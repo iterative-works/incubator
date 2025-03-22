@@ -25,9 +25,10 @@ case class FlywayConfig(
 object FlywayConfig:
     /** Default location for migrations */
     val DefaultLocation = "classpath:db/migration"
-    
+
     /** Default config with standard locations */
     val default: FlywayConfig = FlywayConfig()
+end FlywayConfig
 
 class PostgreSQLFlywayMigrationService(
     dataSource: PostgreSQLDataSource,
