@@ -12,8 +12,6 @@ import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import service.SourceAccountRepository
 import scala.annotation.nowarn
 import zio.test.TestAspect.sequential
-import org.flywaydb.core.Flyway
-import org.flywaydb.core.api.output.MigrateResult
 
 object PostgreSQLSourceAccountRepositorySpec extends ZIOSpecDefault:
     private val postgresImage = DockerImageName.parse("postgres:17-alpine")
