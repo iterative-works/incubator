@@ -7,6 +7,7 @@ import service.TransactionProcessingStateRepository
 import com.augustnagro.magnum.PostgresDbType
 import com.augustnagro.magnum.magzio.*
 import java.time.Instant
+import DbCodecs.given
 
 /** PostgreSQL implementation of TransactionProcessingStateRepository
   *
@@ -102,11 +103,7 @@ class PostgreSQLTransactionProcessingStateRepository(xa: Transactor)
             findById(id).map(_.toDomain)
         .orDie
 
-    override def findBySourceAccount(sourceAccountId: Long): UIO[Seq[TransactionProcessingState]] =
-        find(TransactionProcessingStateQuery(sourceAccountId = Some(sourceAccountId)))
-
-    override def findByStatus(status: TransactionStatus): UIO[Seq[TransactionProcessingState]] =
-        find(TransactionProcessingStateQuery(status = Some(status)))
+    // Using default implementations from trait for findBySourceAccount and findByStatus
 
     override def findReadyToSubmit(): UIO[Seq[TransactionProcessingState]] =
         xa.connect:
@@ -124,14 +121,6 @@ end PostgreSQLTransactionProcessingStateRepository
 
 object PostgreSQLTransactionProcessingStateRepository:
     import io.scalaland.chimney.dsl.*
-    
-    // Add DbCodec for Instant and Option[Instant]
-    given DbCodec[Instant] = DbCodec.SqlTimestampCodec.biMap(
-        i => i.toInstant,
-        i => java.sql.Timestamp.from(i)
-    )
-    
-    // Option[Instant] will be handled automatically
 
     @SqlName("transaction_status")
     @Table(PostgresDbType, SqlNameMapper.CamelToUpperSnakeCase)

@@ -7,6 +7,7 @@ import service.SourceAccountRepository
 import com.augustnagro.magnum.PostgresDbType
 import com.augustnagro.magnum.magzio.*
 import java.time.Instant
+import DbCodecs.given
 
 /** PostgreSQL implementation of SourceAccountRepository
   *
@@ -90,14 +91,6 @@ end PostgreSQLSourceAccountRepository
 
 object PostgreSQLSourceAccountRepository:
     import io.scalaland.chimney.dsl.*
-    
-    // Add DbCodec for Instant and Option[Instant]
-    given DbCodec[Instant] = DbCodec.SqlTimestampCodec.biMap(
-        i => i.toInstant,
-        i => java.sql.Timestamp.from(i)
-    )
-    
-    // Option[Instant] will be handled automatically
 
     @SqlName("source_account")
     @Table(PostgresDbType, SqlNameMapper.CamelToSnakeCase)

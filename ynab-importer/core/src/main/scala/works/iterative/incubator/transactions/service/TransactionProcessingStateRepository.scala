@@ -44,7 +44,8 @@ trait TransactionProcessingStateRepository:
       * @return
       *   A sequence of processing states for transactions from that account
       */
-    def findBySourceAccount(sourceAccountId: Long): UIO[Seq[TransactionProcessingState]]
+    def findBySourceAccount(sourceAccountId: Long): UIO[Seq[TransactionProcessingState]] =
+        find(TransactionProcessingStateQuery(sourceAccountId = Some(sourceAccountId)))
 
     /** Find all processing states with a specific status
       *
@@ -53,7 +54,8 @@ trait TransactionProcessingStateRepository:
       * @return
       *   A sequence of processing states with that status
       */
-    def findByStatus(status: TransactionStatus): UIO[Seq[TransactionProcessingState]]
+    def findByStatus(status: TransactionStatus): UIO[Seq[TransactionProcessingState]] =
+        find(TransactionProcessingStateQuery(status = Some(status)))
 
     /** Find all ready-to-submit processing states (categorized but not submitted)
       *

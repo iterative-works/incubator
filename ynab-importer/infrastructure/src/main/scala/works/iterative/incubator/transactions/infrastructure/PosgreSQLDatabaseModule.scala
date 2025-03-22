@@ -34,6 +34,14 @@ object PosgreSQLDatabaseModule:
         repoLayers
     end layer
 
+    /** Helper method to create FlywayConfig with optional additional locations
+      */
+    private def createFlywayConfig(additionalLocations: List[String] = List.empty): FlywayConfig =
+        if additionalLocations.nonEmpty then
+            FlywayConfig(locations = FlywayConfig.DefaultLocation :: additionalLocations)
+        else
+            FlywayConfig.default
+    
     /** Creates a ZLayer with all repositories and runs migrations first
       *
       * @param additionalLocations
@@ -45,12 +53,8 @@ object PosgreSQLDatabaseModule:
         // Create the shared data source
         val dataSourceLayer = PostgreSQLDataSource.managedLayer
 
-        // Create custom flyway config if additional locations provided
-        val flywayConfig =
-            if additionalLocations.nonEmpty then
-                FlywayConfig(locations = FlywayConfig.DefaultLocation :: additionalLocations)
-            else
-                FlywayConfig.default
+        // Create flyway config using the helper method
+        val flywayConfig = createFlywayConfig(additionalLocations)
 
         // Create the flyway migration service with config
         val flywayLayer = dataSourceLayer >>> FlywayMigrationService.layerWithConfig(flywayConfig)
@@ -76,12 +80,8 @@ object PosgreSQLDatabaseModule:
     ): ZIO[Scope, Throwable, Unit] =
         val dataSourceLayer = PostgreSQLDataSource.managedLayer
 
-        // Create custom flyway config if additional locations provided
-        val flywayConfig =
-            if additionalLocations.nonEmpty then
-                FlywayConfig(locations = FlywayConfig.DefaultLocation :: additionalLocations)
-            else
-                FlywayConfig.default
+        // Create flyway config using the helper method
+        val flywayConfig = createFlywayConfig(additionalLocations)
 
         val flywayLayer = dataSourceLayer >>> FlywayMigrationService.layerWithConfig(flywayConfig)
 

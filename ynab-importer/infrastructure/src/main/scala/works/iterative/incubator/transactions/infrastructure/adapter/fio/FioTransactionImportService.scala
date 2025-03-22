@@ -8,17 +8,19 @@ import java.time.Instant
 import service.TransactionImportService
 import service.TransactionRepository
 import service.TransactionProcessingStateRepository
+import service.SourceAccountRepository
 
 class FioTransactionImportService(
     fioClient: FioClient,
     transactionRepository: TransactionRepository,
-    processingStateRepository: TransactionProcessingStateRepository
+    processingStateRepository: TransactionProcessingStateRepository,
+    sourceAccountRepository: SourceAccountRepository
 ) extends TransactionImportService:
 
     override def importTransactions(from: LocalDate, to: LocalDate): Task[Int] =
         for
             response <- fioClient.fetchTransactions(from, to)
-            transactions = mapFioTransactionsToModel(response)
+            transactions <- mapFioTransactionsToModel(response)
             _ <- ZIO.foreachDiscard(transactions) { transaction =>
                 for
                     // First save the immutable transaction
@@ -34,7 +36,7 @@ class FioTransactionImportService(
         for
             id <- ZIO.fromOption(lastId).orElse(ZIO.succeed(0L))
             response <- fioClient.fetchNewTransactions(id)
-            transactions = mapFioTransactionsToModel(response)
+            transactions <- mapFioTransactionsToModel(response)
             _ <- ZIO.foreachDiscard(transactions) { transaction =>
                 for
                     // First save the immutable transaction
@@ -46,15 +48,31 @@ class FioTransactionImportService(
             }
         yield transactions.size
 
-    private def mapFioTransactionsToModel(response: FioResponse): List[Transaction] =
+    private def mapFioTransactionsToModel(response: FioResponse): Task[List[Transaction]] =
         val accountId = response.accountStatement.info.accountId
         val bankId = response.accountStatement.info.bankId
 
-        // We need to retrieve the source account ID from the database based on accountId and bankId
-        // For now, we'll hardcode it to 1L as a placeholder
-        // In a real implementation, we would query the SourceAccountRepository
-        val sourceAccountId = 1L 
+        // Find the source account by account ID and bank ID
+        sourceAccountRepository.find(
+            SourceAccountQuery(accountId = Some(accountId), bankId = Some(bankId))
+        ).map(_.headOption) flatMap {
+            case Some(sourceAccount) =>
+                // We found the matching source account
+                ZIO.succeed(mapTransactions(response, sourceAccount.id))
+            case None =>
+                // No matching source account found - this is an error condition
+                ZIO.fail(new RuntimeException(
+                    s"No source account found for account ID $accountId and bank ID $bankId"
+                ))
+        }
 
+    /** Maps FIO transaction data to our domain model
+     * 
+     * @param response The parsed FIO API response
+     * @param sourceAccountId The resolved internal source account ID
+     * @return List of domain Transaction objects
+     */
+    private def mapTransactions(response: FioResponse, sourceAccountId: Long): List[Transaction] =
         response.accountStatement.transactionList.transaction.map { fioTx =>
             val txId = fioTx.column22.map(_.value.toString).getOrElse(
                 throw new RuntimeException("Transaction has no ID")
@@ -107,16 +125,23 @@ class FioTransactionImportService(
             
             transaction
         }
-    end mapFioTransactionsToModel
 end FioTransactionImportService
 
 object FioTransactionImportService:
-    val layer: ZLayer[FioClient & TransactionRepository & TransactionProcessingStateRepository, Config.Error, TransactionImportService] =
+    val layer: ZLayer[
+        FioClient & 
+        TransactionRepository & 
+        TransactionProcessingStateRepository & 
+        SourceAccountRepository, 
+        Config.Error, 
+        TransactionImportService
+    ] =
         ZLayer {
             for
                 client <- ZIO.service[FioClient]
                 txRepo <- ZIO.service[TransactionRepository]
                 stateRepo <- ZIO.service[TransactionProcessingStateRepository]
-            yield FioTransactionImportService(client, txRepo, stateRepo)
+                sourceRepo <- ZIO.service[SourceAccountRepository]
+            yield FioTransactionImportService(client, txRepo, stateRepo, sourceRepo)
         }
 end FioTransactionImportService
