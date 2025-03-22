@@ -19,7 +19,6 @@ import cats.Applicative
 import works.iterative.incubator.components.ScalatagsTailwindTable
 import service.TransactionRepository
 import service.TransactionProcessingStateRepository
-import service.TransactionImportService
 import service.TransactionProcessor
 import service.TransactionManagerService
 import java.time.LocalDate

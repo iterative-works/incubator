@@ -3,7 +3,6 @@ package infrastructure
 
 import zio.*
 import service.*
-import java.time.Instant
 
 /** Default implementation of TransactionProcessor
   *
