@@ -11,6 +11,10 @@ We usually use metals for development. It is useful to run sbt server separately
 - **Run with specific test**: `sbtn "ynabImporterInfrastructureIT/testOnly *PostgreSQLTransactionRepositorySpec -- -t 'should save and retrieve a transaction'"`
 - **Format code**: `sbtn scalafmtAll`
 
+### Integration Testing
+
+Integration tests use TestContainers to spin up a PostgreSQL database in a Docker container. The schema is created directly with SQL commands for each test to ensure a clean environment. While Flyway is used for migrations in the production code, the integration tests set up the schema manually to avoid migration-related issues in the test context.
+
 ## Development Workflow
 
 ### Pre-commit/Pre-PR Checklist
