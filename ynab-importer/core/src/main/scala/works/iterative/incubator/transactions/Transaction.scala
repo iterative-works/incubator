@@ -1,14 +1,31 @@
 package works.iterative.incubator.transactions
 
+import java.time.LocalDate
+
+/** Represents an immutable financial transaction event from a bank
+  *
+  * This is a value object representing the raw financial transaction data as received from the
+  * bank. It contains only the immutable aspects of a transaction - what actually happened in the
+  * financial world.
+  *
+  * The processing state, categorization, and other mutable aspects are stored separately in
+  * TransactionProcessingState.
+  */
 case class Transaction(
-    // Source data from FIO
-    id: TransactionId, // Unique ID from FIO (column_22)
-    date: java.time.LocalDate, // Transaction date
+    // Core identity - includes source account reference
+    id: TransactionId, // Composite ID containing sourceAccountId and bank's transaction ID
+
+    // Transaction details
+    date: LocalDate, // Transaction date
     amount: BigDecimal, // Transaction amount
     currency: String, // Currency code (e.g., CZK)
+
+    // Counterparty information
     counterAccount: Option[String], // Counter account number
     counterBankCode: Option[String], // Counter bank code
     counterBankName: Option[String], // Name of the counter bank
+
+    // Additional transaction details
     variableSymbol: Option[String], // Variable symbol
     constantSymbol: Option[String], // Constant symbol
     specificSymbol: Option[String], // Specific symbol
@@ -17,25 +34,6 @@ case class Transaction(
     transactionType: String, // Transaction type
     comment: Option[String], // Comment
 
-    // Processing state
-    status: TransactionStatus, // Imported, Categorized, Submitted
-
-    // AI computed/processed fields for YNAB
-    suggestedPayeeName: Option[String], // AI suggested payee name
-    suggestedCategory: Option[String], // AI suggested category
-    suggestedMemo: Option[String], // AI cleaned/processed memo
-
-    // User overrides (if user wants to adjust AI suggestions)
-    overridePayeeName: Option[String], // User override for payee
-    overrideCategory: Option[String], // User override for category
-    overrideMemo: Option[String], // User override for memo
-
-    // YNAB integration fields
-    ynabTransactionId: Option[String], // ID assigned by YNAB after submission
-    ynabAccountId: Option[String], // YNAB account ID where transaction was submitted
-
-    // Metadata
-    importedAt: java.time.Instant, // When this transaction was imported
-    processedAt: Option[java.time.Instant], // When AI processed this
-    submittedAt: Option[java.time.Instant] // When submitted to YNAB
+    // When this transaction was imported (metadata)
+    importedAt: java.time.Instant // When this transaction was imported
 )

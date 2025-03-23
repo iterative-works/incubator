@@ -7,35 +7,91 @@ import java.time.LocalDate
 import java.time.Instant
 import service.TransactionImportService
 import service.TransactionRepository
+import service.SourceAccountRepository
 
 class FioTransactionImportService(
     fioClient: FioClient,
-    repository: TransactionRepository
+    transactionRepository: TransactionRepository,
+    sourceAccountRepository: SourceAccountRepository
 ) extends TransactionImportService:
+
+    // Simple in-memory cache using ZIO Ref
+    private val sourceAccountCache: Ref[Map[(String, String), Long]] =
+        Unsafe.unsafely:
+            Ref.unsafe.make(Map.empty[(String, String), Long])
 
     override def importTransactions(from: LocalDate, to: LocalDate): Task[Int] =
         for
+            // Clear the cache at the beginning of each import batch
+            _ <- sourceAccountCache.set(Map.empty)
             response <- fioClient.fetchTransactions(from, to)
-            transactions = mapFioTransactionsToModel(response)
-            _ <- ZIO.foreachDiscard(transactions)(tx =>
-                repository.save(tx.id, tx)
-            )
+            transactions <- mapFioTransactionsToModel(response)
+            _ <- ZIO.foreachDiscard(transactions) { transaction =>
+                // Only save the immutable transaction
+                transactionRepository.save(transaction.id, transaction)
+            }
         yield transactions.size
 
     override def importNewTransactions(lastId: Option[Long]): Task[Int] =
         for
+            // Clear the cache at the beginning of each import batch
+            _ <- sourceAccountCache.set(Map.empty)
             id <- ZIO.fromOption(lastId).orElse(ZIO.succeed(0L))
             response <- fioClient.fetchNewTransactions(id)
-            transactions = mapFioTransactionsToModel(response)
-            _ <- ZIO.foreachDiscard(transactions)(tx =>
-                repository.save(tx.id, tx)
-            )
+            transactions <- mapFioTransactionsToModel(response)
+            _ <- ZIO.foreachDiscard(transactions) { transaction =>
+                // Only save the immutable transaction
+                transactionRepository.save(transaction.id, transaction)
+            }
         yield transactions.size
 
-    private def mapFioTransactionsToModel(response: FioResponse): List[Transaction] =
+    private def mapFioTransactionsToModel(response: FioResponse): Task[List[Transaction]] =
         val accountId = response.accountStatement.info.accountId
         val bankId = response.accountStatement.info.bankId
 
+        // Try to get the source account ID from the cache first
+        val key = (accountId, bankId)
+
+        sourceAccountCache.get.flatMap { cache =>
+            cache.get(key) match
+                case Some(id) =>
+                    // Cache hit
+                    ZIO.succeed(Some(id))
+                case None =>
+                    // Cache miss, query the database and cache the result
+                    sourceAccountRepository.find(
+                        SourceAccountQuery(accountId = Some(accountId), bankId = Some(bankId))
+                    ).flatMap { accounts =>
+                        accounts.headOption match
+                            case Some(sourceAccount) =>
+                                // Update cache with the found source account ID
+                                sourceAccountCache.update(_ + (key -> sourceAccount.id))
+                                    .as(Some(sourceAccount.id))
+                            case None =>
+                                ZIO.succeed(None)
+                    }
+        } flatMap {
+            case Some(sourceAccountId) =>
+                // We found the matching source account
+                ZIO.succeed(mapTransactions(response, sourceAccountId))
+            case None =>
+                // No matching source account found - this is an error condition
+                ZIO.fail(new RuntimeException(
+                    s"No source account found for account ID $accountId and bank ID $bankId"
+                ))
+        }
+    end mapFioTransactionsToModel
+
+    /** Maps FIO transaction data to our domain model
+      *
+      * @param response
+      *   The parsed FIO API response
+      * @param sourceAccountId
+      *   The resolved internal source account ID
+      * @return
+      *   List of domain Transaction objects
+      */
+    private def mapTransactions(response: FioResponse, sourceAccountId: Long): List[Transaction] =
         response.accountStatement.transactionList.transaction.map { fioTx =>
             val txId = fioTx.column22.map(_.value.toString).getOrElse(
                 throw new RuntimeException("Transaction has no ID")
@@ -56,13 +112,9 @@ class FioTransactionImportService(
             // Get currency from column14 (based on example JSON)
             val currency = fioTx.column14.map(_.value).getOrElse("CZK")
 
-            // Map other fields correctly based on the example JSON structure
-            Transaction(
-                id = TransactionId(
-                    sourceAccount = accountId,
-                    sourceBank = bankId,
-                    id = txId
-                ),
+            // Create the immutable Transaction object
+            val transaction = Transaction(
+                id = TransactionId(sourceAccountId, txId),
                 date = date,
                 amount = BigDecimal(amount),
                 currency = currency,
@@ -86,39 +138,27 @@ class FioTransactionImportService(
                 transactionType = fioTx.column8.map(_.value).getOrElse("Unknown"),
                 // Comment is column25
                 comment = fioTx.column25.map(_.value),
-
-                // Set initial status
-                status = TransactionStatus.Imported,
-
-                // Initialize AI fields as None
-                suggestedPayeeName = None,
-                suggestedCategory = None,
-                suggestedMemo = None,
-
-                // Initialize user overrides as None
-                overridePayeeName = None,
-                overrideCategory = None,
-                overrideMemo = None,
-
-                // Initialize YNAB fields as None
-                ynabTransactionId = None,
-                ynabAccountId = None,
-
                 // Set metadata
-                importedAt = Instant.now(),
-                processedAt = None,
-                submittedAt = None
+                importedAt = Instant.now()
             )
+
+            transaction
         }
-    end mapFioTransactionsToModel
 end FioTransactionImportService
 
 object FioTransactionImportService:
-    val layer: ZLayer[FioClient & TransactionRepository, Config.Error, TransactionImportService] =
+    val layer: ZLayer[
+        FioClient &
+            TransactionRepository &
+            SourceAccountRepository,
+        Config.Error,
+        TransactionImportService
+    ] =
         ZLayer {
             for
                 client <- ZIO.service[FioClient]
-                repo <- ZIO.service[TransactionRepository]
-            yield FioTransactionImportService(client, repo)
+                txRepo <- ZIO.service[TransactionRepository]
+                sourceRepo <- ZIO.service[SourceAccountRepository]
+            yield FioTransactionImportService(client, txRepo, sourceRepo)
         }
 end FioTransactionImportService

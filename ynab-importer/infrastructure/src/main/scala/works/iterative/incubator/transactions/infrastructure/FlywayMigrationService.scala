@@ -17,17 +17,21 @@ end FlywayMigrationService
   *
   * @param locations
   *   Classpath locations to scan for migrations
+  * @param cleanDisabled
+  *   Whether database cleaning is disabled (true by default for safety)
   */
 case class FlywayConfig(
-    locations: List[String] = List(FlywayConfig.DefaultLocation)
+    locations: List[String] = List(FlywayConfig.DefaultLocation),
+    cleanDisabled: Boolean = true
 )
 
 object FlywayConfig:
     /** Default location for migrations */
     val DefaultLocation = "classpath:db/migration"
-    
+
     /** Default config with standard locations */
     val default: FlywayConfig = FlywayConfig()
+end FlywayConfig
 
 class PostgreSQLFlywayMigrationService(
     dataSource: PostgreSQLDataSource,
@@ -39,6 +43,7 @@ class PostgreSQLFlywayMigrationService(
         val flywayConfig = Flyway.configure()
             .dataSource(dataSource.dataSource)
             .locations(config.locations*)
+            .cleanDisabled(config.cleanDisabled)
 
         flywayConfig.load()
     end flyway
