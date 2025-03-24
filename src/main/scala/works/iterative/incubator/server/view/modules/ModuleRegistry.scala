@@ -6,6 +6,7 @@ import zio.*
 import works.iterative.tapir.BaseUri
 import scala.annotation.unused
 import works.iterative.incubator.transactions.infrastructure.TransactionImportModule
+import works.iterative.incubator.transactions.infrastructure.SourceAccountModule
 import works.iterative.incubator.components.ScalatagsAppShell
 import works.iterative.server.http.ScalatagsViteSupport
 
@@ -20,11 +21,13 @@ class ModuleRegistry(
     private val helloWorldModule = HelloWorldModule
     private val assetsModule = AssetsModule(viteConfig)
     private val transactionImportModule = TransactionImportModule(appShell)
+    private val sourceAccountModule = SourceAccountModule(appShell)
 
     def modules: List[ZIOWebModule[AppEnv]] = List(
         helloWorldModule.widen,
         assetsModule.widen,
-        transactionImportModule.widen
+        transactionImportModule.widen,
+        sourceAccountModule.widen
     )
 end ModuleRegistry
 

@@ -15,6 +15,17 @@ We usually use metals for development. It is useful to run sbt server separately
 
 Integration tests use TestContainers to spin up a PostgreSQL database in a Docker container. The database schema is managed using Flyway migrations, ensuring consistency between tests and production environments. Before each test, Flyway cleans the database and applies all migrations to create a fresh schema.
 
+## Application URLs
+
+The application provides multiple UI modules accessible at these URLs:
+
+- **Transactions**: `/transactions` - View and manage transaction imports and processing
+- **Source Accounts**: `/source-accounts` - Manage bank account connections
+  - List accounts: `/source-accounts`
+  - Add account: `/source-accounts/new`
+  - View account details: `/source-accounts/{id}`
+  - Edit account: `/source-accounts/{id}/edit`
+
 ## Development Workflow
 
 ### Pre-commit/Pre-PR Checklist
@@ -40,6 +51,20 @@ The application uses ZIO's environment for dependency injection. When adding new
 3. **Update AppEnv type** in `src/main/scala/works/iterative/incubator/server/AppEnv.scala` to include any new services
 4. **Add service layers** to `Main.scala` in the `run` method
 5. **Never use asInstanceOf** for environment compatibility - instead, properly extend the AppEnv type
+
+## UI Module Implementation Guidelines
+
+When adding new UI modules to the application:
+
+1. Create a new module class in the appropriate package following the naming convention `[EntityName]Module.scala`
+2. Extend `ZIOWebModule` with the appropriate environment type requirements
+3. Structure the module with three main components:
+   - `service`: ZIO effects for data operations
+   - `view`: HTML rendering (using ScalaTags)
+   - `routes`: HTTP endpoints mapping to services and views
+4. Add the new module to `ModuleRegistry` in `src/main/scala/works/iterative/incubator/server/view/modules/ModuleRegistry.scala`
+5. Update `AppEnv` in `src/main/scala/works/iterative/incubator/server/AppEnv.scala` if needed
+6. Ensure any required service implementations are available in the environment
 
 ## Code Style Guidelines
 - **Architecture**: Follow Functional Core/Imperative Shell pattern (see principles.md and ynab-importer/doc/architecture.md)
