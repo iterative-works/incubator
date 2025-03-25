@@ -77,7 +77,9 @@ The application follows the Functional Core/Imperative Shell pattern:
 
 ### Web Layer
 - **API Module**: Transaction import/export endpoints
-- **User Interface**: Managing and categorizing transactions
+- **User Interface**: 
+  - **TransactionImportModule**: Transaction listing, categorizing, and management
+  - **SourceAccountModule**: Bank account configuration and management
 
 ## Database Schema
 
