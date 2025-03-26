@@ -2,7 +2,7 @@ ThisBuild / version := "0.1.0-SNAPSHOT"
 
 ThisBuild / scalaVersion := scala3Version
 
-lazy val iwSupportVersion = "0.1.9-SNAPSHOT"
+lazy val iwSupportVersion = "0.1.10-SNAPSHOT"
 
 ThisBuild / resolvers ++= Seq(
     "IW releases" at "https://dig.iterative.works/maven/releases",
