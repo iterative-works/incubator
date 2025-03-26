@@ -28,6 +28,18 @@ The application provides multiple UI modules accessible at these URLs:
 
 ## Development Workflow
 
+### Development Logs
+
+We maintain development logs in the `dev-logs` directory to track design decisions, implementation details, and changes made to the codebase. Each log is named with the date in the format `YYYYMMDD.md`.
+
+When making significant changes:
+1. Create a new log file for the current date if it doesn't exist
+2. Document the problem, solution approach, and implementation details
+3. Include code snippets, SQL queries, or diagrams as needed
+4. Reference related issues or pull requests
+
+These logs serve as documentation for future reference and help track the evolution of the codebase.
+
 ### Pre-commit/Pre-PR Checklist
 
 We are using Github, repository iterative-works/incubator. Each set of changes should be tested locally before pushing to the remote repository and creating a pull request. A standard review process is followed to ensure code quality and consistency.
