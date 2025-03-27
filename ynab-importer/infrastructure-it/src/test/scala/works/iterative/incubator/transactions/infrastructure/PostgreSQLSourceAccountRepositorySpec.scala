@@ -31,6 +31,17 @@ object PostgreSQLSourceAccountRepositorySpec extends ZIOSpecDefault:
             active = true,
             lastSyncTime = None
         )
+        
+    // Create sample CreateSourceAccount for testing
+    def createSampleCreateSourceAccount(): CreateSourceAccount =
+        CreateSourceAccount(
+            accountId = "123456789",
+            bankId = "0800",
+            name = "Test Account",
+            currency = "CZK",
+            ynabAccountId = None,
+            active = true
+        )
 
     def spec = {
         suite("PostgreSQLSourceAccountRepository")(
@@ -106,6 +117,29 @@ object PostgreSQLSourceAccountRepositorySpec extends ZIOSpecDefault:
                 assertTrue(
                     retrieved.isDefined,
                     retrieved.get.bankId == "0100"
+                )
+            },
+            test("should create a new source account with generated ID") {
+                for
+                    repository <- ZIO.service[SourceAccountRepository]
+                    createAccount = createSampleCreateSourceAccount()
+                    
+                    // Execute - create new account
+                    id <- repository.create(createAccount)
+                    
+                    // Retrieve the created account
+                    retrieved <- repository.load(id)
+                yield
+                // Assert
+                assertTrue(
+                    id > 0, // Generated ID should be positive
+                    retrieved.isDefined,
+                    retrieved.get.id == id,
+                    retrieved.get.accountId == createAccount.accountId,
+                    retrieved.get.bankId == createAccount.bankId,
+                    retrieved.get.name == createAccount.name,
+                    retrieved.get.currency == createAccount.currency,
+                    retrieved.get.active == createAccount.active
                 )
             }
         ) @@ sequential @@ migrate

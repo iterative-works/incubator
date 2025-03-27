@@ -14,7 +14,11 @@ import DbCodecs.given
   * This repository manages source account information in a PostgreSQL database.
   */
 class PostgreSQLSourceAccountRepository(xa: Transactor) extends SourceAccountRepository:
-    import PostgreSQLSourceAccountRepository.{sourceAccountRepo, SourceAccountDTO}
+    import PostgreSQLSourceAccountRepository.{
+        sourceAccountRepo,
+        SourceAccountDTO,
+        CreateSourceAccountDTO
+    }
 
     override def find(filter: SourceAccountQuery): UIO[Seq[SourceAccount]] =
         xa.transact:
@@ -50,12 +54,30 @@ class PostgreSQLSourceAccountRepository(xa: Transactor) extends SourceAccountRep
             if sourceAccountRepo.existsById(key) then
                 sourceAccountRepo.update(dto)
             else
-                sourceAccountRepo.insert(dto)
+                // Convert to CreateSourceAccountDTO for insertion
+                val createDto = CreateSourceAccountDTO.fromModel(
+                    CreateSourceAccount(
+                        accountId = value.accountId,
+                        bankId = value.bankId,
+                        name = value.name,
+                        currency = value.currency,
+                        ynabAccountId = value.ynabAccountId,
+                        active = value.active
+                    )
+                )
+                sourceAccountRepo.insert(createDto)
+            end if
         .orDie
 
     override def load(id: Long): UIO[Option[SourceAccount]] =
         xa.connect:
             sourceAccountRepo.findById(id).map(_.toModel)
+        .orDie
+
+    override def create(value: CreateSourceAccount): UIO[Long] =
+        xa.transact:
+            val dto = CreateSourceAccountDTO.fromModel(value)
+            sourceAccountRepo.insertReturning(dto).id
         .orDie
 
     /** Find all active source accounts */
@@ -114,7 +136,31 @@ object PostgreSQLSourceAccountRepository:
             model.into[SourceAccountDTO].transform
     end SourceAccountDTO
 
-    val sourceAccountRepo = Repo[SourceAccountDTO, SourceAccountDTO, Long]
+    /** DTO for creating new source accounts
+      *
+      * Used with Magnum's insertReturning to generate a proper ID
+      */
+    @SqlName("source_account")
+    @Table(PostgresDbType, SqlNameMapper.CamelToSnakeCase)
+    case class CreateSourceAccountDTO(
+        accountId: String,
+        bankId: String,
+        name: String,
+        currency: String,
+        ynabAccountId: Option[String] = None,
+        active: Boolean = true,
+        lastSyncTime: Option[Instant] = None
+    ) derives DbCodec
+
+    object CreateSourceAccountDTO:
+        def fromModel(model: CreateSourceAccount): CreateSourceAccountDTO =
+            model.into[CreateSourceAccountDTO]
+                .withFieldConst(_.lastSyncTime, None)
+                .transform
+    end CreateSourceAccountDTO
+
+    // Updated repository definition with create pattern support
+    val sourceAccountRepo = Repo[CreateSourceAccountDTO, SourceAccountDTO, Long]
 
     val layer: ZLayer[PostgreSQLTransactor, Nothing, SourceAccountRepository] =
         ZLayer.fromFunction { (ts: PostgreSQLTransactor) =>

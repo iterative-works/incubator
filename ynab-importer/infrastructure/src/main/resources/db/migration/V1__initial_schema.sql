@@ -4,9 +4,12 @@
 -- Transaction status enum
 CREATE TYPE transaction_status AS ENUM ('Imported', 'Categorized', 'Submitted');
 
+-- Source account sequence for ID generation
+CREATE SEQUENCE source_account_id_seq;
+
 -- Source accounts table
 CREATE TABLE source_account (
-    id BIGINT PRIMARY KEY,
+    id BIGINT PRIMARY KEY DEFAULT nextval('source_account_id_seq'),
     account_id VARCHAR(255) NOT NULL,
     bank_id VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL DEFAULT 'Unnamed Account',
