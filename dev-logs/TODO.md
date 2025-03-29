@@ -10,6 +10,13 @@ The YNAB Importer project aims to create a tool to import data from Fio bank to 
 - Display transaction state on a web interface
 - Allow confirmation and submission to YNAB
 
+## Features
+
+- [Source Account Management](../ynab-importer/features/source_account_management.feature)
+- [YNAB Integration](../ynab-importer/features/ynab_integration.feature)
+- Transaction Import (to be defined)
+- Transaction Processing (to be defined)
+
 ## Completed Tasks
 
 - ✅ Initial PostgreSQL database schema
@@ -21,20 +28,28 @@ The YNAB Importer project aims to create a tool to import data from Fio bank to 
 
 ### 1. Complete Source Account Management
 
-- [ ] Complete the Source Account repository update (fix the create pattern)
-- [ ] Enhance SourceAccount UI to use the new repository pattern
+- ✅ Complete the Source Account repository update (fix the create pattern)
+- ✅ Enhance SourceAccount UI to use the new repository pattern
 
-### 1. YNAB Integration (Prioritized)
+### 2. YNAB Integration (Prioritized)
 
+See [YNAB Integration Feature](../ynab-importer/features/ynab_integration.feature)
+
+- [ ] Create YNAB configuration model with API token storage
 - [ ] Implement YNAB API client
 - [ ] Add authentication with YNAB
-- [ ] Create YNAB account lookup for SourceAccount configuration
-- [ ] Add YNAB account selection dropdown in Source Account UI using YNAB API data
+- [ ] Create YNAB budget selection functionality
+- [ ] Implement YNAB account lookup for SourceAccount configuration
+- [ ] Add YNAB account selection dropdown in Source Account UI
 - [ ] Implement YNAB category synchronization for categorization
 - [ ] Build transaction submission service
-- [ ] Add submission confirmation and error handling
+- [ ] Add batch submission functionality
+- [ ] Implement error handling and retry mechanisms
+- [ ] Add transaction status tracking for YNAB submissions
 
 ### 3. Data Import Module
+
+Transaction Import Feature (to be defined)
 
 - [ ] Complete the FioTransactionImportService implementation
 - [ ] Add authentication for Fio Bank API
