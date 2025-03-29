@@ -87,6 +87,21 @@ lazy val ynabImporterWeb = (project in file("ynab-importer/web"))
     )
     .dependsOn(ynabImporterApp, webUi)
 
+lazy val ynabImporterE2ETests = (project in file("ynab-importer/e2e-tests"))
+    .settings(name := "ynab-importer-e2e-tests")
+    .enablePlugins(IWScalaProjectPlugin)
+    .settings(
+        commonDependencies,
+        // Dependencies for the e2e tests module
+        IWDeps.zioLib("test-junit", IWVersions.zio, Test),
+        libraryDependencies ++= Seq(
+            // Playwright
+            "com.microsoft.playwright" % "playwright" % "1.51.0" % Test
+        )
+    )
+    .settings(publish / skip := true)
+    .dependsOn(ynabImporterCore, ynabImporterWeb)
+
 lazy val ynabImporter = (project in file("ynab-importer"))
     .settings(name := "ynab-importer")
     .enablePlugins(IWScalaProjectPlugin)
@@ -94,7 +109,8 @@ lazy val ynabImporter = (project in file("ynab-importer"))
         ynabImporterCore,
         ynabImporterInfrastructure,
         ynabImporterApp,
-        ynabImporterWeb
+        ynabImporterWeb,
+        ynabImporterE2ETests
     )
 
 lazy val root = (project in file("."))
