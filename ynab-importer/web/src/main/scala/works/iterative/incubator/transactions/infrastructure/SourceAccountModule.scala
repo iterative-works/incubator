@@ -55,6 +55,12 @@ class SourceAccountModule(appShell: ScalatagsAppShell)
             ZIO.serviceWithZIO[SourceAccountRepository](
                 _.save(account.id, account)
             )
+            
+        // Create a new source account using the Create pattern
+        def createSourceAccount(createAccount: CreateSourceAccount): WebTask[Long] =
+            ZIO.serviceWithZIO[SourceAccountRepository](
+                _.create(createAccount)
+            )
 
         // Delete a source account by ID
         def deleteSourceAccount(id: Long): WebTask[Unit] =
@@ -588,30 +594,50 @@ class SourceAccountModule(appShell: ScalatagsAppShell)
                     ZIO.succeed(()),
                     _ =>
                         req.as[UrlForm].flatMap { form =>
-                            // Parse form data to create a new SourceAccount
-                            // Note: In a real implementation, you would validate input and handle errors
-                            val id = form.values.get("id").flatMap(_.headOption).flatMap(
-                                _.toLongOption
-                            ).getOrElse(0L)
-                            val newAccount = SourceAccount(
-                                id = id,
-                                accountId = form.values.get("accountId").flatMap(
-                                    _.headOption
-                                ).getOrElse(""),
-                                bankId =
-                                    form.values.get("bankId").flatMap(_.headOption).getOrElse(""),
-                                name = form.values.get("name").flatMap(_.headOption).getOrElse(""),
-                                currency =
-                                    form.values.get("currency").flatMap(_.headOption).getOrElse(""),
-                                ynabAccountId = form.values.get("ynabAccountId").flatMap(
-                                    _.headOption
-                                ).filter(_.nonEmpty),
-                                active = form.values.get("active").exists(_.contains("true"))
-                            )
-
+                            // Check if this is an update (has ID) or a new account creation
+                            val idOpt = form.values.get("id").flatMap(_.headOption).flatMap(_.toLongOption)
+                            
+                            val result = idOpt match
+                                case Some(id) if id > 0 =>
+                                    // This is an update of an existing account
+                                    val updatedAccount = SourceAccount(
+                                        id = id,
+                                        accountId = form.values.get("accountId").flatMap(
+                                            _.headOption
+                                        ).getOrElse(""),
+                                        bankId =
+                                            form.values.get("bankId").flatMap(_.headOption).getOrElse(""),
+                                        name = form.values.get("name").flatMap(_.headOption).getOrElse(""),
+                                        currency =
+                                            form.values.get("currency").flatMap(_.headOption).getOrElse(""),
+                                        ynabAccountId = form.values.get("ynabAccountId").flatMap(
+                                            _.headOption
+                                        ).filter(_.nonEmpty),
+                                        active = form.values.get("active").exists(_.contains("true"))
+                                    )
+                                    service.saveSourceAccount(updatedAccount).as(id)
+                                    
+                                case _ =>
+                                    // This is a new account creation
+                                    val createAccount = CreateSourceAccount(
+                                        accountId = form.values.get("accountId").flatMap(
+                                            _.headOption
+                                        ).getOrElse(""),
+                                        bankId =
+                                            form.values.get("bankId").flatMap(_.headOption).getOrElse(""),
+                                        name = form.values.get("name").flatMap(_.headOption).getOrElse(""),
+                                        currency =
+                                            form.values.get("currency").flatMap(_.headOption).getOrElse(""),
+                                        ynabAccountId = form.values.get("ynabAccountId").flatMap(
+                                            _.headOption
+                                        ).filter(_.nonEmpty),
+                                        active = form.values.get("active").exists(_.contains("true"))
+                                    )
+                                    service.createSourceAccount(createAccount)
+                            
                             for
-                                _ <- service.saveSourceAccount(newAccount)
-                                resp <- SeeOther(Location(Uri.unsafeFromString("/source-accounts")))
+                                id <- result  // Now returns the ID in both cases
+                                resp <- SeeOther(Location(Uri.unsafeFromString(s"/source-accounts/$id")))
                             yield resp
                             end for
                         }
