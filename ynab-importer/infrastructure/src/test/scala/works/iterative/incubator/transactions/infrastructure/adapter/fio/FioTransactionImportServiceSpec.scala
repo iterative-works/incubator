@@ -48,6 +48,9 @@ object FioTransactionImportServiceSpec extends ZIOSpecDefault:
         private val dbCallCounter = Unsafe.unsafe { implicit unsafe =>
             Ref.unsafe.make(0)
         }
+        private val idCounter = Unsafe.unsafe { implicit unsafe =>
+            Ref.unsafe.make(sourceAccountId + 1L)
+        }
 
         // Method to get the current call count
         def getCallCount: UIO[Int] = dbCallCounter.get
@@ -71,6 +74,20 @@ object FioTransactionImportServiceSpec extends ZIOSpecDefault:
                         }
                         .toSeq
                 }
+                
+        override def create(value: CreateSourceAccount): UIO[Long] =
+            for
+                nextId <- idCounter.getAndUpdate(_ + 1)
+                _ <- sourceAccounts.update(_ + (nextId -> SourceAccount(
+                    id = nextId,
+                    accountId = value.accountId,
+                    bankId = value.bankId,
+                    name = value.name,
+                    currency = value.currency,
+                    ynabAccountId = value.ynabAccountId,
+                    active = value.active
+                )))
+            yield nextId
     end MockSourceAccountRepository
 
     // Helper methods to create test data
