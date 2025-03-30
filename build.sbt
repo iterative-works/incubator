@@ -62,7 +62,13 @@ lazy val ynabImporterInfrastructureIT = (project in file("ynab-importer/infrastr
     .settings(commonDependencies)
     .settings(publish / skip := true)
     .settings(
-        libraryDependencies += "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.43.0" % Test
+        IWDeps.logbackClassic,
+        libraryDependencies ++= Seq(
+            // Use latest testcontainers (testcontainers-scala pulls in older version)
+            "org.testcontainers" % "testcontainers" % "1.20.6" % Test,
+            "org.testcontainers" % "postgresql" % "1.20.6" % Test,
+            "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.43.0" % Test
+        )
     )
     .dependsOn(ynabImporterCore, ynabImporterInfrastructure)
 
