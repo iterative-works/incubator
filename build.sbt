@@ -100,9 +100,18 @@ lazy val ynabImporterE2ETests = (project in file("ynab-importer/e2e-tests"))
         commonDependencies,
         // Dependencies for the e2e tests module
         IWDeps.zioLib("test-junit", IWVersions.zio, Test),
+        IWDeps.logbackClassic,
         libraryDependencies ++= Seq(
             // Playwright
-            "com.microsoft.playwright" % "playwright" % "1.51.0" % Test
+            "com.microsoft.playwright" % "playwright" % "1.51.0" % Test,
+            
+            // TestContainers
+            "org.testcontainers" % "testcontainers" % "1.20.6",
+            "org.testcontainers" % "postgresql" % "1.20.6",
+            "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.43.0",
+            
+            // Config
+            "com.typesafe" % "config" % "1.4.3" % Test
         )
     )
     .settings(publish / skip := true)

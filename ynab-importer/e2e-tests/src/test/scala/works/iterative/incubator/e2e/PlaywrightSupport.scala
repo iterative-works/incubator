@@ -4,11 +4,13 @@ import com.microsoft.playwright.*
 import com.microsoft.playwright.options.LoadState
 import zio.*
 import zio.logging.*
+import works.iterative.incubator.e2e.setup.{BrowserInstallation, ScreenshotSupport, TestContainersSupport}
+import scala.util.Try
 
 /**
  * Base trait for Playwright test support
  */
-trait PlaywrightSupport {
+trait PlaywrightSupport extends ScreenshotSupport {
 
   /**
    * Configuration for Playwright tests
@@ -41,6 +43,8 @@ trait PlaywrightSupport {
    */
   val playwrightLayer: ZLayer[Any, Throwable, Playwright] =
     ZLayer.scoped {
+      // Validate browser installation before creating Playwright instance
+      BrowserInstallation.validateBrowserInstallation *>
       ZIO.acquireRelease(
         ZIO.attempt(Playwright.create())
       )(playwright => ZIO.succeed(playwright.close()))
@@ -98,19 +102,64 @@ trait PlaywrightSupport {
     }
 
   /**
-   * Helper method to create a Playwright test
+   * Helper method to create a Playwright test with auto-screenshots on failure
+   * 
+   * This version uses a user-provided configuration.
    */
   def withPlaywright[E, A](
       test: RIO[Page & PlaywrightConfig, A],
       config: PlaywrightConfig = defaultConfig
   ): ZIO[Any, Throwable, A] = {
-    test.provide(
-      ZLayer.succeed(config),
+    // Get test name from the call site
+    val testName = Thread.currentThread().getStackTrace()
+      .find(_.getClassName.contains("$anonfun$"))
+      .map(_.getMethodName)
+      .getOrElse("unknown-test")
+    
+    // Create a new layer with the config
+    val configLayer = ZLayer.succeed(config)
+    
+    // We need to add console logging
+    val loggingLayer = Runtime.removeDefaultLoggers >>> consoleLogger()
+    
+    // The full environment for running tests
+    val testEnv = ZLayer.make[Page & PlaywrightConfig](
+      configLayer,
       playwrightLayer,
       browserLayer,
       pageLayer,
-      Runtime.removeDefaultLoggers >>> consoleLogger()
+      loggingLayer
     )
+    
+    // Run the test with screenshot on failure, dealing with potential ScreenshotOnFailure errors
+    test.provideLayer(testEnv)
+      .tapError { _ =>
+        // On error, take a screenshot
+        for
+          page <- ZIO.service[Page].provideLayer(testEnv)
+          _ <- screenshotOnFailure(page, testName)
+        yield ()
+      }.catchAllCause(cause => 
+        // Log the error properly
+        ZIO.logErrorCause(s"Test failed: $testName", cause) *> 
+        ZIO.fail(cause.squash)
+      ).provide(loggingLayer)
+  }
+
+  /**
+   * Helper method to create a Playwright test with TestContainers
+   * 
+   * This version starts TestContainers for both the database and application
+   * and automatically configures Playwright based on the containers.
+   */
+  def withTestContainers[E, A](
+      test: RIO[Page & PlaywrightConfig, A]
+  ): ZIO[Any, Throwable, A] = {
+    // For our current simplified implementation, just delegate to TestContainersSupport
+    TestContainersSupport.withTestContainers {
+      // And use the withPlaywright method to actually run the test
+      withPlaywright(test)
+    }
   }
 
   /**
@@ -245,6 +294,27 @@ trait PlaywrightSupport {
       _ <- ZIO.logInfo(s"Waiting for selector: $selector")
       element <- ZIO.attempt(page.waitForSelector(selector))
     } yield element
+
+  /**
+   * Take a screenshot at the current point in the test
+   * 
+   * @param name Optional name to identify this screenshot
+   * @return Path to the screenshot file
+   */
+  def takeScreenshot(name: String = ""): ZIO[Page, Throwable, Unit] =
+    for {
+      page <- ZIO.service[Page]
+      // Get test name from the call site
+      testName = Try(
+        Thread.currentThread().getStackTrace()
+          .find(_.getClassName.contains("$anonfun$"))
+          .map(_.getMethodName)
+          .getOrElse("unknown-test")
+      ).getOrElse("manual-screenshot")
+      
+      suffix = if name.isEmpty then "" else name
+      _ <- captureScreenshot(page, testName, suffix)
+    } yield ()
 
   // Import for Scala collection conversions
   import scala.jdk.CollectionConverters.*

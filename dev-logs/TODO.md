@@ -89,8 +89,8 @@ Transaction Import Feature (to be defined)
 
 - [ ] Complete unit tests for all core services
 - [ ] Add integration tests for external API interactions
-- [🔄] Set up end-to-end testing framework with Playwright
-- [ ] Implement e2e tests for Source Account Management
+- [✅] Set up end-to-end testing framework with Playwright
+- [🔄] Implement e2e tests for Source Account Management
 - [ ] Implement e2e tests for YNAB integration
 - [ ] Implement performance testing for database operations
 - [ ] Test error handling and edge cases
