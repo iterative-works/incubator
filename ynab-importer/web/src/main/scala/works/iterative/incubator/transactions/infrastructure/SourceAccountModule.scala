@@ -198,7 +198,7 @@ class SourceAccountModule(appShell: ScalatagsAppShell)
 
             val accountTable = ScalatagsTailwindTable
                 .table(columns, accounts)
-                .withClass("border-collapse")
+                .withClass("border-collapse accounts-table")
                 .withHeaderClasses(Seq("bg-gray-100"))
                 .render
 

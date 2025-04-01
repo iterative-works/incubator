@@ -151,6 +151,14 @@ object TestDataManager:
         ZIO.foreach(1 to count)(_ => createRandomTransaction).map(_.toList)
     
     /**
+     * Configuration for making API calls
+     */
+    case class ApiConfig(
+        baseUrl: String = "http://localhost:8080",
+        timeout: zio.Duration = zio.Duration.fromSeconds(10)
+    )
+    
+    /**
      * Create a specified number of test source accounts in the database
      *
      * @param count Number of accounts to create
@@ -158,15 +166,33 @@ object TestDataManager:
      * @return Unit
      */
     def createTestSourceAccounts(count: Int, active: Boolean = true): UIO[Unit] =
-        // For now, we'll mock this behavior instead of actually inserting into the database
-        // In the full implementation, this would use the PostgreSQL container from TestContainers
-        // to insert actual records into the database
+        // For local dev testing, we'll still just log mock data being created
+        // In real test scenarios with proper setup, we would actually create accounts
+        // through the API or directly in the database
         for
             accounts <- createSourceAccounts(count)
                         .map(_.map(acct => acct.copy(active = active)))
             _ <- ZIO.logInfo(s"[MOCK] Created $count source accounts with active=$active")
             _ <- ZIO.foreach(accounts)(acct => 
                 ZIO.logDebug(s"Test account created: ${acct.name}, ID: ${acct.accountId}, active: ${acct.active}")
+            )
+        yield ()
+    
+    /**
+     * Create source accounts through the API
+     * 
+     * Note: This implementation would be used when the application is running
+     * and can be accessed through its API.
+     */
+    def createSourceAccountsViaApi(count: Int, active: Boolean = true): Task[Unit] =
+        // In a real implementation, we would create accounts via API calls
+        // For now, we'll just simulate success but log as if we were making API calls
+        for
+            accounts <- createSourceAccounts(count)
+                        .map(_.map(acct => acct.copy(active = active)))
+            _ <- ZIO.logInfo(s"Would create $count source accounts via API with active=$active")
+            _ <- ZIO.foreach(accounts)(acct => 
+                ZIO.logInfo(s"Would call API to create: ${acct.name}, ID: ${acct.accountId}, active: ${acct.active}")
             )
         yield ()
     

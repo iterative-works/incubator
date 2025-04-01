@@ -32,7 +32,7 @@ trait PlaywrightSupport extends ScreenshotSupport {
     baseUrl = "http://localhost:8080",
     headless = true,
     slowMo = 0,
-    timeout = 30000,
+    timeout = 10000,  // Reduce the timeout for faster failures during debugging
     browserType = "chromium",
     viewportWidth = 1280,
     viewportHeight = 720
@@ -239,15 +239,27 @@ trait PlaywrightSupport extends ScreenshotSupport {
   /**
    * Helper method to wait for navigation to complete
    * 
-   * This just waits for the page's network to become idle
+   * This waits for the page to be in a stable state
+   * by waiting first for DOM content, then for network idle
    */
   def waitForLoadComplete: ZIO[Page, Throwable, Unit] =
     for {
       page <- ZIO.service[Page]
+      _ <- ZIO.logInfo("Waiting for page to complete loading")
       _ <- ZIO.attempt {
-        // Wait for the page to load completely
-        page.waitForLoadState(LoadState.NETWORKIDLE)
+        // First wait for DOM content to be loaded (more reliable than NETWORKIDLE)
+        page.waitForLoadState(LoadState.DOMCONTENTLOADED)
       }
+      // Adding a small delay to ensure stability
+      _ <- ZIO.sleep(500.milliseconds)
+      // Try to wait for network idle but don't fail the test if it times out
+      _ <- ZIO.attempt {
+        page.waitForLoadState(LoadState.NETWORKIDLE, 
+          new Page.WaitForLoadStateOptions().setTimeout(5000))
+      }.catchAll(e => 
+        ZIO.logWarning(s"Network didn't become idle, but continuing: ${e.getMessage}")
+      )
+      _ <- ZIO.logInfo("Page load complete")
     } yield ()
 
   /**

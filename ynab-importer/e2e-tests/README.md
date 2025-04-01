@@ -7,14 +7,14 @@ This module contains end-to-end tests for the YNAB Importer application using Pl
 The end-to-end test framework provides:
 
 1. **Automated browser installation and validation**
-2. **TestContainers integration** for spinning up isolated test environments
+2. **Locally running application tests** with plans for full TestContainers integration
 3. **Screenshot capture** on test failures for easier debugging
 4. **Test data management** for creating test fixtures
-5. **Configuration system** with environment variable support
+5. **Health check endpoint** for application readiness
 
 ## Setup
 
-Playwright browsers installation is now completely automated - they'll be automatically installed if missing when you run the tests.
+Playwright browsers installation is automated - they'll be automatically installed if missing when you run the tests.
 
 However, you can also install them manually if needed:
 
@@ -25,9 +25,32 @@ sbt "ynabImporterE2ETests/runMain works.iterative.incubator.e2e.setup.InstallBro
 
 ## Running the Tests
 
-To run all the e2e tests:
+The easiest way to run the tests is using the provided script:
 
 ```bash
+./run-e2e-tests.sh
+```
+
+This script will:
+1. Start the application
+2. Wait for it to be ready (using the health endpoint)
+3. Run all E2E tests
+4. Stop the application
+
+### Script Options
+
+- `--no-start`: Don't start the application (assumes it's already running)
+- `--no-stop`: Don't stop the application after tests
+
+### Running Tests Manually
+
+To run all the e2e tests manually:
+
+```bash
+# First, start the application in another terminal
+sbtn reStart
+
+# Then run the tests
 sbtn ynabImporterE2ETests/test
 ```
 
@@ -37,40 +60,14 @@ To run a specific test suite:
 sbtn "ynabImporterE2ETests/testOnly works.iterative.incubator.e2e.tests.SourceAccountManagementSpec"
 ```
 
-To run a specific test case:
+## Current Implementation
 
-```bash
-sbtn "ynabImporterE2ETests/testOnly works.iterative.incubator.e2e.tests.SourceAccountManagementSpec -- -t 'Creating a new source account'"
-```
+The current E2E test implementation uses:
 
-## Configuration
-
-The tests can be configured through environment variables or by editing the `application.conf` file:
-
-### Playwright Configuration
-
-- `E2E_BASE_URL`: Base URL of the application (default: determined automatically from TestContainers)
-- `E2E_HEADLESS`: Whether to run in headless mode (default: true)
-- `E2E_SLOW_MO`: Slow down execution in ms (default: 0)
-- `E2E_TIMEOUT`: Timeout in ms (default: 30000)
-- `E2E_BROWSER_TYPE`: Browser to use: chromium, firefox, or webkit (default: chromium)
-- `E2E_VIEWPORT_WIDTH`: Viewport width (default: 1280)
-- `E2E_VIEWPORT_HEIGHT`: Viewport height (default: 720)
-
-### TestContainers Configuration
-
-- `E2E_PG_IMAGE`: PostgreSQL Docker image (default: postgres:17-alpine)
-- `E2E_PG_DB_NAME`: Database name (default: ynab_importer_test)
-- `E2E_PG_USERNAME`: Database username (default: test_user)
-- `E2E_PG_PASSWORD`: Database password (default: test_password)
-- `E2E_APP_IMAGE`: Application Docker image (default: ynab-importer:latest)
-- `E2E_APP_SERVER_PORT`: Internal port the app listens on (default: 8080)
-- `E2E_APP_EXPOSED_PORT`: Port to expose on host, 0 for random (default: 0)
-
-### Screenshot Configuration
-
-- `E2E_SCREENSHOTS_DIR`: Directory to save screenshots (default: target/e2e-screenshots)
-- `E2E_CAPTURE_ON_FAILURE`: Whether to capture screenshots on test failures (default: true)
+1. A locally running application instance (not containerized yet)
+2. Mock test data creation (real database interaction coming later)
+3. Local connection health checking before tests run
+4. Proper test failures with screenshots when things go wrong
 
 ## Test Organization
 
@@ -80,10 +77,9 @@ The tests are organized based on the feature files in the `ynab-importer/feature
 
 ### TestContainersSupport
 
-Provides containerized test environment setup with:
-- PostgreSQL database in a Docker container
-- Application in a Docker container
-- Automatic port mapping and connection configuration
+Currently provides a simplified local test environment:
+- Connection checking to locally running application
+- Future plans for full containerized testing with PostgreSQL and application containers
 
 ### ScreenshotSupport
 
@@ -102,9 +98,10 @@ Manages browser installation and verification:
 ### TestDataManager
 
 Utilities for test data management:
-- Creation of test accounts with random or predefined data
+- Currently mocks creation of test accounts
 - Transaction test data generation
 - Helper methods for test setup
+- Plans for real database interaction in the future
 
 ## Adding New Tests
 
@@ -113,14 +110,14 @@ To add a new test:
 1. Create a new test class in the `works.iterative.incubator.e2e.tests` package
 2. Extend `ZIOSpecDefault` and mix in `PlaywrightSupport`
 3. Implement the scenarios from the corresponding feature file
-4. Use `withTestContainers` for automatic test environment setup
+4. Use `withPlaywright` for local test execution
 5. Use helper methods from `PlaywrightSupport` to interact with the page
 
 Example:
 
 ```scala
 test("My new test") {
-  withTestContainers(
+  withPlaywright(
     for {
       // Navigate to a page
       _ <- navigateTo("/my-page")
@@ -139,3 +136,11 @@ test("My new test") {
   )
 }
 ```
+
+## Future Improvements
+
+1. Full TestContainers implementation for isolated testing
+2. Real database interaction for test data management
+3. API-based test data creation
+4. Test parallelization
+5. Comprehensive reporting
