@@ -27,7 +27,8 @@ class ModuleRegistry(
         helloWorldModule.widen,
         assetsModule.widen,
         transactionImportModule.widen,
-        sourceAccountModule.widen
+        sourceAccountModule.widen,
+        HealthModule.widen
     )
 end ModuleRegistry
 

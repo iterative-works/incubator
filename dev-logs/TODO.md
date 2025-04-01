@@ -126,3 +126,10 @@ Transaction Import Feature (to be defined)
 - Expected Start: 15.03.2025
 - Delivery to Testing: 05.04.2025
 - Required Production Deployment: 15.04.2025
+
+## Someday / Maybe
+
+- [ ] Extract transactor support code to a shared module
+- [ ] Extract testcontainer support to a shared module
+- [ ] Make each web module separately startable as a web server
+- [ ] Use tapir for web module endpoints

@@ -150,4 +150,24 @@ object TestDataManager:
     def createRandomTransactions(count: Int): UIO[List[TransactionTestData]] =
         ZIO.foreach(1 to count)(_ => createRandomTransaction).map(_.toList)
     
+    /**
+     * Create a specified number of test source accounts in the database
+     *
+     * @param count Number of accounts to create
+     * @param active Whether the accounts should be active
+     * @return Unit
+     */
+    def createTestSourceAccounts(count: Int, active: Boolean = true): UIO[Unit] =
+        // For now, we'll mock this behavior instead of actually inserting into the database
+        // In the full implementation, this would use the PostgreSQL container from TestContainers
+        // to insert actual records into the database
+        for
+            accounts <- createSourceAccounts(count)
+                        .map(_.map(acct => acct.copy(active = active)))
+            _ <- ZIO.logInfo(s"[MOCK] Created $count source accounts with active=$active")
+            _ <- ZIO.foreach(accounts)(acct => 
+                ZIO.logDebug(s"Test account created: ${acct.name}, ID: ${acct.accountId}, active: ${acct.active}")
+            )
+        yield ()
+    
 end TestDataManager

@@ -1,3 +1,5 @@
+import com.typesafe.sbt.packager.docker._
+
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
 ThisBuild / scalaVersion := scala3Version
@@ -104,12 +106,12 @@ lazy val ynabImporterE2ETests = (project in file("ynab-importer/e2e-tests"))
         libraryDependencies ++= Seq(
             // Playwright
             "com.microsoft.playwright" % "playwright" % "1.51.0" % Test,
-            
+
             // TestContainers
             "org.testcontainers" % "testcontainers" % "1.20.6",
             "org.testcontainers" % "postgresql" % "1.20.6",
             "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.43.0",
-            
+
             // Config
             "com.typesafe" % "config" % "1.4.3" % Test
         )
@@ -131,7 +133,7 @@ lazy val ynabImporter = (project in file("ynab-importer"))
 lazy val root = (project in file("."))
     .settings(name := "iw-incubator")
     // Auto activates for all projects, but make sure we have required dependencies
-    .enablePlugins(VitePlugin, JavaServerAppPackaging, IWScalaProjectPlugin)
+    .enablePlugins(VitePlugin, JavaServerAppPackaging, DockerPlugin, IWScalaProjectPlugin)
     .settings(
         commonDependencies,
         IWDeps.http4sBlazeServer,
@@ -149,6 +151,36 @@ lazy val root = (project in file("."))
         ),
         reStart / aggregate := false,
         Test / fork := true
+    )
+    .settings(
+        // Docker configuration
+        Docker / packageName := "iw-incubator",
+        dockerBaseImage := "eclipse-temurin:21-jre-alpine",
+        dockerExposedPorts := Seq(8080),
+        dockerUpdateLatest := true,
+        dockerEnvVars := Map(
+            "BLAZE_HOST" -> "0.0.0.0",
+            "BLAZE_PORT" -> "8080",
+            "BASEURI" -> "/",
+            "VITE_FILE" -> "/opt/docker/vite/manifest.json",
+            "JAVA_OPTS" -> "-Xmx512m -Xms256m",
+            "LOG_LEVEL" -> "INFO"
+        ),
+        // Add healthcheck
+        dockerCommands += Cmd(
+            "HEALTHCHECK",
+            "--interval=30s",
+            "--timeout=5s",
+            "--start-period=30s",
+            "--retries=3",
+            "CMD",
+            "curl",
+            "-f",
+            "http://localhost:8080/health",
+            "||",
+            "exit",
+            "1"
+        )
     )
     .dependsOn(ynabImporterInfrastructure, ynabImporterWeb)
     .aggregate(webUi, ynabImporter)
