@@ -8,6 +8,7 @@ import works.iterative.server.http.ZIOWebModule
 import works.iterative.incubator.components.ScalatagsAppShell
 import zio.interop.catz._
 import scalatags.Text
+import works.iterative.incubator.transactions.views._
 
 /**
  * Module for previewing UI views with test data.
@@ -25,9 +26,9 @@ class ViewPreviewModule(appShell: ScalatagsAppShell) extends ZIOWebModule[ViewPr
   // Example data provider
   private val dataProvider = new TestDataProvider()
   
-  // Views for components we want to preview
-  private val sourceAccountViews = new examples.SourceAccountViewExample()
-  private val transactionViews = new examples.TransactionViewExample()
+  // Use the real view implementations
+  private val sourceAccountViews: SourceAccountViews = new SourceAccountViewsImpl()
+  private val transactionViews: TransactionViews = new TransactionViewsImpl()
   
   /**
    * Service layer - in a real module this would connect to repositories
@@ -96,11 +97,26 @@ class ViewPreviewModule(appShell: ScalatagsAppShell) extends ZIOWebModule[ViewPr
         )
       )
       
-      // Component preview
+      // Component preview using real view implementations
       val content = (component, scenario) match {
-        case ("source-accounts", scen) => sourceAccountViews.renderView(scen, data)
-        case ("transactions", scen) => transactionViews.renderView(scen, data)
-        case _ => stDiv(cls := "p-8 text-center text-red-500")(s"Unknown preview: $component/$scenario")
+        case ("source-accounts", "default") => 
+          sourceAccountViews.sourceAccountList(data.sourceAccounts)
+        case ("source-accounts", "empty") => 
+          sourceAccountViews.sourceAccountList(List())
+        case ("source-accounts", "with-errors") => 
+          sourceAccountViews.sourceAccountList(data.sourceAccounts)
+        case ("source-accounts", "form") => 
+          sourceAccountViews.sourceAccountForm(data.sourceAccounts.headOption)
+        case ("source-accounts", scen) if data.sourceAccounts.nonEmpty => 
+          sourceAccountViews.sourceAccountDetail(data.sourceAccounts.head)
+        
+        case ("transactions", _) if data.transactionsWithState.nonEmpty => 
+          transactionViews.transactionList(data.transactionsWithState, 
+            if (scenario == "with-warnings") Some("Warning detected in transaction") else None)
+        case ("transactions", "empty") => 
+          transactionViews.transactionList(List())
+        case _ => 
+          stDiv(cls := "p-8 text-center text-red-500")(s"Unknown preview: $component/$scenario")
       }
       
       // Combine header and content

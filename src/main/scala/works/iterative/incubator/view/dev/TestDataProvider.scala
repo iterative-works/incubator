@@ -2,7 +2,8 @@ package works.iterative.incubator.view.dev
 
 import works.iterative.incubator.transactions._
 import works.iterative.incubator.view.dev.examples._
-import java.time.{LocalDate, LocalDateTime, Instant}
+import works.iterative.incubator.transactions.views.TransactionWithState
+import java.time.{LocalDate, Instant}
 
 /**
  * Provides test data for UI component previews.
@@ -34,11 +35,11 @@ class TestDataProvider {
       errors = List("Unable to connect to account CZ11111111")
     )
     case "form" => ExampleData(
-      // Empty data for form example
+      sourceAccounts = List(SourceAccount(1L, "CZ123456789", "FIO", "Main Checking", "CZK", active = true)),
       formValues = Map(
-        "name" -> "",
-        "accountId" -> "",
-        "bankId" -> ""
+        "name" -> "Main Checking",
+        "accountId" -> "CZ123456789",
+        "bankId" -> "FIO"
       )
     )
     case _ => ExampleData.empty
@@ -147,9 +148,16 @@ class TestDataProvider {
         )
       )
       
+      // Create TransactionWithState objects
+      val transactionsWithState = txs.map { tx =>
+        val state = states.find(_.transactionId == tx.id)
+        TransactionWithState(tx, state)
+      }
+      
       ExampleData(
         transactions = txs,
-        processingStates = states
+        processingStates = states,
+        transactionsWithState = transactionsWithState
       )
       
     case "empty" => ExampleData(transactions = List())
@@ -223,9 +231,16 @@ class TestDataProvider {
         )
       )
       
+      // Create TransactionWithState objects
+      val transactionsWithState = txs.map { tx =>
+        val state = states.find(_.transactionId == tx.id)
+        TransactionWithState(tx, state)
+      }
+      
       ExampleData(
         transactions = txs,
-        processingStates = states
+        processingStates = states,
+        transactionsWithState = transactionsWithState
       )
       
     case "with-warnings" =>
@@ -298,9 +313,16 @@ class TestDataProvider {
         )
       )
       
+      // Create TransactionWithState objects
+      val transactionsWithState = txs.map { tx =>
+        val state = states.find(_.transactionId == tx.id)
+        TransactionWithState(tx, state)
+      }
+      
       ExampleData(
         transactions = txs,
         processingStates = states,
+        transactionsWithState = transactionsWithState,
         warnings = List("Unusual amount detected for transaction tx5")
       )
     case _ => ExampleData.empty
