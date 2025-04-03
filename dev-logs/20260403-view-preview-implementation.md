@@ -47,9 +47,30 @@ We've implemented a standalone preview server specifically for UI development:
    - Support for edge cases and error states
 
 4. **Example View Implementations**
-   - SourceAccountViewExample
-   - TransactionViewExample
-   - Additional components as needed
+   - SourceAccountViewExample - Different account listing views
+   - TransactionViewExample - Transaction listing and detail views
+
+5. **ExampleData.scala**
+   - Container for sharing test data across components
+   - Standardizes data formats for development
+
+### Implementation Challenges & Solutions
+
+1. **Model Structure Alignment**
+   - Adjusted example data to match actual domain model structure
+   - Made view components work with real model entities
+
+2. **Asset Pipeline Integration**
+   - Reused existing Vite configuration for consistent styling
+   - Ensured CSS and JavaScript assets are properly loaded
+
+3. **Scalatags Conflicts**
+   - Resolved naming conflicts between Http4s and Scalatags
+   - Used import aliases to disambiguate HTML tag names
+
+4. **Isolated Environment**
+   - Created a minimal AppEnv only for previewing UI components
+   - Separated preview functionality from production code
 
 ### How to Use
 
@@ -63,9 +84,11 @@ We've implemented a standalone preview server specifically for UI development:
    http://localhost:8080/preview
    ```
 
-3. Browse available view examples and scenarios from the index page
+3. Browse available view examples and scenarios from the index page:
+   - Source Accounts: default, empty, with-errors, form
+   - Transactions: default, empty, with-pending, with-warnings
 
-4. Make changes to example view implementations to test UI variations
+4. Navigate between different views and test various data scenarios
 
 ## Benefits
 

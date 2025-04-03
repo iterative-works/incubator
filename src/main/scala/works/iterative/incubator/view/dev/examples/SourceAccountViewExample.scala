@@ -49,8 +49,8 @@ class SourceAccountViewExample {
             accounts.map { account =>
               tr(cls := "border-b border-gray-200 hover:bg-gray-100")(
                 td(cls := "py-3 px-6 text-left")(account.name),
-                td(cls := "py-3 px-6 text-left")(account.accountNumber),
-                td(cls := "py-3 px-6 text-left")(account.bankCode),
+                td(cls := "py-3 px-6 text-left")(account.accountId),
+                td(cls := "py-3 px-6 text-left")(account.bankId),
                 td(cls := "py-3 px-6 text-left")(
                   if (account.active) {
                     span(cls := "bg-green-200 text-green-700 py-1 px-3 rounded-full text-xs")("Active")
@@ -121,8 +121,8 @@ class SourceAccountViewExample {
             accounts.map { account =>
               tr(cls := "border-b border-gray-200 hover:bg-gray-100")(
                 td(cls := "py-3 px-6 text-left")(account.name),
-                td(cls := "py-3 px-6 text-left")(account.accountNumber),
-                td(cls := "py-3 px-6 text-left")(account.bankCode),
+                td(cls := "py-3 px-6 text-left")(account.accountId),
+                td(cls := "py-3 px-6 text-left")(account.bankId),
                 td(cls := "py-3 px-6 text-left")(
                   if (account.active) {
                     span(cls := "bg-green-200 text-green-700 py-1 px-3 rounded-full text-xs")("Active")
@@ -153,7 +153,7 @@ class SourceAccountViewExample {
       div(cls := "bg-white shadow rounded p-6")(
         form(action := "#", method := "post")(
           div(cls := "mb-4")(
-            label(cls := "block text-gray-700 text-sm font-bold mb-2", forAttr := "name")("Account Name"),
+            label(cls := "block text-gray-700 text-sm font-bold mb-2", `for` := "name")("Account Name"),
             input(
               cls := "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline",
               id := "name",
@@ -165,26 +165,26 @@ class SourceAccountViewExample {
           ),
           
           div(cls := "mb-4")(
-            label(cls := "block text-gray-700 text-sm font-bold mb-2", forAttr := "accountNumber")("Account Number"),
+            label(cls := "block text-gray-700 text-sm font-bold mb-2", `for` := "accountId")("Account Number"),
             input(
               cls := "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline",
-              id := "accountNumber",
-              name := "accountNumber",
+              id := "accountId",
+              name := "accountId",
               tpe := "text",
               placeholder := "CZ123456789",
-              value := values.getOrElse("accountNumber", "")
+              value := values.getOrElse("accountId", "")
             )
           ),
           
           div(cls := "mb-4")(
-            label(cls := "block text-gray-700 text-sm font-bold mb-2", forAttr := "bankCode")("Bank Code"),
+            label(cls := "block text-gray-700 text-sm font-bold mb-2", `for` := "bankId")("Bank Code"),
             input(
               cls := "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline",
-              id := "bankCode",
-              name := "bankCode",
+              id := "bankId",
+              name := "bankId",
               tpe := "text",
               placeholder := "FIO",
-              value := values.getOrElse("bankCode", "")
+              value := values.getOrElse("bankId", "")
             )
           ),
           

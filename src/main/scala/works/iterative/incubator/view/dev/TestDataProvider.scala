@@ -2,8 +2,7 @@ package works.iterative.incubator.view.dev
 
 import works.iterative.incubator.transactions._
 import works.iterative.incubator.view.dev.examples._
-import java.time.LocalDateTime
-import java.time.ZonedDateTime
+import java.time.{LocalDate, LocalDateTime, Instant}
 
 /**
  * Provides test data for UI component previews.
@@ -21,16 +20,16 @@ class TestDataProvider {
   def getSourceAccountData(scenario: String): ExampleData = scenario match {
     case "default" => ExampleData(
       sourceAccounts = List(
-        SourceAccount(SourceAccountId("1"), "Main Checking", "CZ123456789", "FIO", active = true),
-        SourceAccount(SourceAccountId("2"), "Savings", "CZ987654321", "CSOB", active = true),
-        SourceAccount(SourceAccountId("3"), "Old Account", "CZ555555555", "KB", active = false)
+        SourceAccount(1L, "CZ123456789", "FIO", "Main Checking", "CZK", active = true),
+        SourceAccount(2L, "CZ987654321", "CSOB", "Savings", "CZK", active = true),
+        SourceAccount(3L, "CZ555555555", "KB", "Old Account", "CZK", active = false)
       )
     )
     case "empty" => ExampleData(sourceAccounts = List())
     case "with-errors" => ExampleData(
       sourceAccounts = List(
-        SourceAccount(SourceAccountId("1"), "Main Checking", "CZ123456789", "FIO", active = true),
-        SourceAccount(SourceAccountId("4"), "Error Account", "CZ11111111", "ERROR", active = true)
+        SourceAccount(1L, "CZ123456789", "FIO", "Main Checking", "CZK", active = true),
+        SourceAccount(4L, "CZ11111111", "ERROR", "Error Account", "CZK", active = true)
       ),
       errors = List("Unable to connect to account CZ11111111")
     )
@@ -38,8 +37,8 @@ class TestDataProvider {
       // Empty data for form example
       formValues = Map(
         "name" -> "",
-        "accountNumber" -> "",
-        "bankCode" -> ""
+        "accountId" -> "",
+        "bankId" -> ""
       )
     )
     case _ => ExampleData.empty
@@ -48,127 +47,260 @@ class TestDataProvider {
   // Get data for transaction scenarios
   def getTransactionData(scenario: String): ExampleData = scenario match {
     case "default" => 
-      val now = ZonedDateTime.now()
-      ExampleData(
-        transactions = List(
-          Transaction(
-            id = TransactionId("tx1"),
-            amount = BigDecimal("150.75"),
-            date = now.minusDays(1),
-            description = "Grocery Store Purchase",
-            accountId = "CZ123456789/FIO",
-            sourceAccountId = Some(SourceAccountId("1"))
-          ),
-          Transaction(
-            id = TransactionId("tx2"),
-            amount = BigDecimal("-45.50"),
-            date = now.minusDays(2),
-            description = "Coffee Shop",
-            accountId = "CZ123456789/FIO",
-            sourceAccountId = Some(SourceAccountId("1"))
-          ),
-          Transaction(
-            id = TransactionId("tx3"),
-            amount = BigDecimal("1200.00"),
-            date = now.minusDays(5),
-            description = "Salary Payment",
-            accountId = "CZ987654321/CSOB",
-            sourceAccountId = Some(SourceAccountId("2"))
-          )
+      val now = LocalDate.now()
+      val txs = List(
+        Transaction(
+          id = TransactionId(1L, "tx1"),
+          date = now.minusDays(1),
+          amount = BigDecimal("150.75"),
+          currency = "CZK",
+          counterAccount = Some("2345678901"),
+          counterBankCode = Some("0800"),
+          counterBankName = Some("Česká Spořitelna"),
+          variableSymbol = None,
+          constantSymbol = None,
+          specificSymbol = None,
+          userIdentification = Some("Grocery Store Purchase"),
+          message = None,
+          transactionType = "Payment",
+          comment = None,
+          importedAt = Instant.now()
         ),
-        processingStates = List(
-          TransactionProcessingState(
-            transactionId = TransactionId("tx1"),
-            status = TransactionStatus.Processed,
-            created = LocalDateTime.now().minusDays(1),
-            updated = Some(LocalDateTime.now())
-          ),
-          TransactionProcessingState(
-            transactionId = TransactionId("tx2"),
-            status = TransactionStatus.Processed,
-            created = LocalDateTime.now().minusDays(2),
-            updated = Some(LocalDateTime.now())
-          ),
-          TransactionProcessingState(
-            transactionId = TransactionId("tx3"),
-            status = TransactionStatus.Processed,
-            created = LocalDateTime.now().minusDays(5),
-            updated = Some(LocalDateTime.now())
-          )
+        Transaction(
+          id = TransactionId(1L, "tx2"),
+          date = now.minusDays(2),
+          amount = BigDecimal("-45.50"),
+          currency = "CZK",
+          counterAccount = Some("9876543210"),
+          counterBankCode = Some("0300"),
+          counterBankName = Some("ČSOB"),
+          variableSymbol = None,
+          constantSymbol = None,
+          specificSymbol = None,
+          userIdentification = Some("Coffee Shop"),
+          message = None,
+          transactionType = "Payment",
+          comment = None,
+          importedAt = Instant.now()
+        ),
+        Transaction(
+          id = TransactionId(2L, "tx3"),
+          date = now.minusDays(5),
+          amount = BigDecimal("1200.00"),
+          currency = "CZK",
+          counterAccount = Some("1122334455"),
+          counterBankCode = Some("0100"),
+          counterBankName = Some("KB"),
+          variableSymbol = Some("123456"),
+          constantSymbol = None,
+          specificSymbol = None,
+          userIdentification = Some("Salary Payment"),
+          message = None,
+          transactionType = "Income",
+          comment = None,
+          importedAt = Instant.now()
         )
       )
+      
+      val states = List(
+        TransactionProcessingState(
+          transactionId = TransactionId(1L, "tx1"),
+          status = TransactionStatus.Imported,
+          suggestedPayeeName = None,
+          suggestedCategory = None,
+          suggestedMemo = None,
+          overridePayeeName = None,
+          overrideCategory = None,
+          overrideMemo = None,
+          ynabTransactionId = None,
+          ynabAccountId = None,
+          processedAt = None,
+          submittedAt = None
+        ),
+        TransactionProcessingState(
+          transactionId = TransactionId(1L, "tx2"),
+          status = TransactionStatus.Imported,
+          suggestedPayeeName = None,
+          suggestedCategory = None,
+          suggestedMemo = None,
+          overridePayeeName = None,
+          overrideCategory = None,
+          overrideMemo = None,
+          ynabTransactionId = None,
+          ynabAccountId = None,
+          processedAt = None,
+          submittedAt = None
+        ),
+        TransactionProcessingState(
+          transactionId = TransactionId(2L, "tx3"),
+          status = TransactionStatus.Imported,
+          suggestedPayeeName = None,
+          suggestedCategory = None,
+          suggestedMemo = None,
+          overridePayeeName = None,
+          overrideCategory = None,
+          overrideMemo = None,
+          ynabTransactionId = None,
+          ynabAccountId = None,
+          processedAt = None,
+          submittedAt = None
+        )
+      )
+      
+      ExampleData(
+        transactions = txs,
+        processingStates = states
+      )
+      
     case "empty" => ExampleData(transactions = List())
     case "with-pending" =>
-      val now = ZonedDateTime.now()
-      ExampleData(
-        transactions = List(
-          Transaction(
-            id = TransactionId("tx1"),
-            amount = BigDecimal("150.75"),
-            date = now.minusDays(1),
-            description = "Grocery Store Purchase",
-            accountId = "CZ123456789/FIO",
-            sourceAccountId = Some(SourceAccountId("1"))
-          ),
-          Transaction(
-            id = TransactionId("tx4"),
-            amount = BigDecimal("75.25"),
-            date = now,
-            description = "Pending Transaction",
-            accountId = "CZ123456789/FIO",
-            sourceAccountId = Some(SourceAccountId("1"))
-          )
+      val now = LocalDate.now()
+      val txs = List(
+        Transaction(
+          id = TransactionId(1L, "tx1"),
+          date = now.minusDays(1),
+          amount = BigDecimal("150.75"),
+          currency = "CZK",
+          counterAccount = Some("2345678901"),
+          counterBankCode = Some("0800"),
+          counterBankName = Some("Česká Spořitelna"),
+          variableSymbol = None,
+          constantSymbol = None,
+          specificSymbol = None,
+          userIdentification = Some("Grocery Store Purchase"),
+          message = None,
+          transactionType = "Payment",
+          comment = None,
+          importedAt = Instant.now()
         ),
-        processingStates = List(
-          TransactionProcessingState(
-            transactionId = TransactionId("tx1"),
-            status = TransactionStatus.Processed,
-            created = LocalDateTime.now().minusDays(1),
-            updated = Some(LocalDateTime.now())
-          ),
-          TransactionProcessingState(
-            transactionId = TransactionId("tx4"),
-            status = TransactionStatus.Pending,
-            created = LocalDateTime.now(),
-            updated = None
-          )
+        Transaction(
+          id = TransactionId(1L, "tx4"),
+          date = now,
+          amount = BigDecimal("75.25"),
+          currency = "CZK",
+          counterAccount = Some("9876543210"),
+          counterBankCode = Some("0300"),
+          counterBankName = Some("ČSOB"),
+          variableSymbol = None,
+          constantSymbol = None,
+          specificSymbol = None,
+          userIdentification = Some("Pending Transaction"),
+          message = None,
+          transactionType = "Payment",
+          comment = None,
+          importedAt = Instant.now()
         )
       )
-    case "with-warnings" =>
-      val now = ZonedDateTime.now()
+      
+      val states = List(
+        TransactionProcessingState(
+          transactionId = TransactionId(1L, "tx1"),
+          status = TransactionStatus.Categorized,
+          suggestedPayeeName = Some("Grocery Store"),
+          suggestedCategory = Some("Food:Groceries"),
+          suggestedMemo = Some("Weekly shopping"),
+          overridePayeeName = None,
+          overrideCategory = None,
+          overrideMemo = None,
+          ynabTransactionId = None,
+          ynabAccountId = None,
+          processedAt = Some(Instant.now()),
+          submittedAt = None
+        ),
+        TransactionProcessingState(
+          transactionId = TransactionId(1L, "tx4"),
+          status = TransactionStatus.Imported,
+          suggestedPayeeName = None,
+          suggestedCategory = None,
+          suggestedMemo = None,
+          overridePayeeName = None,
+          overrideCategory = None,
+          overrideMemo = None,
+          ynabTransactionId = None,
+          ynabAccountId = None,
+          processedAt = None,
+          submittedAt = None
+        )
+      )
+      
       ExampleData(
-        transactions = List(
-          Transaction(
-            id = TransactionId("tx1"),
-            amount = BigDecimal("150.75"),
-            date = now.minusDays(1),
-            description = "Grocery Store Purchase",
-            accountId = "CZ123456789/FIO",
-            sourceAccountId = Some(SourceAccountId("1"))
-          ),
-          Transaction(
-            id = TransactionId("tx5"),
-            amount = BigDecimal("999.99"),
-            date = now,
-            description = "Warning Transaction",
-            accountId = "CZ123456789/FIO",
-            sourceAccountId = Some(SourceAccountId("1"))
-          )
+        transactions = txs,
+        processingStates = states
+      )
+      
+    case "with-warnings" =>
+      val now = LocalDate.now()
+      val txs = List(
+        Transaction(
+          id = TransactionId(1L, "tx1"),
+          date = now.minusDays(1),
+          amount = BigDecimal("150.75"),
+          currency = "CZK",
+          counterAccount = Some("2345678901"),
+          counterBankCode = Some("0800"),
+          counterBankName = Some("Česká Spořitelna"),
+          variableSymbol = None,
+          constantSymbol = None,
+          specificSymbol = None,
+          userIdentification = Some("Grocery Store Purchase"),
+          message = None,
+          transactionType = "Payment",
+          comment = None,
+          importedAt = Instant.now()
         ),
-        processingStates = List(
-          TransactionProcessingState(
-            transactionId = TransactionId("tx1"),
-            status = TransactionStatus.Processed,
-            created = LocalDateTime.now().minusDays(1),
-            updated = Some(LocalDateTime.now())
-          ),
-          TransactionProcessingState(
-            transactionId = TransactionId("tx5"),
-            status = TransactionStatus.Warning,
-            created = LocalDateTime.now(),
-            updated = Some(LocalDateTime.now())
-          )
+        Transaction(
+          id = TransactionId(1L, "tx5"),
+          date = now,
+          amount = BigDecimal("999.99"),
+          currency = "CZK",
+          counterAccount = Some("5555555555"),
+          counterBankCode = Some("0100"),
+          counterBankName = Some("KB"),
+          variableSymbol = None,
+          constantSymbol = None,
+          specificSymbol = None,
+          userIdentification = Some("Warning Transaction"),
+          message = None,
+          transactionType = "Payment",
+          comment = None,
+          importedAt = Instant.now()
+        )
+      )
+      
+      val states = List(
+        TransactionProcessingState(
+          transactionId = TransactionId(1L, "tx1"),
+          status = TransactionStatus.Categorized,
+          suggestedPayeeName = Some("Grocery Store"),
+          suggestedCategory = Some("Food:Groceries"),
+          suggestedMemo = Some("Weekly shopping"),
+          overridePayeeName = None,
+          overrideCategory = None,
+          overrideMemo = None,
+          ynabTransactionId = None,
+          ynabAccountId = None,
+          processedAt = Some(Instant.now()),
+          submittedAt = None
         ),
+        TransactionProcessingState(
+          transactionId = TransactionId(1L, "tx5"),
+          status = TransactionStatus.Imported,
+          suggestedPayeeName = None,
+          suggestedCategory = None,
+          suggestedMemo = None,
+          overridePayeeName = None,
+          overrideCategory = None,
+          overrideMemo = None,
+          ynabTransactionId = None,
+          ynabAccountId = None,
+          processedAt = None,
+          submittedAt = None
+        )
+      )
+      
+      ExampleData(
+        transactions = txs,
+        processingStates = states,
         warnings = List("Unusual amount detected for transaction tx5")
       )
     case _ => ExampleData.empty

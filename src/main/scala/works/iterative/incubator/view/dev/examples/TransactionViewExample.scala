@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter
 class TransactionViewExample {
   
   // Helper for formatting dates
-  private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+  private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   
   /**
    * Render a view based on the scenario and data
@@ -45,14 +45,12 @@ class TransactionViewExample {
     
     // Helper to format status badge
     def statusBadge(status: TransactionStatus): TypedTag[String] = status match {
-      case TransactionStatus.Pending => 
-        span(cls := "bg-yellow-200 text-yellow-800 py-1 px-2 rounded-full text-xs")("Pending")
-      case TransactionStatus.Processed => 
-        span(cls := "bg-green-200 text-green-800 py-1 px-2 rounded-full text-xs")("Processed")
-      case TransactionStatus.Warning => 
-        span(cls := "bg-orange-200 text-orange-800 py-1 px-2 rounded-full text-xs")("Warning")
-      case TransactionStatus.Error => 
-        span(cls := "bg-red-200 text-red-800 py-1 px-2 rounded-full text-xs")("Error")
+      case TransactionStatus.Imported => 
+        span(cls := "bg-yellow-200 text-yellow-800 py-1 px-2 rounded-full text-xs")("Imported")
+      case TransactionStatus.Categorized => 
+        span(cls := "bg-blue-200 text-blue-800 py-1 px-2 rounded-full text-xs")("Categorized")
+      case TransactionStatus.Submitted => 
+        span(cls := "bg-green-200 text-green-800 py-1 px-2 rounded-full text-xs")("Submitted")
       case _ => 
         span(cls := "bg-gray-200 text-gray-800 py-1 px-2 rounded-full text-xs")("Unknown")
     }
@@ -64,17 +62,16 @@ class TransactionViewExample {
       div(cls := "bg-white p-4 rounded shadow mb-4")(
         form(cls := "flex flex-wrap gap-4 items-end")(
           div(
-            label(cls := "block text-gray-700 text-sm font-bold mb-2", forAttr := "status")("Status"),
+            label(cls := "block text-gray-700 text-sm font-bold mb-2", `for` := "status")("Status"),
             select(cls := "shadow border rounded py-2 px-3 text-gray-700", id := "status", name := "status")(
               option(value := "")("All"),
-              option(value := "pending")("Pending"),
-              option(value := "processed")("Processed"),
-              option(value := "warning")("Warning"),
-              option(value := "error")("Error")
+              option(value := "imported")("Imported"),
+              option(value := "categorized")("Categorized"),
+              option(value := "submitted")("Submitted")
             )
           ),
           div(
-            label(cls := "block text-gray-700 text-sm font-bold mb-2", forAttr := "date-from")("Date From"),
+            label(cls := "block text-gray-700 text-sm font-bold mb-2", `for` := "date-from")("Date From"),
             input(
               cls := "shadow border rounded py-2 px-3 text-gray-700",
               id := "date-from",
@@ -83,7 +80,7 @@ class TransactionViewExample {
             )
           ),
           div(
-            label(cls := "block text-gray-700 text-sm font-bold mb-2", forAttr := "date-to")("Date To"),
+            label(cls := "block text-gray-700 text-sm font-bold mb-2", `for` := "date-to")("Date To"),
             input(
               cls := "shadow border rounded py-2 px-3 text-gray-700",
               id := "date-to",
@@ -118,9 +115,9 @@ class TransactionViewExample {
               val state = getStateForTransaction(tx.id)
               tr(cls := "border-b border-gray-200 hover:bg-gray-100")(
                 td(cls := "py-3 px-6 text-left")(tx.date.format(dateFormatter)),
-                td(cls := "py-3 px-6 text-left")(tx.description),
+                td(cls := "py-3 px-6 text-left")(tx.userIdentification.getOrElse("No description")),
                 td(cls := "py-3 px-6 text-right")(formatAmount(tx.amount)),
-                td(cls := "py-3 px-6 text-left")(tx.accountId),
+                td(cls := "py-3 px-6 text-left")(s"${tx.counterAccount.getOrElse("-")}/${tx.counterBankCode.getOrElse("-")}"),
                 td(cls := "py-3 px-6 text-center")(
                   state.map(s => statusBadge(s.status)).getOrElse(
                     span(cls := "bg-gray-200 text-gray-800 py-1 px-2 rounded-full text-xs")("Unknown")
@@ -186,14 +183,12 @@ class TransactionViewExample {
     
     // Helper to format status badge
     def statusBadge(status: TransactionStatus): TypedTag[String] = status match {
-      case TransactionStatus.Pending => 
-        span(cls := "bg-yellow-200 text-yellow-800 py-1 px-2 rounded-full text-xs")("Pending")
-      case TransactionStatus.Processed => 
-        span(cls := "bg-green-200 text-green-800 py-1 px-2 rounded-full text-xs")("Processed")
-      case TransactionStatus.Warning => 
-        span(cls := "bg-orange-200 text-orange-800 py-1 px-2 rounded-full text-xs")("Warning")
-      case TransactionStatus.Error => 
-        span(cls := "bg-red-200 text-red-800 py-1 px-2 rounded-full text-xs")("Error")
+      case TransactionStatus.Imported => 
+        span(cls := "bg-yellow-200 text-yellow-800 py-1 px-2 rounded-full text-xs")("Imported")
+      case TransactionStatus.Categorized => 
+        span(cls := "bg-blue-200 text-blue-800 py-1 px-2 rounded-full text-xs")("Categorized")
+      case TransactionStatus.Submitted => 
+        span(cls := "bg-green-200 text-green-800 py-1 px-2 rounded-full text-xs")("Submitted")
       case _ => 
         span(cls := "bg-gray-200 text-gray-800 py-1 px-2 rounded-full text-xs")("Unknown")
     }
@@ -224,13 +219,13 @@ class TransactionViewExample {
           tbody(
             transactions.map { tx =>
               val state = getStateForTransaction(tx.id)
-              val isWarning = state.exists(_.status == TransactionStatus.Warning)
+              val hasPotentialWarning = tx.amount > BigDecimal("500")
               
-              tr(cls := s"border-b border-gray-200 hover:bg-gray-100 ${if (isWarning) "bg-orange-50" else ""}")(
+              tr(cls := s"border-b border-gray-200 hover:bg-gray-100 ${if (hasPotentialWarning) "bg-orange-50" else ""}")(
                 td(cls := "py-3 px-6 text-left")(tx.date.format(dateFormatter)),
-                td(cls := "py-3 px-6 text-left")(tx.description),
+                td(cls := "py-3 px-6 text-left")(tx.userIdentification.getOrElse("No description")),
                 td(cls := "py-3 px-6 text-right")(formatAmount(tx.amount)),
-                td(cls := "py-3 px-6 text-left")(tx.accountId),
+                td(cls := "py-3 px-6 text-left")(s"${tx.counterAccount.getOrElse("-")}/${tx.counterBankCode.getOrElse("-")}"),
                 td(cls := "py-3 px-6 text-center")(
                   state.map(s => statusBadge(s.status)).getOrElse(
                     span(cls := "bg-gray-200 text-gray-800 py-1 px-2 rounded-full text-xs")("Unknown")
@@ -238,7 +233,7 @@ class TransactionViewExample {
                 ),
                 td(cls := "py-3 px-6 text-right")(
                   a(href := "#", cls := "text-blue-500 hover:underline mr-2")("View"),
-                  if (isWarning) {
+                  if (hasPotentialWarning) {
                     a(href := "#", cls := "text-orange-500 hover:underline mr-2")("Resolve Warning")
                   } else {
                     a(href := "#", cls := "text-yellow-500 hover:underline")("Process")
