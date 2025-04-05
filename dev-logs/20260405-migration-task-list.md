@@ -50,15 +50,15 @@ This document provides a detailed, actionable task list for implementing the pac
 - [x] 1.14 Move `TransactionProcessingStateRepository.scala` to `transactions.domain.repository` and add classification comment
 
 #### Application Service Migration
-- [ ] 1.15 Move `TransactionManagerService.scala` to `transactions.application.service` and add classification comment
-- [ ] 1.16 Move `TransactionProcessor.scala` to `transactions.application.service` and add classification comment
-- [ ] 1.17 Move `TransactionImportService.scala` to `transactions.application.service` and add classification comment
+- [x] 1.15 Move `TransactionManagerService.scala` to `transactions.application.service` and add classification comment
+- [x] 1.16 Move `TransactionProcessor.scala` to `transactions.application.service` and add classification comment
+- [x] 1.17 Move `TransactionImportService.scala` to `transactions.application.service` and add classification comment
 
 #### Infrastructure Repository Implementation Migration
-- [ ] 1.18 Move `PostgreSQLTransactionRepository.scala` to `transactions.infrastructure.persistence` and add classification comment
-- [ ] 1.19 Move `PostgreSQLSourceAccountRepository.scala` to `transactions.infrastructure.persistence` and add classification comment
-- [ ] 1.20 Move `PostgreSQLTransactionProcessingStateRepository.scala` to `transactions.infrastructure.persistence` and add classification comment
-- [ ] 1.21 Move `InMemoryTransactionRepository.scala` to `transactions.infrastructure.persistence` and add classification comment
+- [x] 1.18 Move `PostgreSQLTransactionRepository.scala` to `transactions.infrastructure.persistence` and add classification comment
+- [x] 1.19 Move `PostgreSQLSourceAccountRepository.scala` to `transactions.infrastructure.persistence` and add classification comment
+- [x] 1.20 Move `PostgreSQLTransactionProcessingStateRepository.scala` to `transactions.infrastructure.persistence` and add classification comment
+- [x] 1.21 Move `InMemoryTransactionRepository.scala` to `transactions.infrastructure.persistence` and add classification comment
 
 #### Infrastructure Service Implementation Migration
 - [ ] 1.22 Move `DefaultTransactionManagerService.scala` to `transactions.infrastructure.service` and add classification comment

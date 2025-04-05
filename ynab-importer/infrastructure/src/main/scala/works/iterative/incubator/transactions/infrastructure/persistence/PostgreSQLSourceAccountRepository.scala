@@ -13,6 +13,8 @@ import java.time.Instant
 /** PostgreSQL implementation of SourceAccountRepository
   *
   * This repository manages source account information in a PostgreSQL database.
+  *
+  * Classification: Infrastructure Repository Implementation
   */
 class PostgreSQLSourceAccountRepository(xa: Transactor) extends SourceAccountRepository:
     import PostgreSQLSourceAccountRepository.{

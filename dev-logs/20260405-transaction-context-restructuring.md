@@ -113,20 +113,71 @@ We've also completed the Domain Repository Interface Migration tasks (1.12-1.14)
 
 4. Updating references in the infrastructure layer to point to the new repository locations.
 
+## Application Service Migration
+
+We've completed the Application Service Migration tasks (1.15-1.17), which involved:
+
+1. Moving application service interfaces to their proper packages:
+   - `TransactionManagerService.scala` → `transactions.application.service`
+   - `TransactionProcessor.scala` → `transactions.application.service`
+   - `TransactionImportService.scala` → `transactions.application.service`
+
+2. Adding classification comments to each service interface to indicate its role:
+   - `TransactionManagerService` - Application Service
+   - `TransactionProcessor` - Application Service
+   - `TransactionImportService` - Application Service
+
+3. Creating backward compatibility facades for each application service interface.
+
+The application services form the entry point for business use cases in our DDD architecture. These are the services that implement business workflows by coordinating domain objects and repositories. They're responsible for:
+
+1. Orchestrating complex workflows involving multiple domain entities
+2. Managing transactions and ensuring business rules are enforced
+3. Providing a stable API for external components (like web modules) to use
+
+## Infrastructure Repository Implementation Migration
+
+We've completed the Infrastructure Repository Implementation Migration tasks (1.18-1.21), which involved:
+
+1. Moving repository implementations to their proper packages:
+   - `PostgreSQLTransactionRepository.scala` → `transactions.infrastructure.persistence`
+   - `PostgreSQLSourceAccountRepository.scala` → `transactions.infrastructure.persistence`
+   - `PostgreSQLTransactionProcessingStateRepository.scala` → `transactions.infrastructure.persistence`
+   - `InMemoryTransactionRepository.scala` → `transactions.infrastructure.persistence`
+
+2. Adding classification comments to each repository implementation to indicate its role:
+   - `PostgreSQLTransactionRepository` - Infrastructure Repository Implementation
+   - `PostgreSQLSourceAccountRepository` - Infrastructure Repository Implementation
+   - `PostgreSQLTransactionProcessingStateRepository` - Infrastructure Repository Implementation
+   - `InMemoryTransactionRepository` - Infrastructure Repository Implementation (Test Double)
+
+3. Creating backward compatibility facades for each repository implementation.
+
+4. Updating import statements to reference domain models and repositories in their new locations.
+
+The infrastructure repository implementations form the persistence layer in our DDD architecture. These classes are responsible for:
+
+1. Implementing the repository interfaces defined in the domain layer
+2. Translating between domain entities and database DTOs
+3. Handling database-specific concerns like SQL queries and connection management
+4. Ensuring data is correctly stored and retrieved from the database
+
 ## Next Steps
 
 The next tasks in the migration plan are:
 
-1. **Application Service Migration** (Tasks 1.15-1.17):
-   - Move service interfaces to the application.service package
-   - Add classification comments
-
-2. **Fix Compilation Issues**:
-   - Resolve remaining issues with imports and type references
-   - Ensure the application compiles cleanly
-
-3. **Infrastructure Service Implementation Migration** (Tasks 1.22-1.23):
+1. **Infrastructure Service Implementation Migration** (Tasks 1.22-1.23):
    - Move service implementations to the infrastructure.service package
+   - Add classification comments
+   - Update import statements as needed
+
+2. **Infrastructure Configuration Migration** (Tasks 1.24-1.27):
+   - Move configuration classes to the infrastructure.config package
+   - Update import statements as needed
+
+3. **Web View Migration** (Tasks 1.28-1.32):
+   - Move web view classes to the web.view package
+   - Add classification comments
    - Update import statements as needed
 
 Each file will be moved to its appropriate package following the DDD architecture pattern while maintaining backward compatibility through carefully planned refactoring.

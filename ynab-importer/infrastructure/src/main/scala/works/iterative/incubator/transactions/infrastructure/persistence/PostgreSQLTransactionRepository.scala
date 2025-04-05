@@ -14,6 +14,8 @@ import java.time.Instant
   *
   * This repository implements storage and retrieval of immutable Transaction events in a PostgreSQL
   * database.
+  *
+  * Classification: Infrastructure Repository Implementation
   */
 class PostgreSQLTransactionRepository(xa: Transactor) extends TransactionRepository:
     import PostgreSQLTransactionRepository.{transactionRepo, TransactionDTO}
