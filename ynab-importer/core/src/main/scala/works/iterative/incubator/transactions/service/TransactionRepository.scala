@@ -1,6 +1,5 @@
 package works.iterative.incubator.transactions
 package service
 
-import works.iterative.core.service.Repository
-
-trait TransactionRepository extends Repository[TransactionId, Transaction, TransactionQuery]
+// Backward compatibility facade - re-exports the type from its new location
+export works.iterative.incubator.transactions.domain.repository.TransactionRepository

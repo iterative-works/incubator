@@ -6,6 +6,8 @@ import org.testcontainers.utility.DockerImageName
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import javax.sql.DataSource
 import com.augustnagro.magnum.magzio.*
+import works.iterative.incubator.transactions.infrastructure.persistence.PostgreSQLTransactionRepository
+import works.iterative.incubator.transactions.infrastructure.persistence.PostgreSQLSourceAccountRepository
 
 object PostgreSQLLayers:
 

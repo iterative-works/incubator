@@ -1,13 +1,14 @@
-package works.iterative.incubator
-package transactions
-package infrastructure
+package works.iterative.incubator.transactions.infrastructure.persistence
 
 import zio.*
-import service.SourceAccountRepository
+import works.iterative.incubator.transactions.domain.repository.SourceAccountRepository
+import works.iterative.incubator.transactions.domain.model.{SourceAccount, CreateSourceAccount}
+import works.iterative.incubator.transactions.domain.query.SourceAccountQuery
+import works.iterative.incubator.transactions.infrastructure.DbCodecs.given
+import works.iterative.incubator.transactions.infrastructure.{PostgreSQLDataSource, PostgreSQLTransactor}
 import com.augustnagro.magnum.PostgresDbType
 import com.augustnagro.magnum.magzio.*
 import java.time.Instant
-import DbCodecs.given
 
 /** PostgreSQL implementation of SourceAccountRepository
   *

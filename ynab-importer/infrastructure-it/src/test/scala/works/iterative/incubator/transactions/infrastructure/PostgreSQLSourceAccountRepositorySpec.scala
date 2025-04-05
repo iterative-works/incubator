@@ -6,6 +6,7 @@ import zio.test.*
 import com.augustnagro.magnum.magzio.*
 import service.SourceAccountRepository
 import zio.test.TestAspect.sequential
+import works.iterative.incubator.transactions.infrastructure.persistence.PostgreSQLSourceAccountRepository
 
 object PostgreSQLSourceAccountRepositorySpec extends ZIOSpecDefault:
     import PostgreSQLLayers.*
@@ -31,7 +32,7 @@ object PostgreSQLSourceAccountRepositorySpec extends ZIOSpecDefault:
             active = true,
             lastSyncTime = None
         )
-        
+
     // Create sample CreateSourceAccount for testing
     def createSampleCreateSourceAccount(): CreateSourceAccount =
         CreateSourceAccount(
@@ -123,10 +124,10 @@ object PostgreSQLSourceAccountRepositorySpec extends ZIOSpecDefault:
                 for
                     repository <- ZIO.service[SourceAccountRepository]
                     createAccount = createSampleCreateSourceAccount()
-                    
+
                     // Execute - create new account
                     id <- repository.create(createAccount)
-                    
+
                     // Retrieve the created account
                     retrieved <- repository.load(id)
                 yield

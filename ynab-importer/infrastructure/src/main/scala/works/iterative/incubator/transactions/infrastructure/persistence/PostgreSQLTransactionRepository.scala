@@ -1,9 +1,10 @@
-package works.iterative.incubator
-package transactions
-package infrastructure
+package works.iterative.incubator.transactions.infrastructure.persistence
 
 import zio.*
-import service.TransactionRepository
+import works.iterative.incubator.transactions.domain.repository.TransactionRepository
+import works.iterative.incubator.transactions.domain.model.{Transaction, TransactionId}
+import works.iterative.incubator.transactions.domain.query.TransactionQuery
+import works.iterative.incubator.transactions.infrastructure.{PostgreSQLDataSource, PostgreSQLTransactor}
 import com.augustnagro.magnum.PostgresDbType
 import com.augustnagro.magnum.magzio.*
 import java.time.LocalDate

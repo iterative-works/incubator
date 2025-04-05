@@ -9,7 +9,7 @@ This document provides a detailed, actionable task list for implementing the pac
 ### Phase 1: Transaction Management Context Restructuring
 
 #### Preparation
-- [ ] 1.1 Create new package structure in core module:
+- [x] 1.1 Create new package structure in core module:
   ```
   works.iterative.incubator.transactions.domain.model
   works.iterative.incubator.transactions.domain.repository
@@ -19,35 +19,35 @@ This document provides a detailed, actionable task list for implementing the pac
   works.iterative.incubator.transactions.application.port
   ```
 
-- [ ] 1.2 Create new package structure in infrastructure module:
+- [x] 1.2 Create new package structure in infrastructure module:
   ```
   works.iterative.incubator.transactions.infrastructure.persistence
   works.iterative.incubator.transactions.infrastructure.adapter
   works.iterative.incubator.transactions.infrastructure.config
   ```
 
-- [ ] 1.3 Create new package structure in web module:
+- [x] 1.3 Create new package structure in web module:
   ```
   works.iterative.incubator.transactions.web.view
   works.iterative.incubator.transactions.web.module
   ```
 
 #### Domain Model Migration
-- [ ] 1.4 Move `Transaction.scala` to `transactions.domain.model` and add classification comment
-- [ ] 1.5 Move `TransactionId.scala` to `transactions.domain.model` and add classification comment
-- [ ] 1.6 Move `TransactionStatus.scala` to `transactions.domain.model` and add classification comment
-- [ ] 1.7 Move `SourceAccount.scala` to `transactions.domain.model` and add classification comment
-- [ ] 1.8 Move `TransactionProcessingState.scala` to `transactions.domain.model` and add classification comment
+- [x] 1.4 Move `Transaction.scala` to `transactions.domain.model` and add classification comment
+- [x] 1.5 Move `TransactionId.scala` to `transactions.domain.model` and add classification comment
+- [x] 1.6 Move `TransactionStatus.scala` to `transactions.domain.model` and add classification comment
+- [x] 1.7 Move `SourceAccount.scala` to `transactions.domain.model` and add classification comment
+- [x] 1.8 Move `TransactionProcessingState.scala` to `transactions.domain.model` and add classification comment
 
 #### Domain Query Migration
-- [ ] 1.9 Move `TransactionQuery.scala` to `transactions.domain.query` and add classification comment
-- [ ] 1.10 Move `SourceAccountQuery.scala` to `transactions.domain.query` and add classification comment
-- [ ] 1.11 Move `TransactionProcessingStateQuery.scala` to `transactions.domain.query` and add classification comment
+- [x] 1.9 Move `TransactionQuery.scala` to `transactions.domain.query` and add classification comment
+- [x] 1.10 Move `SourceAccountQuery.scala` to `transactions.domain.query` and add classification comment
+- [x] 1.11 Move `TransactionProcessingStateQuery.scala` to `transactions.domain.query` and add classification comment
 
 #### Domain Repository Interface Migration
-- [ ] 1.12 Move `TransactionRepository.scala` to `transactions.domain.repository` and add classification comment
-- [ ] 1.13 Move `SourceAccountRepository.scala` to `transactions.domain.repository` and add classification comment
-- [ ] 1.14 Move `TransactionProcessingStateRepository.scala` to `transactions.domain.repository` and add classification comment
+- [x] 1.12 Move `TransactionRepository.scala` to `transactions.domain.repository` and add classification comment
+- [x] 1.13 Move `SourceAccountRepository.scala` to `transactions.domain.repository` and add classification comment
+- [x] 1.14 Move `TransactionProcessingStateRepository.scala` to `transactions.domain.repository` and add classification comment
 
 #### Application Service Migration
 - [ ] 1.15 Move `TransactionManagerService.scala` to `transactions.application.service` and add classification comment
@@ -112,7 +112,7 @@ This document provides a detailed, actionable task list for implementing the pac
 - [x] 2.3 Move `YnabService.scala` interface to `ynab.application.service` and add classification comment
 - [x] 2.4 Move `YnabTransactionImportService.scala` interface to `ynab.application.service`
 
-#### Infrastructure Configuration 
+#### Infrastructure Configuration
 - [x] 2.5 Move `YnabConfig.scala` to `ynab.infrastructure.config` and add classification comment
 
 #### Create Ports
@@ -142,13 +142,13 @@ This document provides a detailed, actionable task list for implementing the pac
 - [ ] 3.2 Move `FioTransaction.scala` to `fio.domain.model` and add classification comment
 - [ ] 3.3 Create `FioAccount.scala` in `fio.domain.model` for Fio-specific account data
 
-#### Application Service 
+#### Application Service
 - [ ] 3.4 Create `FioImportService.scala` interface in `fio.application.service`
 
 #### Infrastructure Migration
 - [ ] 3.5 Move `FioClient.scala` to `fio.infrastructure.client` and add classification comment
 - [ ] 3.6 Move `FioConfig.scala` to `fio.infrastructure.config` and add classification comment
-- [ ] 3.7 Move `FioCodecs.scala` to `fio.infrastructure.client` and add classification comment  
+- [ ] 3.7 Move `FioCodecs.scala` to `fio.infrastructure.client` and add classification comment
 - [ ] 3.8 Move `FioTransactionImportService.scala` to `fio.infrastructure.service` and add classification comment
 
 #### Create Ports

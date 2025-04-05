@@ -1,8 +1,7 @@
-package works.iterative.incubator.transactions
-package infrastructure
+package works.iterative.incubator.transactions.infrastructure
 
 import zio.*
-import service.{
+import works.iterative.incubator.transactions.domain.repository.{
     TransactionRepository,
     SourceAccountRepository,
     TransactionProcessingStateRepository
@@ -25,8 +24,8 @@ object PosgreSQLDatabaseModule:
         val transactorLayer = dataSourceLayer >>> PostgreSQLTransactor.managedLayer
         // Create all repositories using the shared transactor
         val repoLayers = transactorLayer >>> (
-            PostgreSQLTransactionRepository.layer ++
-                PostgreSQLSourceAccountRepository.layer ++
+            works.iterative.incubator.transactions.infrastructure.persistence.PostgreSQLTransactionRepository.layer ++
+                works.iterative.incubator.transactions.infrastructure.persistence.PostgreSQLSourceAccountRepository.layer ++
                 PostgreSQLTransactionProcessingStateRepository.layer
         )
 

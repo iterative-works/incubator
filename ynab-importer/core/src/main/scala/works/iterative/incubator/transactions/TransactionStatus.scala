@@ -1,4 +1,4 @@
 package works.iterative.incubator.transactions
 
-enum TransactionStatus:
-    case Imported, Categorized, Submitted
+// Backward compatibility facade - re-exports the type from its new location
+export works.iterative.incubator.transactions.domain.model.TransactionStatus
