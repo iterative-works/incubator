@@ -35,7 +35,14 @@ The YNAB Importer project aims to create a tool to import data from Fio bank to 
 
 See [YNAB Integration Feature](../ynab-importer/features/ynab_integration.feature)
 
-- [ ] Create YNAB configuration model with API token storage
+#### Architecture Restructuring
+- [✅] Restructure YNAB integration into DDD-aligned packages
+- [✅] Split domain models into separate files
+- [✅] Create service interfaces in application layer
+- [✅] Define port interfaces for cross-context communication
+
+#### Implementation
+- [✅] Create YNAB configuration model with API token storage
 - [ ] Implement YNAB API client
 - [ ] Add authentication with YNAB
 - [ ] Create YNAB budget selection functionality

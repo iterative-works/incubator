@@ -89,7 +89,7 @@ This document provides a detailed, actionable task list for implementing the pac
 ### Phase 2: YNAB Integration Context Restructuring
 
 #### Preparation
-- [ ] 2.1 Create new package structure in core module:
+- [x] 2.1 Create new package structure in core module:
   ```
   works.iterative.incubator.ynab.domain.model
   works.iterative.incubator.ynab.domain.service
@@ -99,26 +99,28 @@ This document provides a detailed, actionable task list for implementing the pac
   ```
 
 #### Domain Model Migration
-- [ ] 2.2 Move domain models from `YnabDomain.scala` to separate files in `ynab.domain.model`:
-  - [ ] 2.2.1 Create `YnabBudget.scala` in `ynab.domain.model`
-  - [ ] 2.2.2 Create `YnabAccount.scala` in `ynab.domain.model`
-  - [ ] 2.2.3 Create `YnabCategory.scala` in `ynab.domain.model`
-  - [ ] 2.2.4 Create `YnabCategoryGroup.scala` in `ynab.domain.model`
-  - [ ] 2.2.5 Create `YnabTransaction.scala` in `ynab.domain.model`
-  - [ ] 2.2.6 Create `YnabApiError.scala` in `ynab.domain.model`
+- [x] 2.2 Move domain models from `YnabDomain.scala` to separate files in `ynab.domain.model`:
+  - [x] 2.2.1 Create `YnabBudget.scala` in `ynab.domain.model`
+  - [x] 2.2.2 Create `YnabAccount.scala` in `ynab.domain.model`
+  - [x] 2.2.3 Create `YnabCategory.scala` in `ynab.domain.model`
+  - [x] 2.2.4 Create `YnabCategoryGroup.scala` in `ynab.domain.model`
+  - [x] 2.2.5 Create `YnabTransaction.scala` in `ynab.domain.model`
+  - [x] 2.2.6 Create `YnabApiError.scala` in `ynab.domain.model`
+  - [x] 2.2.7 Create `YnabTransactionImportResult.scala` in `ynab.domain.model`
 
 #### Application Service Migration
-- [ ] 2.3 Move `YnabService.scala` interface to `ynab.application.service` and add classification comment
-- [ ] 2.4 Move `YnabTransactionImportService.scala` interface to `ynab.application.service`
+- [x] 2.3 Move `YnabService.scala` interface to `ynab.application.service` and add classification comment
+- [x] 2.4 Move `YnabTransactionImportService.scala` interface to `ynab.application.service`
 
 #### Infrastructure Configuration 
-- [ ] 2.5 Move `YnabConfig.scala` to `ynab.infrastructure.config` and add classification comment
+- [x] 2.5 Move `YnabConfig.scala` to `ynab.infrastructure.config` and add classification comment
 
 #### Create Ports
-- [ ] 2.6 Create `TransactionPort.scala` in `transactions.application.port` to define interface from Transaction context to YNAB
+- [x] 2.6 Create `TransactionPort.scala` in `transactions.application.port` to define interface from Transaction context to YNAB
+- [x] 2.6.1 Create `YnabTransactionPort.scala` in `ynab.application.port` to define interface to YNAB integration
 
 #### Integration Testing
-- [ ] 2.7 Compile and test YNAB Integration context after migration
+- [x] 2.7 Compile and test YNAB Integration context after migration
 - [ ] 2.8 Update import statements in all test files referring to moved classes
 - [ ] 2.9 Run integration tests to ensure all functionality works correctly
 
