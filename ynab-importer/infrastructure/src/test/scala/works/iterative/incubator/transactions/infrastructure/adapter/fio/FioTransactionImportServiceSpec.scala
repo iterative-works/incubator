@@ -5,7 +5,20 @@ package adapter.fio
 import zio.*
 import zio.test.*
 import zio.test.Assertion.*
-import service.{TransactionRepository, SourceAccountRepository}
+import works.iterative.incubator.transactions.domain.repository.{
+    TransactionRepository, 
+    SourceAccountRepository
+}
+import works.iterative.incubator.transactions.domain.model.{
+    Transaction,
+    TransactionId,
+    SourceAccount,
+    CreateSourceAccount
+}
+import works.iterative.incubator.transactions.domain.query.{
+    TransactionQuery,
+    SourceAccountQuery
+}
 import java.time.LocalDate
 
 object FioTransactionImportServiceSpec extends ZIOSpecDefault:

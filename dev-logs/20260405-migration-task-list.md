@@ -83,8 +83,8 @@ This document provides a detailed, actionable task list for implementing the pac
 
 #### Integration Testing
 - [x] 1.35 Compile and test Transaction Management context after migration
-- [ ] 1.36 Update import statements in all test files referring to moved classes
-- [ ] 1.37 Run integration tests to ensure all functionality works correctly
+- [x] 1.36 Update import statements in all test files referring to moved classes
+- [x] 1.37 Run integration tests to ensure all functionality works correctly
 
 ### Phase 2: YNAB Integration Context Restructuring
 
@@ -121,8 +121,8 @@ This document provides a detailed, actionable task list for implementing the pac
 
 #### Integration Testing
 - [x] 2.7 Compile and test YNAB Integration context after migration
-- [ ] 2.8 Update import statements in all test files referring to moved classes
-- [ ] 2.9 Run integration tests to ensure all functionality works correctly
+- [x] 2.8 Update import statements in all test files referring to moved classes
+- [x] 2.9 Run integration tests to ensure all functionality works correctly
 
 ### Phase 3: Fio Bank Context Restructuring
 

@@ -4,10 +4,21 @@ package infrastructure
 import zio.*
 import zio.test.*
 import java.time.{LocalDate, Instant}
-import service.{
+import works.iterative.incubator.transactions.domain.repository.{
     TransactionRepository,
     TransactionProcessingStateRepository,
     SourceAccountRepository
+}
+import works.iterative.incubator.transactions.domain.model.{
+    Transaction,
+    TransactionId,
+    TransactionStatus,
+    SourceAccount,
+    TransactionProcessingState
+}
+import works.iterative.incubator.transactions.domain.query.{
+    TransactionQuery,
+    TransactionProcessingStateQuery
 }
 import zio.test.TestAspect.sequential
 

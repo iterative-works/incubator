@@ -4,7 +4,9 @@ package infrastructure
 import zio.*
 import zio.test.*
 import com.augustnagro.magnum.magzio.*
-import service.SourceAccountRepository
+import works.iterative.incubator.transactions.domain.repository.SourceAccountRepository
+import works.iterative.incubator.transactions.domain.model.{SourceAccount, CreateSourceAccount}
+import works.iterative.incubator.transactions.domain.query.SourceAccountQuery
 import zio.test.TestAspect.sequential
 import works.iterative.incubator.transactions.infrastructure.persistence.PostgreSQLSourceAccountRepository
 

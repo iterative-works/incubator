@@ -8,6 +8,12 @@ import javax.sql.DataSource
 import com.augustnagro.magnum.magzio.*
 import works.iterative.incubator.transactions.infrastructure.persistence.PostgreSQLTransactionRepository
 import works.iterative.incubator.transactions.infrastructure.persistence.PostgreSQLSourceAccountRepository
+import works.iterative.incubator.transactions.infrastructure.persistence.PostgreSQLTransactionProcessingStateRepository
+import works.iterative.incubator.transactions.infrastructure.config.{
+    PostgreSQLConfig,
+    PostgreSQLDataSource
+}
+import works.iterative.incubator.transactions.infrastructure.FlywayConfig
 
 object PostgreSQLLayers:
 
