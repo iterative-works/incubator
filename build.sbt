@@ -31,11 +31,84 @@ lazy val webUi = (project in file("web-ui"))
         )
     )
 
+// Core module (shared across all contexts)
+lazy val core = (project in file("bounded-contexts/core"))
+    .settings(name := "core")
+    .enablePlugins(IWScalaProjectPlugin)
+    .settings(commonDependencies)
+
+// Bounded Contexts 
+
+// Transaction Management Context
+lazy val transactions = (project in file("bounded-contexts/transactions"))
+    .settings(name := "transactions")
+    .enablePlugins(IWScalaProjectPlugin)
+    .settings(
+        commonDependencies,
+        scalacOptions ++= Seq("-Xmax-inlines", "64"),
+        IWDeps.zioJson,
+        IWDeps.magnumZIO,
+        IWDeps.magnumPG,
+        IWDeps.http4sBlazeServer,
+        IWDeps.scalatags,
+        IWDeps.chimney,
+        libraryDependencies ++= Seq(
+            "org.flywaydb" % "flyway-core" % "11.4.0",
+            "org.flywaydb" % "flyway-database-postgresql" % "11.4.0",
+            "org.postgresql" % "postgresql" % "42.7.5",
+            "com.zaxxer" % "HikariCP" % "6.2.1"
+        )
+    )
+    .dependsOn(core, webUi)
+
+// YNAB Integration Context
+lazy val ynab = (project in file("bounded-contexts/ynab"))
+    .settings(name := "ynab")
+    .enablePlugins(IWScalaProjectPlugin)
+    .settings(
+        commonDependencies,
+        IWDeps.zioJson,
+        IWDeps.sttpClient3Core,
+        IWDeps.sttpClient3Lib("async-http-client-backend-zio")
+    )
+    .dependsOn(core, transactions)
+
+// Fio Bank Context
+lazy val fio = (project in file("bounded-contexts/fio"))
+    .settings(name := "fio")
+    .enablePlugins(IWScalaProjectPlugin)
+    .settings(
+        commonDependencies,
+        IWDeps.zioJson,
+        IWDeps.sttpClient3Core,
+        IWDeps.sttpClient3Lib("async-http-client-backend-zio")
+    )
+    .dependsOn(core, transactions)
+
+// AI Categorization Context (Skeleton)
+lazy val categorization = (project in file("bounded-contexts/categorization"))
+    .settings(name := "categorization")
+    .enablePlugins(IWScalaProjectPlugin)
+    .settings(commonDependencies)
+    .dependsOn(core, transactions)
+
+// User Management Context (Skeleton)
+lazy val auth = (project in file("bounded-contexts/auth"))
+    .settings(name := "auth")
+    .enablePlugins(IWScalaProjectPlugin)
+    .settings(
+        commonDependencies,
+        IWDeps.zioJson
+    )
+    .dependsOn(core)
+
+// Maintain existing module structure for backward compatibility during migration
 // YNAB Importer modules
 lazy val ynabImporterCore = (project in file("ynab-importer/core"))
     .settings(name := "ynab-importer-core")
     .enablePlugins(IWScalaProjectPlugin)
     .settings(commonDependencies)
+    .dependsOn(core, transactions, ynab, fio, categorization, auth)
 
 lazy val ynabImporterInfrastructure = (project in file("ynab-importer/infrastructure"))
     .settings(name := "ynab-importer-infrastructure")
@@ -56,7 +129,7 @@ lazy val ynabImporterInfrastructure = (project in file("ynab-importer/infrastruc
             "com.zaxxer" % "HikariCP" % "6.2.1"
         )
     )
-    .dependsOn(ynabImporterCore)
+    .dependsOn(ynabImporterCore, transactions, ynab, fio)
 
 lazy val ynabImporterInfrastructureIT = (project in file("ynab-importer/infrastructure-it"))
     .settings(name := "ynab-importer-infrastructure-it")
@@ -93,7 +166,7 @@ lazy val ynabImporterWeb = (project in file("ynab-importer/web"))
             "works.iterative.support" %% "iw-support-forms-http" % iwSupportVersion
         )
     )
-    .dependsOn(ynabImporterApp, webUi)
+    .dependsOn(ynabImporterApp, webUi, transactions)
 
 lazy val ynabImporterE2ETests = (project in file("ynab-importer/e2e-tests"))
     .settings(name := "ynab-importer-e2e-tests")
@@ -123,6 +196,12 @@ lazy val ynabImporter = (project in file("ynab-importer"))
     .settings(name := "ynab-importer")
     .enablePlugins(IWScalaProjectPlugin)
     .aggregate(
+        core,
+        transactions,
+        ynab,
+        fio,
+        categorization,
+        auth,
         ynabImporterCore,
         ynabImporterInfrastructure,
         ynabImporterApp,
@@ -182,5 +261,5 @@ lazy val root = (project in file("."))
             "1"
         )
     )
-    .dependsOn(ynabImporterInfrastructure, ynabImporterWeb)
-    .aggregate(webUi, ynabImporter)
+    .dependsOn(transactions, ynab, fio, ynabImporterInfrastructure, ynabImporterWeb)
+    .aggregate(webUi, core, transactions, ynab, fio, categorization, auth, ynabImporter)
