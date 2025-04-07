@@ -1,6 +1,5 @@
 package works.iterative.incubator.auth.domain.model
 
-
 /** Represents a role in the system
   *
   * A role is a collection of permissions that can be assigned to users.

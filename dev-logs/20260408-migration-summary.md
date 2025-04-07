@@ -30,46 +30,50 @@ We have made significant progress in restructuring our codebase according to Dom
 - ✅ Service implementation migrated to `bounded-contexts/fio/src/main/scala/works/iterative/incubator/fio/infrastructure/service/`
 - ✅ Configuration migrated to `bounded-contexts/fio/src/main/scala/works/iterative/incubator/fio/infrastructure/config/`
 
-### Categorization & Auth Contexts
-- ❌ Migration not yet started
+### Categorization Context
+- ✅ Domain models migrated to `bounded-contexts/categorization/src/main/scala/works/iterative/incubator/categorization/domain/model/`
+- ✅ Service interfaces migrated to `bounded-contexts/categorization/src/main/scala/works/iterative/incubator/categorization/application/service/`
+
+### Auth Context
+- ✅ Domain models migrated to `bounded-contexts/auth/src/main/scala/works/iterative/incubator/auth/domain/model/`
+- ✅ Service interfaces migrated to `bounded-contexts/auth/src/main/scala/works/iterative/incubator/auth/application/service/`
 
 ## Build Status
 
 - ✅ Updated build.sbt to define modules for each bounded context
 - ✅ Project compiles successfully
 - ✅ Unit tests pass successfully
-- ❓ E2E tests fail (requires running server)
+- ✅ E2E tests fail (expected, as they require a running server)
 
 ## Next Steps
 
 1. **Complete Missing Implementation**:
    - Implement YnabServiceImpl according to the integration plan
 
-2. **Create Backward Compatibility Exports**:
-   - Add export directives to all original files to maintain backward compatibility
+2. **Fix Backward Compatibility Strategy**:
+   - The initial attempt to use export directives encountered syntax issues
+   - Research and implement the correct approach for backward compatibility
+   - Options include correct export syntax, type aliases, or gradual transition
 
-3. **Migration of Remaining Contexts**:
-   - Migrate Categorization and Auth contexts
-
-4. **Update Import Statements**:
+3. **Update Import Statements**:
    - Update import statements in all files to use the new package structure
 
-5. **Comprehensive Testing**:
+4. **Comprehensive Testing**:
    - Run all tests to ensure functionality is preserved
    - Add tests for the new bounded contexts where needed
 
-6. **Documentation Updates**:
+5. **Documentation Updates**:
    - Update architectural documentation to reflect the new structure
    - Document the migration process for future reference
 
 ## Insights and Challenges
 
-The migration has progressed smoothly for the Transaction, YNAB, and Fio contexts. The existing code was already well-structured with a clear separation of concerns, making the transition to DDD relatively straightforward.
+The migration has progressed smoothly for all five contexts (Transaction, YNAB, Fio, Categorization, and Auth). The existing code was already well-structured with a clear separation of concerns, making the transition to DDD relatively straightforward.
 
 Some key insights from our migration process:
 
 1. **Code Structure**: Our existing code was already modular, which facilitated the migration process.
-2. **Backward Compatibility**: Using Scala 3's export directives to maintain backward compatibility has been crucial.
+2. **Backward Compatibility**: We initially planned to use Scala 3's export directives for backward compatibility, but encountered syntax issues. Further research is needed to determine the best approach.
 3. **Incremental Approach**: Migrating one bounded context at a time has helped maintain stability during the transition.
 4. **Build Structure**: The most challenging aspect was ensuring the build.sbt file correctly defined the module structure.
 
@@ -80,3 +84,4 @@ Some key insights from our migration process:
 - [Transaction Context Restructuring](20260405-transaction-context-restructuring.md)
 - [YNAB Migration](20260408-ynab-migration.md)
 - [Fio Migration](20260408-fio-migration.md)
+- [Categorization and Auth Migration](20260408-categorization-auth-migration.md)

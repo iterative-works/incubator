@@ -108,31 +108,33 @@ This document outlines the tasks needed to complete the migration of our codebas
 ## Categorization Context Migration
 
 ### Domain Layer
-- [ ] Move domain models to `bounded-contexts/categorization/src/main/scala/works/iterative/incubator/categorization/domain/model/`
-  - [ ] CategoryRule.scala
-  - [ ] CategorySuggestion.scala
+- [x] Move domain models to `bounded-contexts/categorization/src/main/scala/works/iterative/incubator/categorization/domain/model/`
+  - [x] CategoryRule.scala
+  - [x] CategorySuggestion.scala
 
 ### Application Layer
-- [ ] Move service interfaces to `bounded-contexts/categorization/src/main/scala/works/iterative/incubator/categorization/application/service/`
-  - [ ] CategorizationService.scala
+- [x] Move service interfaces to `bounded-contexts/categorization/src/main/scala/works/iterative/incubator/categorization/application/service/`
+  - [x] CategorizationService.scala
 
 ## Auth Context Migration
 
 ### Domain Layer
-- [ ] Move domain models to `bounded-contexts/auth/src/main/scala/works/iterative/incubator/auth/domain/model/`
-  - [ ] Permission.scala
-  - [ ] Role.scala
-  - [ ] User.scala
+- [x] Move domain models to `bounded-contexts/auth/src/main/scala/works/iterative/incubator/auth/domain/model/`
+  - [x] Permission.scala
+  - [x] Role.scala
+  - [x] User.scala
 
 ### Application Layer
-- [ ] Move service interfaces to `bounded-contexts/auth/src/main/scala/works/iterative/incubator/auth/application/service/`
-  - [ ] AuthenticationService.scala
-  - [ ] UserService.scala
+- [x] Move service interfaces to `bounded-contexts/auth/src/main/scala/works/iterative/incubator/auth/application/service/`
+  - [x] AuthenticationService.scala
+  - [x] UserService.scala
 
 ## Final Steps
 
 - [ ] Update import statements in all files
-- [ ] Create compatibility layer using export directives
-- [ ] Compile and verify all bounded contexts
+- [ ] Determine and implement the correct approach for backward compatibility
+  - [ ] Research the proper export directive syntax or alternative approaches
+  - [ ] Apply the chosen approach across all migrated files
+- [x] Compile and verify all bounded contexts
 - [ ] Run tests to ensure functionality is preserved
 - [ ] Update documentation to reflect new structure

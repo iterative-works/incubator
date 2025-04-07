@@ -1,6 +1,5 @@
 package works.iterative.incubator.auth.domain.model
 
-
 /** Represents a permission in the system
   *
   * Permissions define specific actions that users can perform in the system.

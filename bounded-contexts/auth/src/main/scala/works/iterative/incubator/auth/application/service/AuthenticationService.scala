@@ -3,7 +3,6 @@ package works.iterative.incubator.auth.application.service
 import zio.Task
 import works.iterative.incubator.auth.domain.model.*
 
-
 /** Service interface for authentication
   *
   * This service provides methods for user authentication, token management,

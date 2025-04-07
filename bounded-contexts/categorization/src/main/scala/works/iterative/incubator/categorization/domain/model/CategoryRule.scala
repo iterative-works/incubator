@@ -1,6 +1,5 @@
 package works.iterative.incubator.categorization.domain.model
 
-
 /** Represents a rule for automatically categorizing transactions
   *
   * This entity defines a rule that can be used to automatically categorize

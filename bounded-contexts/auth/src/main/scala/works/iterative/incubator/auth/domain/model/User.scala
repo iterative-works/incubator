@@ -2,7 +2,6 @@ package works.iterative.incubator.auth.domain.model
 
 import java.time.Instant
 
-
 /** Represents a user in the system
   *
   * This entity contains user information, authentication details, and references

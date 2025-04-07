@@ -3,7 +3,6 @@ package works.iterative.incubator.categorization.application.service
 import zio.Task
 import works.iterative.incubator.categorization.domain.model.*
 
-
 /** Service interface for AI-based transaction categorization
   *
   * This service provides methods for categorizing transactions using various
