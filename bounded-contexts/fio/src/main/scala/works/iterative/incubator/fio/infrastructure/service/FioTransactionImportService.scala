@@ -10,21 +10,17 @@ import works.iterative.incubator.transactions.domain.repository.{
     TransactionRepository,
     SourceAccountRepository
 }
-import works.iterative.incubator.transactions.domain.model.{
-    Transaction,
-    TransactionId
-}
+import works.iterative.incubator.transactions.domain.model.{Transaction, TransactionId}
 import works.iterative.incubator.transactions.domain.query.SourceAccountQuery
 import works.iterative.incubator.transactions.application.service.TransactionImportService
 
-/** Implementation of FioImportService that imports transactions from Fio Bank API
-  * and converts them to the application's domain model.
+/** Implementation of FioImportService that imports transactions from Fio Bank API and converts them
+  * to the application's domain model.
   *
   * This service is responsible for:
-  * 1. Fetching transactions from Fio Bank API using FioClient
-  * 2. Resolving source account IDs for the transactions
-  * 3. Converting Fio Bank transaction format to our domain model
-  * 4. Saving the transactions to the repository
+  *   1. Fetching transactions from Fio Bank API using FioClient 2. Resolving source account IDs for
+  *      the transactions 3. Converting Fio Bank transaction format to our domain model 4. Saving
+  *      the transactions to the repository
   *
   * Classification: Infrastructure Service Implementation
   */
@@ -67,9 +63,8 @@ class FioTransactionImportService(
     override def getFioSourceAccounts(): Task[List[Long]] =
         sourceAccountRepository.find(SourceAccountQuery()).map(_.map(_.id).toList)
 
-    /**
-     * Legacy method to maintain compatibility with TransactionImportService
-     */
+    /** Legacy method to maintain compatibility with TransactionImportService
+      */
     override def importNewTransactions(lastId: Option[Long]): Task[Int] =
         for
             // Clear the cache at the beginning of each import batch
@@ -191,7 +186,7 @@ object FioTransactionImportService:
             TransactionRepository &
             SourceAccountRepository,
         Config.Error,
-        TransactionImportService with FioImportService
+        TransactionImportService & FioImportService
     ] =
         ZLayer {
             for
