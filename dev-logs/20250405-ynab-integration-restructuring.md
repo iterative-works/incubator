@@ -1,10 +1,10 @@
 # YNAB Integration Restructuring
 
-**Date**: 2026-04-05
+**Date**: 2025-04-05
 
 ## Context
 
-As part of our codebase restructuring to align with Domain-Driven Design (DDD) principles, we are reorganizing the YNAB integration components into a more coherent and maintainable structure. This work follows the migration task list defined in [20260405-migration-task-list.md](20260405-migration-task-list.md) and is the first step in implementing a clean bounded context for YNAB integration.
+As part of our codebase restructuring to align with Domain-Driven Design (DDD) principles, we are reorganizing the YNAB integration components into a more coherent and maintainable structure. This work follows the migration task list defined in [202520250405-migration-task-list.md](202520250405-migration-task-list.md) and is the first step in implementing a clean bounded context for YNAB integration.
 
 ## Changes Made
 

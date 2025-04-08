@@ -1,4 +1,4 @@
-# Bounded Context Migration Summary - 2026-04-08
+# Bounded Context Migration Summary - 2025-04-08
 
 ## Overview
 
@@ -14,7 +14,7 @@ We have made significant progress in restructuring our codebase according to Dom
 - ✅ Ports migrated to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/application/port/`
 - ✅ Infrastructure implementations migrated
 - ✅ Web components migrated
-- ✅ Complete migration log available in [Transaction Migration](20260408-transactions-migration.md)
+- ✅ Complete migration log available in [Transaction Migration](202520250408-transactions-migration.md)
 
 ### YNAB Context
 - ✅ Domain models migrated to `bounded-contexts/ynab/src/main/scala/works/iterative/incubator/ynab/domain/model/`
@@ -80,10 +80,10 @@ Some key insights from our migration process:
 
 ## Related Documents
 
-- [Migration Task List](20260407-migration-task-list.md)
-- [Build File Update for Bounded Contexts](20260407-build-file-update.md)
-- [Transaction Context Restructuring](20260405-transaction-context-restructuring.md)
-- [Transaction Migration](20260408-transactions-migration.md)
-- [YNAB Migration](20260408-ynab-migration.md)
-- [Fio Migration](20260408-fio-migration.md)
-- [Categorization and Auth Migration](20260408-categorization-auth-migration.md)
+- [Migration Task List](202520250407-migration-task-list.md)
+- [Build File Update for Bounded Contexts](202520250407-build-file-update.md)
+- [Transaction Context Restructuring](202520250405-transaction-context-restructuring.md)
+- [Transaction Migration](202520250408-transactions-migration.md)
+- [YNAB Migration](202520250408-ynab-migration.md)
+- [Fio Migration](202520250408-fio-migration.md)
+- [Categorization and Auth Migration](202520250408-categorization-auth-migration.md)

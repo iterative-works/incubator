@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides a detailed, actionable task list for implementing the package restructuring described in the [package structure design document](20260405-package-structure-design.md). Each task is specific and can be implemented incrementally, allowing for continuous integration and testing throughout the migration process.
+This document provides a detailed, actionable task list for implementing the package restructuring described in the [package structure design document](202520250405-package-structure-design.md). Each task is specific and can be implemented incrementally, allowing for continuous integration and testing throughout the migration process.
 
 ## Task List
 

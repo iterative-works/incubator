@@ -1,4 +1,4 @@
-# YNAB Context Migration - 2026-04-08
+# YNAB Context Migration - 2025-04-08
 
 ## Background
 
@@ -48,7 +48,7 @@ The original files remain in place with export directives that point to the new 
 
 ## Related Documents
 
-- [Migration Task List](20260407-migration-task-list.md)
-- [Build File Update for Bounded Contexts](20260407-build-file-update.md)
-- [Transaction Context Restructuring](20260405-transaction-context-restructuring.md)
+- [Migration Task List](202520250407-migration-task-list.md)
+- [Build File Update for Bounded Contexts](202520250407-build-file-update.md)
+- [Transaction Context Restructuring](202520250405-transaction-context-restructuring.md)
 - [YNAB Integration Plan](ynab-integration-plan.md)
