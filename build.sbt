@@ -37,7 +37,7 @@ lazy val core = (project in file("bounded-contexts/core"))
     .enablePlugins(IWScalaProjectPlugin)
     .settings(commonDependencies)
 
-// Bounded Contexts 
+// Bounded Contexts
 
 // Transaction Management Context
 lazy val transactions = (project in file("bounded-contexts/transactions"))
@@ -104,6 +104,7 @@ lazy val auth = (project in file("bounded-contexts/auth"))
 
 // Maintain existing module structure for backward compatibility during migration
 // YNAB Importer modules
+/*
 lazy val ynabImporterCore = (project in file("ynab-importer/core"))
     .settings(name := "ynab-importer-core")
     .enablePlugins(IWScalaProjectPlugin)
@@ -208,6 +209,7 @@ lazy val ynabImporter = (project in file("ynab-importer"))
         ynabImporterWeb,
         ynabImporterE2ETests
     )
+ */
 
 lazy val root = (project in file("."))
     .settings(name := "iw-incubator")
@@ -261,5 +263,5 @@ lazy val root = (project in file("."))
             "1"
         )
     )
-    .dependsOn(transactions, ynab, fio, ynabImporterInfrastructure, ynabImporterWeb)
-    .aggregate(webUi, core, transactions, ynab, fio, categorization, auth, ynabImporter)
+    .dependsOn(transactions, ynab, fio)
+    .aggregate(webUi, core, transactions, ynab, fio, categorization, auth)

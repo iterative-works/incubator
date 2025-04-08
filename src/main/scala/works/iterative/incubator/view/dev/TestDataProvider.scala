@@ -1,8 +1,12 @@
 package works.iterative.incubator.view.dev
 
-import works.iterative.incubator.transactions._
+import works.iterative.incubator.transactions.domain.model.SourceAccount
+import works.iterative.incubator.transactions.domain.model.Transaction
+import works.iterative.incubator.transactions.domain.model.TransactionId
+import works.iterative.incubator.transactions.domain.model.TransactionProcessingState
+import works.iterative.incubator.transactions.domain.model.TransactionStatus
 import works.iterative.incubator.view.dev.examples._
-import works.iterative.incubator.transactions.views.TransactionWithState
+import works.iterative.incubator.transactions.web.view.TransactionWithState
 import java.time.{LocalDate, Instant}
 
 /**

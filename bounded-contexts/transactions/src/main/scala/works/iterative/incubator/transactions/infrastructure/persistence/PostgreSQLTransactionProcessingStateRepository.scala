@@ -2,10 +2,17 @@ package works.iterative.incubator.transactions.infrastructure.persistence
 
 import zio.*
 import works.iterative.incubator.transactions.domain.repository.TransactionProcessingStateRepository
-import works.iterative.incubator.transactions.domain.model.{TransactionId, TransactionProcessingState, TransactionStatus}
+import works.iterative.incubator.transactions.domain.model.{
+    TransactionId,
+    TransactionProcessingState,
+    TransactionStatus
+}
 import works.iterative.incubator.transactions.domain.query.TransactionProcessingStateQuery
 import works.iterative.incubator.transactions.infrastructure.DbCodecs.given
-import works.iterative.incubator.transactions.infrastructure.{PostgreSQLDataSource, PostgreSQLTransactor}
+import works.iterative.incubator.transactions.infrastructure.config.{
+    PostgreSQLDataSource,
+    PostgreSQLTransactor
+}
 import com.augustnagro.magnum.PostgresDbType
 import com.augustnagro.magnum.magzio.*
 import java.time.Instant

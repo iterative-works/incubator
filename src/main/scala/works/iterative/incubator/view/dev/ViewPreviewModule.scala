@@ -8,7 +8,7 @@ import works.iterative.server.http.ZIOWebModule
 import works.iterative.incubator.components.ScalatagsAppShell
 import zio.interop.catz.*
 import scalatags.Text
-import works.iterative.incubator.transactions.views.*
+import works.iterative.incubator.transactions.web.view.*
 
 /** Module for previewing UI views with test data. Provides routes to view different UI components
   * with example data.

@@ -2,7 +2,7 @@ package works.iterative.incubator.view.dev.examples
 
 import scalatags.Text.all._
 import scalatags.Text.TypedTag
-import works.iterative.incubator.transactions._
+import works.iterative.incubator.transactions.domain.model.SourceAccount
 
 /**
  * Example views for source accounts.

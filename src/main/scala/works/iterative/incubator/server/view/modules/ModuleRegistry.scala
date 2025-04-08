@@ -5,10 +5,10 @@ import works.iterative.server.http.ZIOWebModule
 import zio.*
 import works.iterative.tapir.BaseUri
 import scala.annotation.unused
-import works.iterative.incubator.transactions.infrastructure.TransactionImportModule
-import works.iterative.incubator.transactions.infrastructure.SourceAccountModule
 import works.iterative.incubator.components.ScalatagsAppShell
 import works.iterative.server.http.ScalatagsViteSupport
+import works.iterative.incubator.transactions.web.module.TransactionImportModule
+import works.iterative.incubator.transactions.web.module.SourceAccountModule
 
 class ModuleRegistry(
     @unused baseUri: BaseUri,

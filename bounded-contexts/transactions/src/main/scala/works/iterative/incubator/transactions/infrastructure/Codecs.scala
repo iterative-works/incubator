@@ -2,6 +2,7 @@ package works.iterative.incubator.transactions
 package infrastructure
 
 import zio.json.*
+import domain.model.*
 
 object Codecs extends JsonCodecs
 

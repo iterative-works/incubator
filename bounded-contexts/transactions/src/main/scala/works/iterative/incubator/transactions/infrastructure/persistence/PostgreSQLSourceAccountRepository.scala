@@ -5,7 +5,10 @@ import works.iterative.incubator.transactions.domain.repository.SourceAccountRep
 import works.iterative.incubator.transactions.domain.model.{SourceAccount, CreateSourceAccount}
 import works.iterative.incubator.transactions.domain.query.SourceAccountQuery
 import works.iterative.incubator.transactions.infrastructure.DbCodecs.given
-import works.iterative.incubator.transactions.infrastructure.{PostgreSQLDataSource, PostgreSQLTransactor}
+import works.iterative.incubator.transactions.infrastructure.config.{
+    PostgreSQLDataSource,
+    PostgreSQLTransactor
+}
 import com.augustnagro.magnum.PostgresDbType
 import com.augustnagro.magnum.magzio.*
 import java.time.Instant

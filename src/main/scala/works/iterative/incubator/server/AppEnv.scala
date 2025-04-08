@@ -4,11 +4,11 @@ package server
 import zio.*
 
 type AppEnv =
-    transactions.service.TransactionRepository &
-        transactions.service.TransactionProcessingStateRepository &
-        transactions.service.TransactionImportService &
-        transactions.service.TransactionManagerService &
-        transactions.service.TransactionProcessor &
-        transactions.service.SourceAccountRepository
+    transactions.domain.repository.TransactionRepository &
+        transactions.domain.repository.TransactionProcessingStateRepository &
+        transactions.application.service.TransactionImportService &
+        transactions.application.service.TransactionManagerService &
+        transactions.application.service.TransactionProcessor &
+        transactions.domain.repository.SourceAccountRepository
 
 type AppTask[A] = RIO[AppEnv, A]

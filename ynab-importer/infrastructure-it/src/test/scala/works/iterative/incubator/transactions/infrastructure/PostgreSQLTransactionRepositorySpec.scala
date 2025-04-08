@@ -16,10 +16,8 @@ import works.iterative.incubator.transactions.domain.model.{
     SourceAccount,
     TransactionProcessingState
 }
-import works.iterative.incubator.transactions.domain.query.{
-    TransactionQuery,
-    TransactionProcessingStateQuery
-}
+import works.iterative.incubator.transactions.domain.query.TransactionQuery
+
 import zio.test.TestAspect.sequential
 
 object PostgreSQLTransactionRepositorySpec extends ZIOSpecDefault:

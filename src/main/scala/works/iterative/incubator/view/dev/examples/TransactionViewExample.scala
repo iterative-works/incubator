@@ -2,7 +2,10 @@ package works.iterative.incubator.view.dev.examples
 
 import scalatags.Text.all.*
 import scalatags.Text.TypedTag
-import works.iterative.incubator.transactions.*
+import works.iterative.incubator.transactions.domain.model.Transaction
+import works.iterative.incubator.transactions.domain.model.TransactionId
+import works.iterative.incubator.transactions.domain.model.TransactionProcessingState
+import works.iterative.incubator.transactions.domain.model.TransactionStatus
 import java.time.format.DateTimeFormatter
 
 /** Example views for transactions. Simplified versions of the real TransactionModule views.

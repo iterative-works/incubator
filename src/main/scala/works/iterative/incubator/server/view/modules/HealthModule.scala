@@ -75,11 +75,11 @@ object HealthModule extends ZIOWebModule[AppEnv]:
         ZIO.scoped {
             for
                 // Use an existing repository to check database connectivity
-                repo <- ZIO.service[works.iterative.incubator.transactions.service.TransactionRepository]
+                repo <- ZIO.service[works.iterative.incubator.transactions.domain.repository.TransactionRepository]
                 // Execute a simple find query with no filters to check DB connectivity
                 _ <- ZIO.attemptBlockingInterrupt {
                     // This is just to trigger the find and make sure it works
-                    repo.find(works.iterative.incubator.transactions.TransactionQuery())
+                    repo.find(works.iterative.incubator.transactions.domain.query.TransactionQuery())
                 }.flatMap(task => task)
             yield HealthStatusResult("UP")
         }.catchAll(err => 

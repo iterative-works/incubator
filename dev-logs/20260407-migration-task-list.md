@@ -5,58 +5,58 @@ This document outlines the tasks needed to complete the migration of our codebas
 ## Transaction Context Migration
 
 ### Domain Layer
-- [ ] Move domain models to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/domain/model/`
-  - [ ] SourceAccount.scala
-  - [ ] Transaction.scala
-  - [ ] TransactionId.scala
-  - [ ] TransactionProcessingState.scala
-  - [ ] TransactionStatus.scala
-- [ ] Move query objects to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/domain/query/`
-  - [ ] SourceAccountQuery.scala
-  - [ ] TransactionProcessingStateQuery.scala
-  - [ ] TransactionQuery.scala
-- [ ] Move repository interfaces to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/domain/repository/`
-  - [ ] SourceAccountRepository.scala
-  - [ ] TransactionProcessingStateRepository.scala
-  - [ ] TransactionRepository.scala
+- [x] Move domain models to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/domain/model/`
+  - [x] SourceAccount.scala
+  - [x] Transaction.scala
+  - [x] TransactionId.scala
+  - [x] TransactionProcessingState.scala
+  - [x] TransactionStatus.scala
+- [x] Move query objects to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/domain/query/`
+  - [x] SourceAccountQuery.scala
+  - [x] TransactionProcessingStateQuery.scala
+  - [x] TransactionQuery.scala
+- [x] Move repository interfaces to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/domain/repository/`
+  - [x] SourceAccountRepository.scala
+  - [x] TransactionProcessingStateRepository.scala
+  - [x] TransactionRepository.scala
 
 ### Application Layer
-- [ ] Move service interfaces to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/application/service/`
-  - [ ] TransactionImportService.scala
-  - [ ] TransactionManagerService.scala
-  - [ ] TransactionProcessor.scala
-- [ ] Move ports to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/application/port/`
-  - [ ] TransactionPort.scala
+- [x] Move service interfaces to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/application/service/`
+  - [x] TransactionImportService.scala
+  - [x] TransactionManagerService.scala
+  - [x] TransactionProcessor.scala
+- [x] Move ports to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/application/port/`
+  - [x] TransactionPort.scala
 
 ### Infrastructure Layer
-- [ ] Move codecs to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/infrastructure/`
-  - [ ] Codecs.scala
-  - [ ] DbCodecs.scala
-- [ ] Move service implementations to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/infrastructure/service/`
-  - [ ] DefaultTransactionManagerService.scala
-  - [ ] DefaultTransactionProcessor.scala
-  - [ ] FlywayMigrationService.scala
-- [ ] Move configuration to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/infrastructure/config/`
-  - [ ] PosgreSQLDatabaseModule.scala
-  - [ ] PostgreSQLConfig.scala
-  - [ ] PostgreSQLDataSource.scala
-  - [ ] PostgreSQLTransactor.scala
-- [ ] Move repository implementations to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/infrastructure/persistence/`
-  - [ ] InMemoryTransactionRepository.scala
-  - [ ] PostgreSQLSourceAccountRepository.scala
-  - [ ] PostgreSQLTransactionProcessingStateRepository.scala
-  - [ ] PostgreSQLTransactionRepository.scala
+- [x] Move codecs to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/infrastructure/`
+  - [x] Codecs.scala
+  - [x] DbCodecs.scala
+- [x] Move service implementations to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/infrastructure/service/`
+  - [x] DefaultTransactionManagerService.scala
+  - [x] DefaultTransactionProcessor.scala
+  - [x] FlywayMigrationService.scala
+- [x] Move configuration to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/infrastructure/config/`
+  - [x] PosgreSQLDatabaseModule.scala
+  - [x] PostgreSQLConfig.scala
+  - [x] PostgreSQLDataSource.scala
+  - [x] PostgreSQLTransactor.scala
+- [x] Move repository implementations to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/infrastructure/persistence/`
+  - [x] InMemoryTransactionRepository.scala
+  - [x] PostgreSQLSourceAccountRepository.scala
+  - [x] PostgreSQLTransactionProcessingStateRepository.scala
+  - [x] PostgreSQLTransactionRepository.scala
 
 ### Web Layer
-- [ ] Move modules to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/web/module/`
-  - [ ] SourceAccountModule.scala
-  - [ ] TransactionImportModule.scala
-- [ ] Move views to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/web/view/`
-  - [ ] SourceAccountViews.scala
-  - [ ] SourceAccountViewsImpl.scala
-  - [ ] TransactionViews.scala
-  - [ ] TransactionViewsImpl.scala
-  - [ ] TransactionWithState.scala
+- [x] Move modules to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/web/module/`
+  - [x] SourceAccountModule.scala
+  - [x] TransactionImportModule.scala
+- [x] Move views to `bounded-contexts/transactions/src/main/scala/works/iterative/incubator/transactions/web/view/`
+  - [x] SourceAccountViews.scala
+  - [x] SourceAccountViewsImpl.scala
+  - [x] TransactionViews.scala
+  - [x] TransactionViewsImpl.scala
+  - [x] TransactionWithState.scala
 
 ## YNAB Context Migration
 
@@ -131,10 +131,10 @@ This document outlines the tasks needed to complete the migration of our codebas
 
 ## Final Steps
 
-- [ ] Update import statements in all files
+- [x] Update import statements in all files
 - [ ] Determine and implement the correct approach for backward compatibility
   - [ ] Research the proper export directive syntax or alternative approaches
   - [ ] Apply the chosen approach across all migrated files
 - [x] Compile and verify all bounded contexts
-- [ ] Run tests to ensure functionality is preserved
-- [ ] Update documentation to reflect new structure
+- [x] Run tests to ensure functionality is preserved
+- [x] Update documentation to reflect new structure
