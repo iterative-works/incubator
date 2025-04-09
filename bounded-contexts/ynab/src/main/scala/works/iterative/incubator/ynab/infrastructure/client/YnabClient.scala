@@ -2,8 +2,8 @@ package works.iterative.incubator.ynab.infrastructure.client
 
 import zio.*
 import zio.json.*
-import sttp.client3.*
-import sttp.client3.httpclient.zio.HttpClientZioBackend
+import sttp.client4.*
+import sttp.client4.httpclient.zio.HttpClientZioBackend
 import sttp.model.{StatusCode, Uri}
 import works.iterative.incubator.ynab.domain.model.*
 import works.iterative.incubator.ynab.infrastructure.config.YnabConfig
@@ -88,7 +88,7 @@ end YnabClient
   *
   * Classification: Infrastructure Client Implementation
   */
-case class YnabClientLive(config: YnabConfig, backend: SttpBackend[Task, Any]) extends YnabClient:
+case class YnabClientLive(config: YnabConfig, backend: Backend[Task]) extends YnabClient:
     private val baseUrl = config.apiUrl
     private val token = config.token.value
 
@@ -107,9 +107,11 @@ case class YnabClientLive(config: YnabConfig, backend: SttpBackend[Task, Any]) e
             case StatusCode.Unauthorized =>
                 ZIO.fail(YnabAuthenticationError("Invalid YNAB API token"))
             case StatusCode.NotFound =>
-                ZIO.fail(YnabResourceNotFound("resource", "id"))
+                ZIO.fail(YnabResourceNotFound("resource", s"Not found: ${response.body}"))
             case StatusCode.BadRequest =>
                 ZIO.fail(YnabValidationError(s"Bad request: ${response.body}"))
+            case StatusCode.Forbidden =>
+                ZIO.fail(YnabAuthenticationError(s"Forbidden: ${response.body}"))
             case _ =>
                 ZIO.fail(YnabNetworkError(
                     new RuntimeException(s"YNAB API error: ${response.code} - ${response.body}")
@@ -143,7 +145,9 @@ case class YnabClientLive(config: YnabConfig, backend: SttpBackend[Task, Any]) e
                 .response(asStringAlways)
                 .send(backend)
             result <- handleResponse[AccountsResponse](response)
-        yield result.accounts
+            // Map the API's account model to our domain model
+            accounts = result.accounts.map(_.toDomain)
+        yield accounts
         end for
     end getAccounts
 
@@ -155,7 +159,7 @@ case class YnabClientLive(config: YnabConfig, backend: SttpBackend[Task, Any]) e
                 .send(backend)
             result <- handleResponse[CategoriesResponse](response)
             // Extract category groups from the response
-            categoryGroups = result.categoryGroups.map(group =>
+            categoryGroups = result.category_groups.map(group =>
                 YnabCategoryGroup(
                     id = group.id,
                     name = group.name,
@@ -175,7 +179,7 @@ case class YnabClientLive(config: YnabConfig, backend: SttpBackend[Task, Any]) e
                 .send(backend)
             result <- handleResponse[CategoriesResponse](response)
             // Flatten categories from all groups
-            categories = result.categoryGroups.flatMap(group =>
+            categories = result.category_groups.flatMap(group =>
                 group.categories.map(cat =>
                     YnabCategory(
                         id = cat.id,
@@ -184,9 +188,9 @@ case class YnabClientLive(config: YnabConfig, backend: SttpBackend[Task, Any]) e
                         groupName = group.name,
                         hidden = cat.hidden,
                         deleted = cat.deleted,
-                        budgeted = cat.budgeted,
-                        activity = cat.activity,
-                        balance = cat.balance
+                        budgeted = cat.budgeted.map(b => BigDecimal(b) / 1000), // Convert from milliunits
+                        activity = cat.activity.map(a => BigDecimal(a) / 1000), // Convert from milliunits
+                        balance = cat.balance.map(b => BigDecimal(b) / 1000)   // Convert from milliunits
                     )
                 )
             )
@@ -199,15 +203,34 @@ case class YnabClientLive(config: YnabConfig, backend: SttpBackend[Task, Any]) e
             transaction = TransactionDTO.fromDomain(transaction)
         )
 
+        // Send the request with logging
         for
+            _ <- Console.printLine(s"Sending transaction: ${transactionData.toJson}").orDie
             response <- authenticatedRequest
                 .post(buildUri(s"/budgets/$budgetId/transactions"))
                 .body(transactionData.toJson)
+                .header("Content-Type", "application/json")
                 .response(asStringAlways)
                 .send(backend)
-            result <- handleResponse[TransactionResponse](response)
-        yield result.transaction.id
-        end for
+            _ <- Console.printLine(s"Response: ${response.body}").orDie // Debug response
+            
+            // Parse the response directly instead of using handleResponse
+            txResult <- if response.code == StatusCode.Created || response.code == StatusCode.Ok then
+                ZIO.fromEither(response.body.fromJson[ApiResponse[TransactionResponse]])
+                   .mapError(err => new RuntimeException(s"Failed to parse YNAB response: $err"))
+                   .map(_.data)
+            else
+                ZIO.fail(YnabNetworkError(new RuntimeException(
+                    s"YNAB API error: ${response.code} - ${response.body}"
+                )))
+            
+            transactionId = if txResult.transaction_ids.nonEmpty then 
+                txResult.transaction_ids.head
+            else
+                txResult.transaction.id
+                
+            _ <- Console.printLine(s"Created transaction with ID: $transactionId").orDie
+        yield transactionId
     end createTransaction
 
     override def createTransactions(
@@ -237,14 +260,23 @@ case class YnabClientLive(config: YnabConfig, backend: SttpBackend[Task, Any]) e
 end YnabClientLive
 
 object YnabClient:
-    val layer: ZLayer[YnabConfig & SttpBackend[Task, Any], Nothing, YnabClient] =
+    val layer: ZLayer[Backend[Task], Config.Error, YnabClient] =
         ZLayer {
             for
-                config <- ZIO.service[YnabConfig]
-                backend <- ZIO.service[SttpBackend[Task, Any]]
+                config <- ZIO.config[YnabConfig]
+                backend <- ZIO.service[Backend[Task]]
             yield YnabClientLive(config, backend)
         }
 
-    val live: ZLayer[YnabConfig, Throwable, YnabClient] =
+    def withConfig(config: YnabConfig): ZLayer[Backend[Task], Nothing, YnabClientLive] = ZLayer {
+        for
+            backend <- ZIO.service[Backend[Task]]
+        yield YnabClientLive(config, backend)
+    }
+
+    val live: ZLayer[Any, Throwable, YnabClient] =
         HttpClientZioBackend.layer() >>> layer
+
+    def liveWithConfig(config: YnabConfig): ZLayer[Any, Throwable, YnabClient] =
+        HttpClientZioBackend.layer() >>> withConfig(config)
 end YnabClient

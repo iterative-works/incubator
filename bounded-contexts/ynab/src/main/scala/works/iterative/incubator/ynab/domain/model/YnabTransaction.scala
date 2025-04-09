@@ -27,11 +27,13 @@ case class YnabTransaction(
     /**
      * Generate an import ID based on the transaction details
      * This helps prevent duplicate imports
+     * 
+     * YNAB documentation recommends an import ID format of YYYYMMDD:amount:check-number
+     * where amount is in milliunits (so $10.00 would be 10000)
      */
     def generateImportId: String =
-        // Format: YYYYMMDD:amount:source-id
-        // This is a common approach for YNAB import IDs, ensuring uniqueness
+        // Format: YYYYMMDD:amount:random-id
         val dateStr = date.toString.replace("-", "")
-        val amountStr = (amount * 1000).toLongExact.toString
+        val amountStr = (amount * 1000).toLongExact.toString // Convert to milliunits
         val uuid = UUID.randomUUID().toString.take(8)
-        s"$dateStr:$amountStr:$uuid"
+        s"YNAB:$dateStr:$amountStr:$uuid"

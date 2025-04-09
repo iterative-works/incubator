@@ -64,14 +64,18 @@ lazy val transactions = (project in file("bounded-contexts/transactions"))
 // YNAB Integration Context
 lazy val ynab = (project in file("bounded-contexts/ynab"))
     .settings(name := "ynab")
-    .enablePlugins(IWScalaProjectPlugin)
     .settings(
         commonDependencies,
         IWDeps.zioJson,
-        IWDeps.sttpClient3Core,
-        IWDeps.sttpClient3Lib("async-http-client-backend-zio")
+        IWDeps.sttpClient4Core,
+        IWDeps.sttpClient4Lib("zio")
     )
     .dependsOn(core, transactions)
+
+lazy val `ynab-it` = (project in file("bounded-contexts/ynab/it"))
+    .settings(name := "ynab-it")
+    .settings(IWDeps.useZIO())
+    .dependsOn(ynab)
 
 // Fio Bank Context
 lazy val fio = (project in file("bounded-contexts/fio"))
@@ -101,115 +105,6 @@ lazy val auth = (project in file("bounded-contexts/auth"))
         IWDeps.zioJson
     )
     .dependsOn(core)
-
-// Maintain existing module structure for backward compatibility during migration
-// YNAB Importer modules
-/*
-lazy val ynabImporterCore = (project in file("ynab-importer/core"))
-    .settings(name := "ynab-importer-core")
-    .enablePlugins(IWScalaProjectPlugin)
-    .settings(commonDependencies)
-    .dependsOn(core, transactions, ynab, fio, categorization, auth)
-
-lazy val ynabImporterInfrastructure = (project in file("ynab-importer/infrastructure"))
-    .settings(name := "ynab-importer-infrastructure")
-    .enablePlugins(IWScalaProjectPlugin)
-    .settings(
-        commonDependencies,
-        scalacOptions ++= Seq("-Xmax-inlines", "64"),
-        IWDeps.zioJson,
-        IWDeps.magnumZIO,
-        IWDeps.magnumPG,
-        IWDeps.chimney,
-        IWDeps.sttpClient3Core,
-        IWDeps.sttpClient3Lib("async-http-client-backend-zio"),
-        libraryDependencies ++= Seq(
-            "org.flywaydb" % "flyway-core" % "11.4.0",
-            "org.flywaydb" % "flyway-database-postgresql" % "11.4.0",
-            "org.postgresql" % "postgresql" % "42.7.5",
-            "com.zaxxer" % "HikariCP" % "6.2.1"
-        )
-    )
-    .dependsOn(ynabImporterCore, transactions, ynab, fio)
-
-lazy val ynabImporterInfrastructureIT = (project in file("ynab-importer/infrastructure-it"))
-    .settings(name := "ynab-importer-infrastructure-it")
-    .enablePlugins(IWScalaProjectPlugin)
-    .settings(commonDependencies)
-    .settings(publish / skip := true)
-    .settings(
-        IWDeps.logbackClassic,
-        libraryDependencies ++= Seq(
-            // Use latest testcontainers (testcontainers-scala pulls in older version)
-            "org.testcontainers" % "testcontainers" % "1.20.6" % Test,
-            "org.testcontainers" % "postgresql" % "1.20.6" % Test,
-            "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.43.0" % Test
-        )
-    )
-    .dependsOn(ynabImporterCore, ynabImporterInfrastructure)
-
-lazy val ynabImporterApp = (project in file("ynab-importer/app"))
-    .settings(name := "ynab-importer-app")
-    .enablePlugins(IWScalaProjectPlugin)
-    .settings(commonDependencies)
-    .dependsOn(ynabImporterCore, ynabImporterInfrastructure)
-
-lazy val ynabImporterWeb = (project in file("ynab-importer/web"))
-    .settings(name := "ynab-importer-web")
-    .enablePlugins(IWScalaProjectPlugin)
-    .settings(
-        commonDependencies,
-        IWDeps.http4sBlazeServer,
-        IWDeps.scalatags,
-        libraryDependencies ++= Seq(
-            "works.iterative.support" %% "iw-support-ui" % iwSupportVersion,
-            "works.iterative.support" %% "iw-support-ui-scalatags" % iwSupportVersion,
-            "works.iterative.support" %% "iw-support-forms-http" % iwSupportVersion
-        )
-    )
-    .dependsOn(ynabImporterApp, webUi, transactions)
-
-lazy val ynabImporterE2ETests = (project in file("ynab-importer/e2e-tests"))
-    .settings(name := "ynab-importer-e2e-tests")
-    .enablePlugins(IWScalaProjectPlugin)
-    .settings(
-        commonDependencies,
-        // Dependencies for the e2e tests module
-        IWDeps.zioLib("test-junit", IWVersions.zio, Test),
-        IWDeps.logbackClassic,
-        libraryDependencies ++= Seq(
-            // Playwright
-            "com.microsoft.playwright" % "playwright" % "1.51.0" % Test,
-
-            // TestContainers
-            "org.testcontainers" % "testcontainers" % "1.20.6",
-            "org.testcontainers" % "postgresql" % "1.20.6",
-            "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.43.0",
-
-            // Config
-            "com.typesafe" % "config" % "1.4.3" % Test
-        )
-    )
-    .settings(publish / skip := true)
-    .dependsOn(ynabImporterCore, ynabImporterWeb)
-
-lazy val ynabImporter = (project in file("ynab-importer"))
-    .settings(name := "ynab-importer")
-    .enablePlugins(IWScalaProjectPlugin)
-    .aggregate(
-        core,
-        transactions,
-        ynab,
-        fio,
-        categorization,
-        auth,
-        ynabImporterCore,
-        ynabImporterInfrastructure,
-        ynabImporterApp,
-        ynabImporterWeb,
-        ynabImporterE2ETests
-    )
- */
 
 lazy val root = (project in file("."))
     .settings(name := "iw-incubator")

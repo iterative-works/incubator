@@ -1,0 +1,46 @@
+{
+  "data": {
+    "budgets": [
+      {
+        "id": "budget-123",
+        "name": "My Budget",
+        "last_modified_on": "2025-04-10T12:34:56+00:00",
+        "first_month": "2025-01-01",
+        "last_month": "2025-04-01",
+        "currency_format": {
+          "iso_code": "USD",
+          "example_format": "123,456.78",
+          "decimal_digits": 2,
+          "decimal_separator": ".",
+          "symbol_first": true,
+          "group_separator": ",",
+          "currency_symbol": "$",
+          "display_symbol": true
+        },
+        "date_format": {
+          "format": "MM/DD/YYYY"
+        }
+      },
+      {
+        "id": "budget-456",
+        "name": "Test Budget",
+        "last_modified_on": "2025-04-09T15:12:33+00:00",
+        "first_month": "2025-01-01",
+        "last_month": "2025-04-01",
+        "currency_format": {
+          "iso_code": "EUR",
+          "example_format": "123 456,78",
+          "decimal_digits": 2,
+          "decimal_separator": ",",
+          "symbol_first": false,
+          "group_separator": " ",
+          "currency_symbol": "€",
+          "display_symbol": true
+        },
+        "date_format": {
+          "format": "DD.MM.YYYY"
+        }
+      }
+    ]
+  }
+}

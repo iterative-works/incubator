@@ -17,9 +17,13 @@ case class ApiResponse[T](data: T)
 
 // Specific response types
 case class BudgetsResponse(budgets: Seq[YnabBudget])
-case class AccountsResponse(accounts: Seq[YnabAccount])
-case class CategoriesResponse(categoryGroups: Seq[CategoryGroupDTO])
-case class TransactionResponse(transaction: TransactionDTO)
+case class AccountsResponse(accounts: Seq[AccountDTO])
+case class CategoriesResponse(category_groups: Seq[CategoryGroupDTO])
+// The YNAB API returns a different structure for transaction creation
+case class TransactionResponse(
+    transaction: TransactionDTO,
+    transaction_ids: Seq[String] = Seq.empty
+)
 case class TransactionsResponse(transactions: Seq[TransactionDTO])
 
 // Request types
@@ -27,6 +31,31 @@ case class TransactionCreateRequest(transaction: TransactionDTO)
 case class TransactionsCreateRequest(transactions: Seq[TransactionDTO])
 
 // DTOs for mapping between API and domain models
+
+// Account DTO for mapping the YNAB API account structure
+case class AccountDTO(
+    id: String,
+    name: String,
+    `type`: String, // Backticks to use reserved keyword as field name
+    balance: Long,
+    closed: Boolean = false,
+    on_budget: Boolean = true,
+    transfer_payee_id: Option[String] = None,
+    deleted: Boolean = false
+):
+    // Convert DTO to domain model
+    def toDomain: YnabAccount =
+        YnabAccount(
+            id = id,
+            name = name,
+            accountType = `type`, // Use backticks for the field
+            balance = BigDecimal(balance) / 1000, // Convert from milliunits
+            closed = closed,
+            onBudget = on_budget,
+            transferPayeeId = transfer_payee_id,
+            deleted = deleted
+        )
+
 case class CategoryGroupDTO(
     id: String,
     name: String,
@@ -40,9 +69,9 @@ case class CategoryDTO(
     name: String,
     hidden: Boolean,
     deleted: Boolean,
-    budgeted: Option[BigDecimal],
-    activity: Option[BigDecimal],
-    balance: Option[BigDecimal]
+    budgeted: Option[Long],   // Milliunits format from API
+    activity: Option[Long],   // Milliunits format from API
+    balance: Option[Long]     // Milliunits format from API
 )
 
 case class TransactionDTO(
@@ -81,7 +110,7 @@ object TransactionDTO:
     def fromDomain(transaction: YnabTransaction): TransactionDTO =
         TransactionDTO(
             id = transaction.id.getOrElse(""),
-            date = transaction.date.toString,
+            date = transaction.date.toString, // YYYY-MM-DD format
             amount = (transaction.amount * 1000).toLongExact, // Convert to milliunits
             memo = transaction.memo,
             cleared = transaction.cleared,
@@ -118,6 +147,9 @@ object YnabCodecs:
     // DTO codecs
     given JsonEncoder[TransactionDTO] = DeriveJsonEncoder.gen[TransactionDTO]
     given JsonDecoder[TransactionDTO] = DeriveJsonDecoder.gen[TransactionDTO]
+    
+    given JsonEncoder[AccountDTO] = DeriveJsonEncoder.gen[AccountDTO]
+    given JsonDecoder[AccountDTO] = DeriveJsonDecoder.gen[AccountDTO]
     
     given JsonEncoder[CategoryDTO] = DeriveJsonEncoder.gen[CategoryDTO]
     given JsonDecoder[CategoryDTO] = DeriveJsonDecoder.gen[CategoryDTO]

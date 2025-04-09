@@ -147,7 +147,7 @@ object YnabApiCliTool extends ZIOAppDefault:
                     _ <- Console.printLine(s"✅ Transaction created successfully with ID: $id")
                 yield ()
                 end for
-                
+
             case Command.SubmitTransaction(_, None, _, _, _, _) =>
                 for
                     budgets <- service.getBudgets()
@@ -156,13 +156,13 @@ object YnabApiCliTool extends ZIOAppDefault:
                     // Recursive call with the selected budget ID
                     _ <- runCommand(
                         Command.SubmitTransaction(
-                            None, 
-                            Some(budgetId), 
+                            None,
+                            Some(budgetId),
                             command.asInstanceOf[Command.SubmitTransaction].accountId,
                             command.asInstanceOf[Command.SubmitTransaction].amount,
                             command.asInstanceOf[Command.SubmitTransaction].payee,
                             command.asInstanceOf[Command.SubmitTransaction].category
-                        ), 
+                        ),
                         service
                     )
                 yield ()
@@ -290,7 +290,7 @@ object YnabApiCliTool extends ZIOAppDefault:
 
             // Create service with config
             config = YnabConfig(SecretApiToken(tokenValue))
-            layer = ZLayer.succeed(config) >>> YnabServiceImpl.live
+            layer = ZLayer.succeed(config) >>> YnabServiceImpl.liveWithConfig(config)
             service <- ZIO.serviceWithZIO[YnabService](s => ZIO.succeed(s)).provide(layer)
 
             // Run the command
