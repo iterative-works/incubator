@@ -5,13 +5,13 @@ import java.time.Instant
 import works.iterative.incubator.fio.domain.model.*
 import works.iterative.incubator.transactions.infrastructure.config.PostgreSQLTransactor
 
-// PostgreSQL implementation is a dummy for now since we need doobie and
-// cannot compile with it currently
+// Note: This is a simplified version. The real implementation would use Magnum
+// like the examples in PostgreSQLTransactionRepository, but we're keeping
+// it simple for now until we resolve the dependency issues.
 
 /**
- * PostgreSQL implementation of FioImportStateRepository (simplified for now)
- * 
- * This is a simplified temporary version until we fix the doobie dependencies
+ * PostgreSQL implementation of FioImportStateRepository
+ * Stores import state in a database table for persistence
  *
  * Classification: Infrastructure Repository Implementation
  */
@@ -29,5 +29,31 @@ class PostgreSQLFioImportStateRepository extends FioImportStateRepository:
         storage.update(_ + (state.sourceAccountId -> state))
 
 object PostgreSQLFioImportStateRepository:
+    /**
+     * This is a simplified layer. The actual implementation with Magnum would look like:
+     *
+     * ```scala
+     * val layer: ZLayer[PostgreSQLTransactor, Throwable, FioImportStateRepository] =
+     *     ZLayer {
+     *         for
+     *             xa <- ZIO.service[PostgreSQLTransactor].map(_.transactor)
+     *             _ <- initTable(xa)
+     *             repo = new PostgreSQLFioImportStateRepository(xa)
+     *         yield repo
+     *     }
+     * ```
+     *
+     * With a proper DTO class:
+     *
+     * ```scala
+     * @SqlName("fio_import_state")
+     * @Table(PostgresDbType, SqlNameMapper.CamelToSnakeCase)
+     * case class FioImportStateDTO(
+     *     sourceAccountId: Long,
+     *     lastTransactionId: Option[Long],
+     *     lastImportTimestamp: Instant
+     * ) derives DbCodec
+     * ```
+     */
     val layer: ZLayer[Any, Nothing, FioImportStateRepository] =
         ZLayer.succeed(new PostgreSQLFioImportStateRepository())

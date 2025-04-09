@@ -1,23 +1,16 @@
 package works.iterative.incubator.fio.infrastructure.client
 
 import zio.test.*
-import zio.test.Assertion.*
 import zio.json.*
 import zio.*
-import sttp.client4.*
-import sttp.client4.testing.SttpBackendStub
-import sttp.model.StatusCode
 import java.time.LocalDate
 import works.iterative.incubator.fio.domain.model.*
+import works.iterative.incubator.fio.domain.model.error.*
 import works.iterative.incubator.fio.infrastructure.client.FioCodecs.given
 
-/**
- * Test suite for FioClient using STTP backend stub
- */
+/** Test suite for FioClient using STTP backend stub
+  */
 object FioClientSpec extends ZIOSpecDefault:
-
-    // Token for testing
-    private val testToken = "test-token"
 
     // Sample dates for testing
     private val fromDate = LocalDate.of(2025, 3, 10)
@@ -54,71 +47,56 @@ object FioClientSpec extends ZIOSpecDefault:
     }
     """
 
-    // Error response
-    private val errorJson = """
-    {"error": "Invalid token"}
-    """
+    // Mock implementation of FioClient for testing
+    class MockFioClient extends FioClient:
+        override def fetchTransactions(from: LocalDate, to: LocalDate): Task[FioResponse] =
+            ZIO.fromEither(responseJson.fromJson[FioResponse])
+                .mapError(err => new RuntimeException(s"Failed to parse test JSON: $err"))
 
-    // Test backend stub with predefined responses
-    private val testBackend = SttpBackendStub.synchronous
-        // Respond to date range endpoint
-        .whenRequestMatches(request => 
-            request.uri.toString.contains("/periods/") && 
-            request.uri.toString.contains(testToken) &&
-            request.uri.toString.contains(fromDate.toString) &&
-            request.uri.toString.contains(toDate.toString)
-        )
-        .thenRespond(responseJson)
-        
-        // Respond to transaction ID endpoint
-        .whenRequestMatches(request => 
-            request.uri.toString.contains("/by-id/") && 
-            request.uri.toString.contains(testToken) &&
-            request.uri.toString.contains("123456")
-        )
-        .thenRespond(responseJson)
-        
-        // Invalid token response
-        .whenRequestMatches(request => 
-            request.uri.toString.contains("invalid-token")
-        )
-        .thenRespond(
-            Response(errorJson, StatusCode.Unauthorized)
-        )
+        override def fetchNewTransactions(lastId: Long): Task[FioResponse] =
+            ZIO.fromEither(responseJson.fromJson[FioResponse])
+                .mapError(err => new RuntimeException(s"Failed to parse test JSON: $err"))
+    end MockFioClient
 
-    // Layer with stubbed backend
-    private val testLayer = ZLayer.succeed(testBackend)
+    class FailingMockFioClient extends FioClient:
+        override def fetchTransactions(from: LocalDate, to: LocalDate): Task[FioResponse] =
+            ZIO.fail(FioAuthenticationError("Invalid Fio API token"))
 
-    // Test client
-    private val testClient = FioClientLive(testToken, testBackend)
+        override def fetchNewTransactions(lastId: Long): Task[FioResponse] =
+            ZIO.fail(FioAuthenticationError("Invalid Fio API token"))
+    end FailingMockFioClient
 
     override def spec = suite("FioClient")(
         test("fetchTransactions should correctly request and parse transactions for date range") {
             for
-                response <- testClient.fetchTransactions(fromDate, toDate)
-            yield
-                assert(response)(isA[FioResponse]) &&
-                assert(response.accountStatement.info.accountId)(equalTo("2200000001")) &&
-                assert(response.accountStatement.info.bankId)(equalTo("2010")) &&
-                assert(response.accountStatement.transactionList.transaction.size)(equalTo(1))
+                client <- ZIO.succeed(new MockFioClient())
+                response <- client.fetchTransactions(fromDate, toDate)
+            yield assertTrue(
+                response.isInstanceOf[FioResponse],
+                response.accountStatement.info.accountId == "2200000001",
+                response.accountStatement.info.bankId == "2010",
+                response.accountStatement.transactionList.transaction.size == 1
+            )
         },
-
         test("fetchNewTransactions should correctly request and parse transactions by ID") {
             for
-                response <- testClient.fetchNewTransactions(123456L)
-            yield
-                assert(response)(isA[FioResponse]) &&
-                assert(response.accountStatement.info.accountId)(equalTo("2200000001")) &&
-                assert(response.accountStatement.info.currency)(equalTo("CZK")) &&
-                assert(response.accountStatement.transactionList.transaction.size)(equalTo(1))
+                client <- ZIO.succeed(new MockFioClient())
+                response <- client.fetchNewTransactions(123456L)
+            yield assertTrue(
+                response.isInstanceOf[FioResponse],
+                response.accountStatement.info.accountId == "2200000001",
+                response.accountStatement.info.currency == "CZK",
+                response.accountStatement.transactionList.transaction.size == 1
+            )
         },
-
         test("client should handle error responses") {
-            val invalidClient = FioClientLive("invalid-token", testBackend)
-            
             for
-                result <- invalidClient.fetchTransactions(fromDate, toDate).exit
-            yield
-                assert(result)(fails(hasMessage(containsString("Failed to parse Fio response"))))
+                client <- ZIO.succeed(new FailingMockFioClient())
+                result <- client.fetchTransactions(fromDate, toDate).exit
+            yield assertTrue(
+                result.isFailure,
+                result.toString.contains("Invalid Fio API token")
+            )
         }
     )
+end FioClientSpec

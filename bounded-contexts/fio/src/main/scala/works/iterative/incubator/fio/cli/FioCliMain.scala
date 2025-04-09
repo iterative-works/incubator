@@ -17,7 +17,8 @@ import works.iterative.incubator.transactions.domain.repository.{
 import works.iterative.incubator.transactions.infrastructure.persistence.{
     InMemoryTransactionRepository
 }
-import works.iterative.incubator.transactions.domain.model.SourceAccount
+import works.iterative.incubator.transactions.domain.model.{SourceAccount, CreateSourceAccount}
+import works.iterative.incubator.transactions.domain.query.SourceAccountQuery
 
 /**
  * Command-line interface for testing Fio integration
@@ -115,26 +116,37 @@ object FioCliMain extends ZIOAppDefault:
             ZLayer.succeed(new InMemoryTransactionRepository(List.empty)) >+>
             ZLayer.succeed {
                 new SourceAccountRepository {
-                    def save(sourceAccount: works.iterative.incubator.transactions.domain.model.SourceAccount): Task[Long] = 
-                        ZIO.succeed(sourceAccount.id)
-                    def get(id: Long): Task[Option[works.iterative.incubator.transactions.domain.model.SourceAccount]] = 
-                        ZIO.succeed(Some(works.iterative.incubator.transactions.domain.model.SourceAccount(
+                    // Required by Repository[Long, SourceAccount, SourceAccountQuery]
+                    def find(filter: SourceAccountQuery): UIO[Seq[SourceAccount]] = 
+                        ZIO.succeed(Seq(SourceAccount(
+                            id = 1L,
+                            name = "Test Account",
+                            accountId = "2200000001", 
+                            bankId = "2010",
+                            currency = "CZK",
+                            active = true,
+                            ynabAccountId = None,
+                            lastSyncTime = None
+                        )))
+                        
+                    def load(id: Long): UIO[Option[SourceAccount]] = 
+                        ZIO.succeed(Some(SourceAccount(
                             id = id,
                             name = "Test Account",
                             accountId = "2200000001",
-                            bankId = "2010",
+                            bankId = "2010", 
                             currency = "CZK",
-                            active = true
+                            active = true,
+                            ynabAccountId = None,
+                            lastSyncTime = None
                         )))
-                    def find(query: works.iterative.incubator.transactions.domain.query.SourceAccountQuery): Task[Seq[works.iterative.incubator.transactions.domain.model.SourceAccount]] = 
-                        ZIO.succeed(Seq(works.iterative.incubator.transactions.domain.model.SourceAccount(
-                            id = 1L,
-                            name = "Test Account",
-                            accountId = "2200000001",
-                            bankId = "2010",
-                            currency = "CZK",
-                            active = true
-                        )))
+                        
+                    def save(key: Long, value: SourceAccount): UIO[Unit] = 
+                        ZIO.unit
+                        
+                    // Required by CreateRepository[Long, CreateSourceAccount]
+                    def create(value: CreateSourceAccount): UIO[Long] = 
+                        ZIO.succeed(1L)
                 }
             } >+>
             InMemoryFioImportStateRepository.layer >+>
