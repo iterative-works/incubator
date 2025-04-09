@@ -6,13 +6,12 @@ import zio.*
  * Configuration for YNAB API integration
  *
  * This model contains the necessary configuration for connecting to the YNAB API,
- * including the API token and selected budget ID.
+ * including the API token and base API URL.
  *
  * Infrastructure Configuration: This configuration is used by the infrastructure layer.
  */
 case class YnabConfig(
     token: SecretApiToken,
-    selectedBudgetId: Option[String] = None,
     apiUrl: String = "https://api.youneedabudget.com/v1"
 )
 
@@ -46,14 +45,6 @@ trait YnabConfigService:
      * @return Unit indicating successful save
      */
     def saveConfig(config: YnabConfig): Task[Unit]
-    
-    /**
-     * Update the selected budget ID
-     *
-     * @param budgetId The budget ID to select
-     * @return The updated configuration
-     */
-    def selectBudget(budgetId: String): Task[YnabConfig]
     
     /**
      * Create a configuration from an API token

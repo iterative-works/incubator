@@ -6,8 +6,8 @@ import works.iterative.incubator.ynab.domain.model.*
 /** 
  * YNAB Service
  *
- * Service interface for interacting with YNAB. This service provides access to YNAB budgets,
- * accounts, categories, and transactions.
+ * Service interface for interacting with YNAB. This service provides access to YNAB budgets
+ * and the ability to create budget-specific services.
  *
  * Application Service: This is a service interface defining operations provided by the YNAB integration.
  */
@@ -25,29 +25,48 @@ trait YnabService:
       *   A sequence of YNAB budgets
       */
     def getBudgets(): Task[Seq[YnabBudget]]
+    
+    /** Get a budget-specific service for a given budget ID
+      *
+      * @param budgetId
+      *   The ID of the budget to create a service for
+      * @return
+      *   A budget-specific service
+      */
+    def getBudgetService(budgetId: String): YnabBudgetService
+end YnabService
 
-    /** Get all accounts in the selected budget
+/**
+ * YNAB Budget Service
+ *
+ * Service interface for interacting with a specific YNAB budget. This service provides
+ * access to accounts, categories, and transactions within a specific budget.
+ *
+ * Application Service: This is a service interface for budget-specific operations.
+ */
+trait YnabBudgetService:
+    /** Get all accounts in the budget
       *
       * @return
       *   A sequence of YNAB accounts
       */
     def getAccounts(): Task[Seq[YnabAccount]]
 
-    /** Get all category groups in the selected budget
+    /** Get all category groups in the budget
       *
       * @return
       *   A sequence of YNAB category groups
       */
     def getCategoryGroups(): Task[Seq[YnabCategoryGroup]]
 
-    /** Get all categories in the selected budget
+    /** Get all categories in the budget
       *
       * @return
       *   A sequence of YNAB categories with their groups
       */
     def getCategories(): Task[Seq[YnabCategory]]
 
-    /** Create a transaction in YNAB
+    /** Create a transaction in the budget
       *
       * @param transaction
       *   The transaction to create
@@ -56,7 +75,7 @@ trait YnabService:
       */
     def createTransaction(transaction: YnabTransaction): Task[String]
 
-    /** Create multiple transactions in YNAB
+    /** Create multiple transactions in the budget
       *
       * @param transactions
       *   The transactions to create
@@ -64,4 +83,4 @@ trait YnabService:
       *   A map of transaction IDs to their created IDs
       */
     def createTransactions(transactions: Seq[YnabTransaction]): Task[Map[YnabTransaction, String]]
-end YnabService
+end YnabBudgetService
