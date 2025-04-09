@@ -2,8 +2,8 @@ package works.iterative.incubator.fio.infrastructure.client
 
 import zio.*
 import zio.json.*
-import sttp.client3.*
-import sttp.client3.httpclient.zio.HttpClientZioBackend
+import sttp.client4.*
+import sttp.client4.httpclient.zio.HttpClientZioBackend
 import sttp.model.Uri
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -12,33 +12,39 @@ import works.iterative.incubator.fio.infrastructure.config.FioConfig
 import works.iterative.incubator.fio.infrastructure.client.FioCodecs.given
 
 /** HTTP client for Fio Bank API
- *
- * This client handles communication with Fio Bank's REST API,
- * supporting both date range based queries and ID-based delta queries.
- *
- * Classification: Infrastructure Client
- */
+  *
+  * This client handles communication with Fio Bank's REST API, supporting both date range based
+  * queries and ID-based delta queries.
+  *
+  * Classification: Infrastructure Client
+  */
 trait FioClient:
     /** Fetch transactions for a specific date range
-     *
-     * @param from Start date (inclusive)
-     * @param to End date (inclusive)
-     * @return Response containing transaction data
-     */
+      *
+      * @param from
+      *   Start date (inclusive)
+      * @param to
+      *   End date (inclusive)
+      * @return
+      *   Response containing transaction data
+      */
     def fetchTransactions(from: LocalDate, to: LocalDate): Task[FioResponse]
-    
+
     /** Fetch new transactions since a specific transaction ID
-     *
-     * @param lastId Last transaction ID that was processed
-     * @return Response containing new transaction data
-     */
+      *
+      * @param lastId
+      *   Last transaction ID that was processed
+      * @return
+      *   Response containing new transaction data
+      */
     def fetchNewTransactions(lastId: Long): Task[FioResponse]
+end FioClient
 
 /** Live implementation of FioClient using sttp
- *
- * Classification: Infrastructure Client Implementation
- */
-case class FioClientLive(token: String, backend: SttpBackend[Task, Any]) extends FioClient:
+  *
+  * Classification: Infrastructure Client Implementation
+  */
+case class FioClientLive(token: String, backend: Backend[Task]) extends FioClient:
     private val baseUrl = "https://www.fio.cz/ib_api/rest"
     private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -77,14 +83,23 @@ case class FioClientLive(token: String, backend: SttpBackend[Task, Any]) extends
 end FioClientLive
 
 object FioClient:
-    val layer: ZLayer[SttpBackend[Task, Any], Config.Error, FioClient] =
+    val layer: ZLayer[Backend[Task], Config.Error, FioClient] =
         ZLayer {
             for
                 config <- ZIO.config[FioConfig](FioConfig.config)
-                backend <- ZIO.service[SttpBackend[Task, Any]]
+                backend <- ZIO.service[Backend[Task]]
             yield FioClientLive(config.token, backend)
         }
 
+    def layerWithConfig(config: FioConfig): ZLayer[Backend[Task], Nothing, FioClientLive] = ZLayer {
+        for
+            backend <- ZIO.service[Backend[Task]]
+        yield FioClientLive(config.token, backend)
+    }
+
     val live: ZLayer[Any, Throwable, FioClient] =
         HttpClientZioBackend.layer() >>> layer
+
+    def liveWithConfig(config: FioConfig): ZLayer[Any, Throwable, FioClientLive] =
+        HttpClientZioBackend.layer() >>> layerWithConfig(config)
 end FioClient

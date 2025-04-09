@@ -23,7 +23,6 @@ import java.time.LocalDate
   */
 object YnabIntegrationSpec extends ZIOSpecDefault:
     // Read config from environment
-    private val ynabApiToken = sys.env.get("YNAB_TOKEN")
     private val testBudgetId = sys.env.get("YNAB_TEST_BUDGET_ID")
     private val testAccountId = sys.env.get("YNAB_TEST_ACCOUNT_ID")
 
@@ -34,11 +33,12 @@ object YnabIntegrationSpec extends ZIOSpecDefault:
         backendLayer >>> YnabClient.layer >>> YnabServiceImpl.layer
 
     // Unique test transaction
-    private def createTestTransaction(accountId: String) = 
+    private def createTestTransaction(accountId: String) =
         val date = LocalDate.now
-        val amount = BigDecimal(-0.01) // 1 cent transaction to avoid accidentally modifying real data
+        val amount =
+            BigDecimal(-0.01) // 1 cent transaction to avoid accidentally modifying real data
         val timestamp = java.lang.System.currentTimeMillis()
-        
+
         YnabTransaction(
             id = None,
             date = date,
@@ -49,6 +49,7 @@ object YnabIntegrationSpec extends ZIOSpecDefault:
             // Let the YNAB client generate the import ID
             importId = None
         )
+    end createTestTransaction
 
     def spec = suite("YNAB Integration Tests")(
         test("YNAB service should connect successfully") {

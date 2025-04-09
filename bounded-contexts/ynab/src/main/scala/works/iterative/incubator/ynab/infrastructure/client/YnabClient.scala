@@ -188,9 +188,12 @@ case class YnabClientLive(config: YnabConfig, backend: Backend[Task]) extends Yn
                         groupName = group.name,
                         hidden = cat.hidden,
                         deleted = cat.deleted,
-                        budgeted = cat.budgeted.map(b => BigDecimal(b) / 1000), // Convert from milliunits
-                        activity = cat.activity.map(a => BigDecimal(a) / 1000), // Convert from milliunits
-                        balance = cat.balance.map(b => BigDecimal(b) / 1000)   // Convert from milliunits
+                        budgeted =
+                            cat.budgeted.map(b => BigDecimal(b) / 1000), // Convert from milliunits
+                        activity =
+                            cat.activity.map(a => BigDecimal(a) / 1000), // Convert from milliunits
+                        balance =
+                            cat.balance.map(b => BigDecimal(b) / 1000) // Convert from milliunits
                     )
                 )
             )
@@ -213,24 +216,28 @@ case class YnabClientLive(config: YnabConfig, backend: Backend[Task]) extends Yn
                 .response(asStringAlways)
                 .send(backend)
             _ <- Console.printLine(s"Response: ${response.body}").orDie // Debug response
-            
+
             // Parse the response directly instead of using handleResponse
-            txResult <- if response.code == StatusCode.Created || response.code == StatusCode.Ok then
-                ZIO.fromEither(response.body.fromJson[ApiResponse[TransactionResponse]])
-                   .mapError(err => new RuntimeException(s"Failed to parse YNAB response: $err"))
-                   .map(_.data)
-            else
-                ZIO.fail(YnabNetworkError(new RuntimeException(
-                    s"YNAB API error: ${response.code} - ${response.body}"
-                )))
-            
-            transactionId = if txResult.transaction_ids.nonEmpty then 
+            txResult <-
+                if response.code == StatusCode.Created || response.code == StatusCode.Ok then
+                    ZIO.fromEither(response.body.fromJson[ApiResponse[TransactionResponse]])
+                        .mapError(err =>
+                            new RuntimeException(s"Failed to parse YNAB response: $err")
+                        )
+                        .map(_.data)
+                else
+                    ZIO.fail(YnabNetworkError(new RuntimeException(
+                        s"YNAB API error: ${response.code} - ${response.body}"
+                    )))
+
+            transactionId = if txResult.transaction_ids.nonEmpty then
                 txResult.transaction_ids.head
             else
                 txResult.transaction.id
-                
+
             _ <- Console.printLine(s"Created transaction with ID: $transactionId").orDie
         yield transactionId
+        end for
     end createTransaction
 
     override def createTransactions(
@@ -268,15 +275,16 @@ object YnabClient:
             yield YnabClientLive(config, backend)
         }
 
-    def withConfig(config: YnabConfig): ZLayer[Backend[Task], Nothing, YnabClientLive] = ZLayer {
-        for
-            backend <- ZIO.service[Backend[Task]]
-        yield YnabClientLive(config, backend)
-    }
+    def layerWithConfig(config: YnabConfig): ZLayer[Backend[Task], Nothing, YnabClientLive] =
+        ZLayer {
+            for
+                backend <- ZIO.service[Backend[Task]]
+            yield YnabClientLive(config, backend)
+        }
 
     val live: ZLayer[Any, Throwable, YnabClient] =
         HttpClientZioBackend.layer() >>> layer
 
     def liveWithConfig(config: YnabConfig): ZLayer[Any, Throwable, YnabClient] =
-        HttpClientZioBackend.layer() >>> withConfig(config)
+        HttpClientZioBackend.layer() >>> layerWithConfig(config)
 end YnabClient

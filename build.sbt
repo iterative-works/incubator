@@ -84,10 +84,15 @@ lazy val fio = (project in file("bounded-contexts/fio"))
     .settings(
         commonDependencies,
         IWDeps.zioJson,
-        IWDeps.sttpClient3Core,
-        IWDeps.sttpClient3Lib("async-http-client-backend-zio")
+        IWDeps.sttpClient4Core,
+        IWDeps.sttpClient4Lib("zio")
     )
     .dependsOn(core, transactions)
+
+lazy val `fio-it` = (project in file("bounded-contexts/fio/it"))
+    .settings(name := "fio-it")
+    .settings(IWDeps.useZIO())
+    .dependsOn(fio)
 
 // AI Categorization Context (Skeleton)
 lazy val categorization = (project in file("bounded-contexts/categorization"))

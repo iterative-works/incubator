@@ -52,8 +52,8 @@ object YnabServiceImpl:
             yield YnabServiceImpl(client)
         }
 
-    def withConfig(config: YnabConfig): ZLayer[Backend[Task], Throwable, YnabService] =
-        YnabClient.withConfig(config) >>> layer
+    def layerWithConfig(config: YnabConfig): ZLayer[Backend[Task], Throwable, YnabService] =
+        YnabClient.layerWithConfig(config) >>> layer
 
     val live: ZLayer[Any, Throwable, YnabService] =
         YnabClient.live >>> layer
