@@ -27,7 +27,8 @@ import works.iterative.incubator.transactions.application.service.TransactionImp
 class FioTransactionImportService(
     fioClient: FioClient,
     transactionRepository: TransactionRepository,
-    sourceAccountRepository: SourceAccountRepository
+    sourceAccountRepository: SourceAccountRepository,
+    importStateRepository: Option[FioImportStateRepository] = None
 ) extends FioImportService, TransactionImportService:
 
     // Simple in-memory cache using ZIO Ref
@@ -45,20 +46,24 @@ class FioTransactionImportService(
                 // Only save the immutable transaction
                 transactionRepository.save(transaction.id, transaction)
             }
+            
+            // Update the import state with the latest transaction ID if available
+            _ <- updateImportState(transactions, response)
         yield transactions.size
 
     override def importNewTransactions(): Task[Int] =
         for
-            // TODO: Get the last fetched transaction ID from the database
-            // For now, use 0 as a placeholder
-            id <- ZIO.succeed(0L)
-            response <- fioClient.fetchNewTransactions(id)
-            transactions <- mapFioTransactionsToModel(response)
-            _ <- ZIO.foreachDiscard(transactions) { transaction =>
-                // Only save the immutable transaction
-                transactionRepository.save(transaction.id, transaction)
+            // Get all Fio source accounts
+            sourceAccounts <- getFioSourceAccounts()
+            
+            // For each source account, get the last transaction ID
+            // and import new transactions
+            results <- ZIO.foreach(sourceAccounts) { sourceId =>
+                getLastTransactionId(sourceId).flatMap { lastId =>
+                    importNewTransactions(lastId)
+                }
             }
-        yield transactions.size
+        yield results.sum
 
     override def getFioSourceAccounts(): Task[List[Long]] =
         sourceAccountRepository.find(SourceAccountQuery()).map(_.map(_.id).toList)
@@ -76,6 +81,9 @@ class FioTransactionImportService(
                 // Only save the immutable transaction
                 transactionRepository.save(transaction.id, transaction)
             }
+            
+            // Update the import state with the latest transaction ID if available
+            _ <- updateImportState(transactions, response)
         yield transactions.size
 
     private def mapFioTransactionsToModel(response: FioResponse): Task[List[Transaction]] =
@@ -177,6 +185,39 @@ class FioTransactionImportService(
 
             transaction
         }
+    end mapTransactions
+    
+    /**
+     * Updates the import state with the latest transaction ID
+     * Only executes if importStateRepository is available
+     */
+    private def updateImportState(
+        transactions: List[Transaction],
+        response: FioResponse
+    ): Task[Unit] =
+        val maxTransactionId = response.accountStatement.info.idTo
+        
+        // Get source account ID from the first transaction if available
+        ZIO.whenCase(importStateRepository) {
+            case Some(repo) if transactions.nonEmpty =>
+                val sourceId = transactions.head.id.sourceAccountId
+                val state = FioImportState(
+                    sourceAccountId = sourceId,
+                    lastTransactionId = Some(maxTransactionId),
+                    lastImportTimestamp = Instant.now()
+                )
+                repo.updateImportState(state)
+        }.unit
+    
+    /**
+     * Gets the last transaction ID for a source account
+     */
+    private def getLastTransactionId(sourceAccountId: Long): Task[Option[Long]] =
+        importStateRepository match
+            case Some(repo) =>
+                repo.getImportState(sourceAccountId).map(_.flatMap(_.lastTransactionId))
+            case None =>
+                ZIO.succeed(None)
 end FioTransactionImportService
 
 object FioTransactionImportService:
@@ -185,7 +226,7 @@ object FioTransactionImportService:
         FioClient &
             TransactionRepository &
             SourceAccountRepository,
-        Config.Error,
+        Nothing,
         TransactionImportService & FioImportService
     ] =
         ZLayer {
@@ -194,6 +235,30 @@ object FioTransactionImportService:
                 txRepo <- ZIO.service[TransactionRepository]
                 sourceRepo <- ZIO.service[SourceAccountRepository]
                 service = new FioTransactionImportService(client, txRepo, sourceRepo)
+            yield service
+        }
+        
+    // Layer with import state repository
+    val layerWithImportState: ZLayer[
+        FioClient &
+            TransactionRepository &
+            SourceAccountRepository &
+            FioImportStateRepository,
+        Nothing,
+        TransactionImportService & FioImportService
+    ] =
+        ZLayer {
+            for
+                client <- ZIO.service[FioClient]
+                txRepo <- ZIO.service[TransactionRepository]
+                sourceRepo <- ZIO.service[SourceAccountRepository]
+                importStateRepo <- ZIO.service[FioImportStateRepository]
+                service = new FioTransactionImportService(
+                    client, 
+                    txRepo, 
+                    sourceRepo,
+                    Some(importStateRepo)
+                )
             yield service
         }
 end FioTransactionImportService

@@ -4,10 +4,11 @@ import zio.*
 import zio.json.*
 import sttp.client4.*
 import sttp.client4.httpclient.zio.HttpClientZioBackend
-import sttp.model.Uri
+import sttp.model.{Uri, StatusCode}
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import works.iterative.incubator.fio.domain.model.*
+import works.iterative.incubator.fio.domain.model.error.*
 import works.iterative.incubator.fio.infrastructure.config.FioConfig
 import works.iterative.incubator.fio.infrastructure.client.FioCodecs.given
 
@@ -55,14 +56,14 @@ case class FioClientLive(token: String, backend: Backend[Task]) extends FioClien
             .getOrElse(throw new IllegalArgumentException("Invalid URL"))
 
         for
+            _ <- ZIO.logDebug(s"Fetching transactions from $from to $to")
             response <- basicRequest
                 .get(url)
                 .response(asStringAlways)
                 .send(backend)
-            _ <- ZIO.logInfo(s"Received response from FIO API: ${response.body}")
-            parsed <- ZIO.fromEither(response.body.fromJson[FioResponse])
-                .mapError(err => new RuntimeException(s"Failed to parse Fio response: $err"))
-        yield parsed
+            _ <- ZIO.logDebug(s"Received response with status code: ${response.code}")
+            result <- handleResponse(response)
+        yield result
         end for
     end fetchTransactions
 
@@ -71,15 +72,45 @@ case class FioClientLive(token: String, backend: Backend[Task]) extends FioClien
             .getOrElse(throw new IllegalArgumentException("Invalid URL"))
 
         for
+            _ <- ZIO.logDebug(s"Fetching transactions since ID $lastId")
             response <- basicRequest
                 .get(url)
                 .response(asStringAlways)
                 .send(backend)
-            parsed <- ZIO.fromEither(response.body.fromJson[FioResponse])
-                .mapError(err => new RuntimeException(s"Failed to parse Fio response: $err"))
-        yield parsed
+            _ <- ZIO.logDebug(s"Received response with status code: ${response.code}")
+            result <- handleResponse(response)
+        yield result
         end for
     end fetchNewTransactions
+    
+    /**
+     * Handle HTTP response and convert to domain type or appropriate error
+     */
+    private def handleResponse(response: Response[String]): Task[FioResponse] =
+        response.code match
+            case StatusCode.Ok =>
+                ZIO.fromEither(response.body.fromJson[FioResponse])
+                    .mapError(err => FioParsingError(s"Failed to parse Fio response: $err"))
+            
+            case StatusCode.Unauthorized =>
+                ZIO.fail(FioAuthenticationError("Invalid Fio API token"))
+                
+            case StatusCode.BadRequest =>
+                ZIO.fail(FioValidationError(s"Invalid request parameters: ${response.body}"))
+                
+            case StatusCode.NotFound =>
+                ZIO.fail(FioResourceNotFoundError(s"Resource not found: ${response.body}"))
+                
+            case StatusCode.TooManyRequests =>
+                ZIO.fail(FioRateLimitError("Rate limit exceeded for Fio API"))
+                
+            case code if code.isServerError =>
+                ZIO.fail(FioServerError(s"Fio API server error (${code.code}): ${response.body}"))
+                
+            case _ =>
+                ZIO.fail(FioNetworkError(new RuntimeException(
+                    s"Unexpected response from Fio API: ${response.code} - ${response.body}"
+                )))
 end FioClientLive
 
 object FioClient:
