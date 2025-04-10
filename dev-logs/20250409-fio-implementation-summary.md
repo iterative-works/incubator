@@ -124,7 +124,58 @@ Environment variables:
 
 ## Task List for Next Steps
 
-### 1. Database Integration (High Priority)
+### 1. Multi-Token Support Refactoring (Critical Priority)
+
+The current implementation uses a single token for all Fio Bank API calls, but the domain model indicates each Fio account should have its own token. This discrepancy needs to be addressed to properly support multiple accounts.
+
+#### Current Issues:
+- FioConfig contains only a single token for the whole service
+- FioClient is initialized with a single token at construction time
+- CLI tool accepts a single FIO_TOKEN environment variable
+- The FioAccount model has a token field but it's not utilized in the actual API calls
+
+#### Refactoring Plan:
+
+- [ ] Refactor FioClient for multi-token support:
+  - Update FioClientLive to accept the token on a per-request basis instead of at construction time
+  - Modify fetchTransactions and fetchNewTransactions methods to accept a token parameter
+  - Remove token from the constructor and FioConfig
+  - Add validation for token format and security checks
+
+- [ ] Implement FioAccountRepository:
+  - Create PostgreSQLFioAccountRepository implementation 
+  - Create SQL migration script for fio_account table schema:
+    ```sql
+    CREATE TABLE fio_account (
+        id BIGSERIAL PRIMARY KEY,
+        source_account_id BIGINT NOT NULL REFERENCES source_account(id),
+        token VARCHAR(100) NOT NULL,
+        last_sync_time TIMESTAMP,
+        last_fetched_id BIGINT,
+        UNIQUE (source_account_id)
+    );
+    ```
+  - Add FioAccountDTO with appropriate mappings
+
+- [ ] Update FioImportService interface and implementation:
+  - Modify importTransactions and importNewTransactions to work with specific accounts
+  - Add account lookup and token retrieval before making API calls
+  - Add account-specific filtering capability
+  - Update error handling for token-specific errors
+
+- [ ] Update CLI tool for multi-account usage:
+  - Add support for specifying account ID in commands
+  - Modify command structure to accept an account ID parameter
+  - Update help message and examples
+  - Provide backward compatibility with FIO_TOKEN for simple testing
+
+- [ ] Add token management and security:
+  - Create a secure service for storing and retrieving tokens
+  - Add caching mechanism for frequent lookups
+  - Implement proper encryption for token storage
+  - Add audit logging for token usage
+
+### 2. Database Integration (High Priority)
 
 - [x] Add Magnum library dependencies to build.sbt:
   ```scala
@@ -144,7 +195,7 @@ Environment variables:
   - Improved help message with new options
   - Implemented runtime switching based on USE_POSTGRES flag
 
-### 2. Integration Testing (High Priority)
+### 3. Integration Testing (High Priority)
 
 - [ ] Create integration test structure:
   - Create `/bounded-contexts/fio/it/src/test/scala/works/iterative/incubator/fio/FioIntegrationSpec.scala`
