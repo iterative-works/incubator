@@ -49,20 +49,20 @@ object FioClientSpec extends ZIOSpecDefault:
 
     // Mock implementation of FioClient for testing
     class MockFioClient extends FioClient:
-        override def fetchTransactions(from: LocalDate, to: LocalDate): Task[FioResponse] =
+        override def fetchTransactions(token: String, from: LocalDate, to: LocalDate): Task[FioResponse] =
             ZIO.fromEither(responseJson.fromJson[FioResponse])
                 .mapError(err => new RuntimeException(s"Failed to parse test JSON: $err"))
 
-        override def fetchNewTransactions(lastId: Long): Task[FioResponse] =
+        override def fetchNewTransactions(token: String, lastId: Long): Task[FioResponse] =
             ZIO.fromEither(responseJson.fromJson[FioResponse])
                 .mapError(err => new RuntimeException(s"Failed to parse test JSON: $err"))
     end MockFioClient
 
     class FailingMockFioClient extends FioClient:
-        override def fetchTransactions(from: LocalDate, to: LocalDate): Task[FioResponse] =
+        override def fetchTransactions(token: String, from: LocalDate, to: LocalDate): Task[FioResponse] =
             ZIO.fail(FioAuthenticationError("Invalid Fio API token"))
 
-        override def fetchNewTransactions(lastId: Long): Task[FioResponse] =
+        override def fetchNewTransactions(token: String, lastId: Long): Task[FioResponse] =
             ZIO.fail(FioAuthenticationError("Invalid Fio API token"))
     end FailingMockFioClient
 
@@ -70,7 +70,7 @@ object FioClientSpec extends ZIOSpecDefault:
         test("fetchTransactions should correctly request and parse transactions for date range") {
             for
                 client <- ZIO.succeed(new MockFioClient())
-                response <- client.fetchTransactions(fromDate, toDate)
+                response <- client.fetchTransactions("test-token", fromDate, toDate)
             yield assertTrue(
                 response.isInstanceOf[FioResponse],
                 response.accountStatement.info.accountId == "2200000001",
@@ -81,7 +81,7 @@ object FioClientSpec extends ZIOSpecDefault:
         test("fetchNewTransactions should correctly request and parse transactions by ID") {
             for
                 client <- ZIO.succeed(new MockFioClient())
-                response <- client.fetchNewTransactions(123456L)
+                response <- client.fetchNewTransactions("test-token", 123456L)
             yield assertTrue(
                 response.isInstanceOf[FioResponse],
                 response.accountStatement.info.accountId == "2200000001",
@@ -92,7 +92,7 @@ object FioClientSpec extends ZIOSpecDefault:
         test("client should handle error responses") {
             for
                 client <- ZIO.succeed(new FailingMockFioClient())
-                result <- client.fetchTransactions(fromDate, toDate).exit
+                result <- client.fetchTransactions("test-token", fromDate, toDate).exit
             yield assertTrue(
                 result.isFailure,
                 result.toString.contains("Invalid Fio API token")

@@ -74,7 +74,7 @@ object Main extends ZIOAppDefault:
             // Transaction manager service
             DefaultTransactionManagerService.layer,
             // Fio import service
-            FioTransactionImportService.layer,
+            FioTransactionImportService.minimalLayer,
             FioClient.live
         )
     end run

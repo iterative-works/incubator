@@ -11,13 +11,15 @@ The Fio Bank integration has been successfully implemented with all core functio
   - FioImportState for tracking import progress
   - FioImportService interface
   - Repository interfaces for data access
+  - Multi-token support for different accounts
 
 - [x] **Infrastructure Components**
-  - FioClient for API communication using sttp
+  - FioClient for API communication using sttp with per-request token
   - JSON decoders (FioCodecs) for parsing API responses
-  - FioTransactionImportService implementation
+  - FioTransactionImportService implementation with multi-account support
   - Basic error handling with domain-specific error types
-  - Temporary in-memory repository implementations
+  - In-memory and PostgreSQL repository implementations
+  - SQL migration scripts for database schema
 
 - [x] **Testing Infrastructure**
   - Unit tests for JSON parsing (FioCodecsSpec)
@@ -28,7 +30,8 @@ The Fio Bank integration has been successfully implemented with all core functio
 - [x] **CLI Tool**
   - Command-line interface for testing the integration
   - Support for date range and new transaction imports
-  - Environment variable configuration
+  - Environment variable configuration for single token (backwards compatibility)
+  - Account-specific import operations
   - Shell script wrapper for easy execution
 
 ### Architecture
@@ -136,13 +139,13 @@ The current implementation uses a single token for all Fio Bank API calls, but t
 
 #### Refactoring Plan:
 
-- [ ] Refactor FioClient for multi-token support:
+- [x] Refactor FioClient for multi-token support:
   - Update FioClientLive to accept the token on a per-request basis instead of at construction time
   - Modify fetchTransactions and fetchNewTransactions methods to accept a token parameter
   - Remove token from the constructor and FioConfig
   - Add validation for token format and security checks
 
-- [ ] Implement FioAccountRepository:
+- [x] Implement FioAccountRepository:
   - Create PostgreSQLFioAccountRepository implementation 
   - Create SQL migration script for fio_account table schema:
     ```sql
@@ -157,13 +160,13 @@ The current implementation uses a single token for all Fio Bank API calls, but t
     ```
   - Add FioAccountDTO with appropriate mappings
 
-- [ ] Update FioImportService interface and implementation:
+- [x] Update FioImportService interface and implementation:
   - Modify importTransactions and importNewTransactions to work with specific accounts
   - Add account lookup and token retrieval before making API calls
   - Add account-specific filtering capability
   - Update error handling for token-specific errors
 
-- [ ] Update CLI tool for multi-account usage:
+- [x] Update CLI tool for multi-account usage:
   - Add support for specifying account ID in commands
   - Modify command structure to accept an account ID parameter
   - Update help message and examples
@@ -208,11 +211,11 @@ The current implementation uses a single token for all Fio Bank API calls, but t
 
 ### 3. Account Management (Medium Priority)
 
-- [ ] Create FioAccount repository interface and implementation:
+- [x] Create FioAccount repository interface and implementation:
   - Follow the pattern established in PostgreSQLSourceAccountRepository
   - Include proper validation for Fio API tokens
 
-- [ ] Add methods to FioImportService for managing Fio accounts:
+- [x] Add methods to FioImportService for managing Fio accounts:
   - Create/update/delete Fio account connections
   - Validate API tokens during account creation/update
 

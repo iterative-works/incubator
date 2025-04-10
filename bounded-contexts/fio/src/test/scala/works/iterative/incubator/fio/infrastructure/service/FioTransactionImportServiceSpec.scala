@@ -7,6 +7,7 @@ import zio.nio.file.{Files, Path}
 import java.time.LocalDate
 import works.iterative.incubator.fio.domain.model.*
 import works.iterative.incubator.fio.infrastructure.client.{FioClient, FioCodecs}
+import works.iterative.incubator.fio.infrastructure.config.FioConfig
 import works.iterative.incubator.transactions.domain.model.*
 import works.iterative.incubator.transactions.domain.repository.*
 import works.iterative.incubator.transactions.domain.query.*
@@ -66,10 +67,10 @@ object FioTransactionImportServiceSpec extends ZIOSpecDefault:
 
     // Mock Fio client for testing
     class MockFioClient extends FioClient:
-        override def fetchTransactions(from: LocalDate, to: LocalDate): Task[FioResponse] =
+        override def fetchTransactions(token: String, from: LocalDate, to: LocalDate): Task[FioResponse] =
             loadExampleResponse()
 
-        override def fetchNewTransactions(lastId: Long): Task[FioResponse] =
+        override def fetchNewTransactions(token: String, lastId: Long): Task[FioResponse] =
             loadExampleResponse()
 
         private def loadExampleResponse(): Task[FioResponse] =
@@ -87,8 +88,9 @@ object FioTransactionImportServiceSpec extends ZIOSpecDefault:
                 mockTxRepo <- ZIO.succeed(new MockTransactionRepository())
                 mockSourceRepo <- ZIO.succeed(new MockSourceAccountRepository())
                 mockClient <- ZIO.succeed(new MockFioClient())
-                service = new FioTransactionImportService(mockClient, mockTxRepo, mockSourceRepo)
-                count <- service.importTransactions(
+                config = FioConfig(defaultToken = Some("test-token"))
+                service = new FioTransactionImportService(mockClient, mockTxRepo, mockSourceRepo, None, None, Some(config))
+                count <- service.importFioTransactions(
                     LocalDate.of(2025, 3, 10),
                     LocalDate.of(2025, 3, 15)
                 )
@@ -104,7 +106,8 @@ object FioTransactionImportServiceSpec extends ZIOSpecDefault:
                 mockTxRepo <- ZIO.succeed(new MockTransactionRepository())
                 mockSourceRepo <- ZIO.succeed(new MockSourceAccountRepository())
                 mockClient <- ZIO.succeed(new MockFioClient())
-                service = new FioTransactionImportService(mockClient, mockTxRepo, mockSourceRepo)
+                config = FioConfig(defaultToken = Some("test-token"))
+                service = new FioTransactionImportService(mockClient, mockTxRepo, mockSourceRepo, None, None, Some(config))
                 count <- service.importNewTransactions(Some(0L))
                 transactions <- mockTxRepo.getAllTransactions
             yield assert(count)(Assertion.equalTo(2)) &&
@@ -125,7 +128,8 @@ object FioTransactionImportServiceSpec extends ZIOSpecDefault:
                 mockTxRepo <- ZIO.succeed(new MockTransactionRepository())
                 mockSourceRepo <- ZIO.succeed(new MockSourceAccountRepository())
                 mockClient <- ZIO.succeed(new MockFioClient())
-                service = new FioTransactionImportService(mockClient, mockTxRepo, mockSourceRepo)
+                config = FioConfig(defaultToken = Some("test-token"))
+                service = new FioTransactionImportService(mockClient, mockTxRepo, mockSourceRepo, None, None, Some(config))
                 accounts <- service.getFioSourceAccounts()
             yield assert(accounts)(Assertion.equalTo(List(1L)))
         },
@@ -134,8 +138,9 @@ object FioTransactionImportServiceSpec extends ZIOSpecDefault:
                 mockTxRepo <- ZIO.succeed(new MockTransactionRepository())
                 mockSourceRepo <- ZIO.succeed(new MockSourceAccountRepository())
                 mockClient <- ZIO.succeed(new MockFioClient())
-                service = new FioTransactionImportService(mockClient, mockTxRepo, mockSourceRepo)
-                count <- service.importTransactions(
+                config = FioConfig(defaultToken = Some("test-token"))
+                service = new FioTransactionImportService(mockClient, mockTxRepo, mockSourceRepo, None, None, Some(config))
+                count <- service.importFioTransactions(
                     LocalDate.of(2025, 3, 10),
                     LocalDate.of(2025, 3, 15)
                 )

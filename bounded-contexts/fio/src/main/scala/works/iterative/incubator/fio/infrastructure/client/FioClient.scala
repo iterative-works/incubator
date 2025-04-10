@@ -22,6 +22,8 @@ import works.iterative.incubator.fio.infrastructure.client.FioCodecs.given
 trait FioClient:
     /** Fetch transactions for a specific date range
       *
+      * @param token
+      *   API token for Fio Bank
       * @param from
       *   Start date (inclusive)
       * @param to
@@ -29,27 +31,35 @@ trait FioClient:
       * @return
       *   Response containing transaction data
       */
-    def fetchTransactions(from: LocalDate, to: LocalDate): Task[FioResponse]
+    def fetchTransactions(token: String, from: LocalDate, to: LocalDate): Task[FioResponse]
 
     /** Fetch new transactions since a specific transaction ID
       *
+      * @param token
+      *   API token for Fio Bank
       * @param lastId
       *   Last transaction ID that was processed
       * @return
       *   Response containing new transaction data
       */
-    def fetchNewTransactions(lastId: Long): Task[FioResponse]
+    def fetchNewTransactions(token: String, lastId: Long): Task[FioResponse]
 end FioClient
 
 /** Live implementation of FioClient using sttp
   *
   * Classification: Infrastructure Client Implementation
   */
-case class FioClientLive(token: String, backend: Backend[Task]) extends FioClient:
-    private val baseUrl = "https://www.fio.cz/ib_api/rest"
+case class FioClientLive(
+    backend: Backend[Task],
+    baseUrl: String = "https://www.fio.cz/ib_api/rest"
+) extends FioClient:
     private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-    override def fetchTransactions(from: LocalDate, to: LocalDate): Task[FioResponse] =
+    override def fetchTransactions(
+        token: String,
+        from: LocalDate,
+        to: LocalDate
+    ): Task[FioResponse] =
         val url = Uri.parse(
             s"$baseUrl/periods/$token/${from.format(dateFormat)}/${to.format(dateFormat)}/transactions.json"
         )
@@ -57,6 +67,7 @@ case class FioClientLive(token: String, backend: Backend[Task]) extends FioClien
 
         for
             _ <- ZIO.logDebug(s"Fetching transactions from $from to $to")
+            _ <- validateToken(token)
             response <- basicRequest
                 .get(url)
                 .response(asStringAlways)
@@ -67,12 +78,13 @@ case class FioClientLive(token: String, backend: Backend[Task]) extends FioClien
         end for
     end fetchTransactions
 
-    override def fetchNewTransactions(lastId: Long): Task[FioResponse] =
+    override def fetchNewTransactions(token: String, lastId: Long): Task[FioResponse] =
         val url = Uri.parse(s"$baseUrl/by-id/$token/$lastId/transactions.json")
             .getOrElse(throw new IllegalArgumentException("Invalid URL"))
 
         for
             _ <- ZIO.logDebug(s"Fetching transactions since ID $lastId")
+            _ <- validateToken(token)
             response <- basicRequest
                 .get(url)
                 .response(asStringAlways)
@@ -82,31 +94,40 @@ case class FioClientLive(token: String, backend: Backend[Task]) extends FioClien
         yield result
         end for
     end fetchNewTransactions
-    
-    /**
-     * Handle HTTP response and convert to domain type or appropriate error
-     */
+
+    /** Validate token format and security
+      */
+    private def validateToken(token: String): Task[Unit] =
+        if token.isEmpty then
+            ZIO.fail(FioValidationError("Fio API token cannot be empty"))
+        else if token.length < 32 then
+            ZIO.fail(FioValidationError("Fio API token is too short"))
+        else
+            ZIO.unit
+
+    /** Handle HTTP response and convert to domain type or appropriate error
+      */
     private def handleResponse(response: Response[String]): Task[FioResponse] =
         response.code match
             case StatusCode.Ok =>
                 ZIO.fromEither(response.body.fromJson[FioResponse])
                     .mapError(err => FioParsingError(s"Failed to parse Fio response: $err"))
-            
+
             case StatusCode.Unauthorized =>
                 ZIO.fail(FioAuthenticationError("Invalid Fio API token"))
-                
+
             case StatusCode.BadRequest =>
                 ZIO.fail(FioValidationError(s"Invalid request parameters: ${response.body}"))
-                
+
             case StatusCode.NotFound =>
                 ZIO.fail(FioResourceNotFoundError(s"Resource not found: ${response.body}"))
-                
+
             case StatusCode.TooManyRequests =>
                 ZIO.fail(FioRateLimitError("Rate limit exceeded for Fio API"))
-                
+
             case code if code.isServerError =>
                 ZIO.fail(FioServerError(s"Fio API server error (${code.code}): ${response.body}"))
-                
+
             case _ =>
                 ZIO.fail(FioNetworkError(new RuntimeException(
                     s"Unexpected response from Fio API: ${response.code} - ${response.body}"
@@ -119,13 +140,20 @@ object FioClient:
             for
                 config <- ZIO.config[FioConfig](FioConfig.config)
                 backend <- ZIO.service[Backend[Task]]
-            yield FioClientLive(config.token, backend)
+            yield FioClientLive(backend, config.apiUrl)
+        }
+
+    val test: ZLayer[Backend[Task], Nothing, FioClient] =
+        ZLayer {
+            for
+                backend <- ZIO.service[Backend[Task]]
+            yield FioClientLive(backend)
         }
 
     def layerWithConfig(config: FioConfig): ZLayer[Backend[Task], Nothing, FioClientLive] = ZLayer {
         for
             backend <- ZIO.service[Backend[Task]]
-        yield FioClientLive(config.token, backend)
+        yield FioClientLive(backend, config.apiUrl)
     }
 
     val live: ZLayer[Any, Throwable, FioClient] =
@@ -133,4 +161,7 @@ object FioClient:
 
     def liveWithConfig(config: FioConfig): ZLayer[Any, Throwable, FioClientLive] =
         HttpClientZioBackend.layer() >>> layerWithConfig(config)
+
+    val testLive: ZLayer[Any, Throwable, FioClient] =
+        HttpClientZioBackend.layer() >>> test
 end FioClient

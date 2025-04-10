@@ -5,6 +5,7 @@ import java.time.LocalDate
 import java.time.Instant
 import works.iterative.incubator.fio.application.service.FioImportService
 import works.iterative.incubator.fio.infrastructure.client.FioClient
+import works.iterative.incubator.fio.infrastructure.config.FioConfig
 import works.iterative.incubator.fio.domain.model.*
 import works.iterative.incubator.transactions.domain.repository.{
     TransactionRepository,
@@ -28,7 +29,9 @@ class FioTransactionImportService(
     fioClient: FioClient,
     transactionRepository: TransactionRepository,
     sourceAccountRepository: SourceAccountRepository,
-    importStateRepository: Option[FioImportStateRepository] = None
+    fioAccountRepository: Option[FioAccountRepository] = None,
+    importStateRepository: Option[FioImportStateRepository] = None,
+    config: Option[FioConfig] = None
 ) extends FioImportService, TransactionImportService:
 
     // Simple in-memory cache using ZIO Ref
@@ -36,91 +39,283 @@ class FioTransactionImportService(
         Unsafe.unsafely:
             Ref.unsafe.make(Map.empty[(String, String), Long])
 
-    override def importTransactions(from: LocalDate, to: LocalDate): Task[Int] =
+    // FioImportService implementation
+    def importFioTransactions(
+        from: LocalDate,
+        to: LocalDate,
+        accountId: Option[Long] = None
+    ): Task[Int] =
+        fioAccountRepository match
+            // Use account-based import if FioAccountRepository is available
+            case Some(repo) =>
+                for
+                    // Get all Fio accounts or filter by the specified account ID
+                    accounts <- if accountId.isEmpty then repo.getAll()
+                    else repo.getById(accountId.get).map(_.toList)
+
+                    // Import transactions for each account
+                    results <- ZIO.foreach(accounts) { account =>
+                        importTransactionsWithToken(
+                            account.token,
+                            from,
+                            to,
+                            account.sourceAccountId
+                        )
+                    }
+                yield results.sum
+
+            // Fall back to legacy mode using config token if no repository
+            case None =>
+                for
+                    token <- getDefaultToken()
+                    sourceAccounts <- getFioSourceAccounts()
+                    sourceId <- accountId match
+                        case Some(id) if sourceAccounts.contains(id) => ZIO.succeed(id)
+                        case Some(id) =>
+                            ZIO.fail(new RuntimeException(s"Invalid source account ID: $id"))
+                        case None if sourceAccounts.isEmpty =>
+                            ZIO.fail(new RuntimeException("No source accounts configured"))
+                        case None => ZIO.succeed(sourceAccounts.head)
+                    count <- importTransactionsWithToken(token, from, to, sourceId)
+                yield count
+
+    override def importTransactionsWithToken(
+        token: String,
+        from: LocalDate,
+        to: LocalDate,
+        sourceAccountId: Long
+    ): Task[Int] =
         for
             // Clear the cache at the beginning of each import batch
             _ <- sourceAccountCache.set(Map.empty)
-            response <- fioClient.fetchTransactions(from, to)
-            transactions <- mapFioTransactionsToModel(response)
+            _ <- ZIO.logInfo(
+                s"Importing transactions from $from to $to for source account $sourceAccountId"
+            )
+            response <- fioClient.fetchTransactions(token, from, to)
+            transactions <- mapFioTransactionsToModel(response, Some(sourceAccountId))
             _ <- ZIO.foreachDiscard(transactions) { transaction =>
                 // Only save the immutable transaction
                 transactionRepository.save(transaction.id, transaction)
             }
-            
+
             // Update the import state with the latest transaction ID if available
             _ <- updateImportState(transactions, response)
+
+            // Update last fetched ID in Fio account if repository is available
+            _ <- updateFioAccountLastFetched(sourceAccountId, response)
         yield transactions.size
 
-    override def importNewTransactions(): Task[Int] =
+    override def importNewTransactionsForAccount(accountId: Option[Long] = None): Task[Int] =
+        fioAccountRepository match
+            // Use account-based import if FioAccountRepository is available
+            case Some(repo) =>
+                for
+                    // Get all Fio accounts or filter by the specified account ID
+                    accounts <- if accountId.isEmpty then
+                        repo.getAll()
+                    else
+                        repo.getById(accountId.get).map(_.toList)
+
+                    // Import new transactions for each account
+                    results <- ZIO.foreach(accounts) { account =>
+                        val lastId = account.lastFetchedId.getOrElse(0L)
+                        importNewTransactionsWithToken(
+                            account.token,
+                            lastId,
+                            account.sourceAccountId
+                        )
+                    }
+                yield results.sum
+
+            // Fall back to legacy mode if no repository
+            case None =>
+                for
+                    // Get all Fio source accounts
+                    sourceAccounts <- getFioSourceAccounts()
+
+                    // Filter by specified account ID if provided
+                    filteredAccounts <- accountId match
+                        case Some(id) if sourceAccounts.contains(id) => ZIO.succeed(List(id))
+                        case Some(id) =>
+                            ZIO.fail(new RuntimeException(s"Invalid source account ID: $id"))
+                        case None => ZIO.succeed(sourceAccounts)
+
+                    // Get default token
+                    token <- getDefaultToken()
+
+                    // For each source account, get the last transaction ID
+                    // and import new transactions
+                    results <- ZIO.foreach(filteredAccounts) { sourceId =>
+                        getLastTransactionId(sourceId).flatMap { lastId =>
+                            importNewTransactionsWithToken(token, lastId.getOrElse(0L), sourceId)
+                        }
+                    }
+                yield results.sum
+
+    // Implementing default method from trait to avoid duplicate code
+    override def importNewTransactionsForAccount(accountId: Long): Task[Int] =
+        importNewTransactions(Some(accountId))
+
+    override def importNewTransactionsWithToken(
+        token: String,
+        lastId: Long,
+        sourceAccountId: Long
+    ): Task[Int] =
         for
-            // Get all Fio source accounts
-            sourceAccounts <- getFioSourceAccounts()
-            
-            // For each source account, get the last transaction ID
-            // and import new transactions
-            results <- ZIO.foreach(sourceAccounts) { sourceId =>
-                getLastTransactionId(sourceId).flatMap { lastId =>
-                    importNewTransactions(lastId)
-                }
+            // Clear the cache at the beginning of each import batch
+            _ <- sourceAccountCache.set(Map.empty)
+            _ <- ZIO.logInfo(
+                s"Importing new transactions since ID $lastId for source account $sourceAccountId"
+            )
+            response <- fioClient.fetchNewTransactions(token, lastId)
+            transactions <- mapFioTransactionsToModel(response, Some(sourceAccountId))
+            _ <- ZIO.foreachDiscard(transactions) { transaction =>
+                // Only save the immutable transaction
+                transactionRepository.save(transaction.id, transaction)
             }
-        yield results.sum
+
+            // Update the import state with the latest transaction ID if available
+            _ <- updateImportState(transactions, response)
+
+            // Update last fetched ID in Fio account if repository is available
+            _ <- updateFioAccountLastFetched(sourceAccountId, response)
+        yield transactions.size
 
     override def getFioSourceAccounts(): Task[List[Long]] =
-        sourceAccountRepository.find(SourceAccountQuery()).map(_.map(_.id).toList)
+        fioAccountRepository match
+            case Some(repo) => repo.getAll().map(_.map(_.sourceAccountId))
+            case None => sourceAccountRepository.find(SourceAccountQuery()).map(_.map(_.id).toList)
+
+    override def getFioAccounts(): Task[List[FioAccount]] =
+        fioAccountRepository match
+            case Some(repo) => repo.getAll()
+            case None       => ZIO.succeed(List.empty)
+
+    override def getFioAccount(id: Long): Task[Option[FioAccount]] =
+        fioAccountRepository match
+            case Some(repo) => repo.getById(id)
+            case None       => ZIO.succeed(None)
+
+    override def getFioAccountBySourceAccountId(sourceAccountId: Long): Task[Option[FioAccount]] =
+        fioAccountRepository match
+            case Some(repo) => repo.getBySourceAccountId(sourceAccountId)
+            case None       => ZIO.succeed(None)
 
     /** Legacy method to maintain compatibility with TransactionImportService
+      *
+      * @param lastId
+      *   The last transaction ID processed
+      * @return
+      *   Number of transactions imported
       */
     override def importNewTransactions(lastId: Option[Long]): Task[Int] =
         for
-            // Clear the cache at the beginning of each import batch
-            _ <- sourceAccountCache.set(Map.empty)
+            token <- getDefaultToken()
             id <- ZIO.fromOption(lastId).orElse(ZIO.succeed(0L))
-            response <- fioClient.fetchNewTransactions(id)
-            transactions <- mapFioTransactionsToModel(response)
-            _ <- ZIO.foreachDiscard(transactions) { transaction =>
-                // Only save the immutable transaction
-                transactionRepository.save(transaction.id, transaction)
-            }
-            
-            // Update the import state with the latest transaction ID if available
-            _ <- updateImportState(transactions, response)
-        yield transactions.size
+            sourceAccounts <- getFioSourceAccounts()
+            sourceId <- if sourceAccounts.isEmpty then
+                ZIO.fail(new RuntimeException("No source accounts configured"))
+            else
+                ZIO.succeed(sourceAccounts.head)
+            count <- importNewTransactionsWithToken(token, id, sourceId)
+        yield count
 
-    private def mapFioTransactionsToModel(response: FioResponse): Task[List[Transaction]] =
-        val accountId = response.accountStatement.info.accountId
-        val bankId = response.accountStatement.info.bankId
+    /** Import transactions for a specific account ID
+      *
+      * @param from
+      *   Start date for the import
+      * @param to
+      *   End date for the import
+      * @param accountId
+      *   The Fio account ID to import for
+      * @return
+      *   Number of transactions imported
+      */
+    override def importTransactionsForAccount(
+        from: LocalDate,
+        to: LocalDate,
+        accountId: Long
+    ): Task[Int] =
+        importFioTransactions(from, to, Some(accountId))
+        
+    /** Implementation of TransactionImportService.importTransactions
+      * 
+      * @param from Start date for the import
+      * @param to End date for the import
+      * @return Number of transactions imported
+      */
+    override def importTransactions(from: LocalDate, to: LocalDate): Task[Int] =
+        importFioTransactions(from, to, None)
 
-        // Try to get the source account ID from the cache first
-        val key = (accountId, bankId)
-
-        sourceAccountCache.get.flatMap { cache =>
-            cache.get(key) match
-                case Some(id) =>
-                    // Cache hit
-                    ZIO.succeed(Some(id))
-                case None =>
-                    // Cache miss, query the database and cache the result
-                    sourceAccountRepository.find(
-                        SourceAccountQuery(accountId = Some(accountId), bankId = Some(bankId))
-                    ).flatMap { accounts =>
-                        accounts.headOption match
-                            case Some(sourceAccount) =>
-                                // Update cache with the found source account ID
-                                sourceAccountCache.update(_ + (key -> sourceAccount.id))
-                                    .as(Some(sourceAccount.id))
-                            case None =>
-                                ZIO.succeed(None)
-                    }
-        } flatMap {
-            case Some(sourceAccountId) =>
-                // We found the matching source account
-                ZIO.succeed(mapTransactions(response, sourceAccountId))
-            case None =>
-                // No matching source account found - this is an error condition
-                ZIO.fail(new RuntimeException(
-                    s"No source account found for account ID $accountId and bank ID $bankId"
+    /** Get the default token from config if available
+      *
+      * @return
+      *   Token string
+      */
+    private def getDefaultToken(): Task[String] =
+        config.flatMap(_.defaultToken) match
+            case Some(token) => ZIO.succeed(token)
+            case None => ZIO.fail(new RuntimeException(
+                    "No default Fio API token configured and no account repository available"
                 ))
-        }
+
+    /** Map Fio transactions to our domain model
+      *
+      * @param response
+      *   The Fio API response
+      * @param overrideSourceAccountId
+      *   Optional source account ID to use instead of looking it up
+      * @return
+      *   List of domain Transaction objects
+      */
+    private def mapFioTransactionsToModel(
+        response: FioResponse,
+        overrideSourceAccountId: Option[Long] = None
+    ): Task[List[Transaction]] =
+        overrideSourceAccountId match
+            case Some(sourceId) =>
+                // We already have the source account ID
+                ZIO.succeed(mapTransactions(response, sourceId))
+
+            case None =>
+                // Need to look up the source account
+                val accountId = response.accountStatement.info.accountId
+                val bankId = response.accountStatement.info.bankId
+
+                // Try to get the source account ID from the cache first
+                val key = (accountId, bankId)
+
+                sourceAccountCache.get.flatMap { cache =>
+                    cache.get(key) match
+                        case Some(id) =>
+                            // Cache hit
+                            ZIO.succeed(Some(id))
+                        case None =>
+                            // Cache miss, query the database and cache the result
+                            sourceAccountRepository.find(
+                                SourceAccountQuery(
+                                    accountId = Some(accountId),
+                                    bankId = Some(bankId)
+                                )
+                            ).flatMap { accounts =>
+                                accounts.headOption match
+                                    case Some(sourceAccount) =>
+                                        // Update cache with the found source account ID
+                                        sourceAccountCache.update(_ + (key -> sourceAccount.id))
+                                            .as(Some(sourceAccount.id))
+                                    case None =>
+                                        ZIO.succeed(None)
+                            }
+                } flatMap {
+                    case Some(sourceAccountId) =>
+                        // We found the matching source account
+                        ZIO.succeed(mapTransactions(response, sourceAccountId))
+                    case None =>
+                        // No matching source account found - this is an error condition
+                        ZIO.fail(new RuntimeException(
+                            s"No source account found for account ID $accountId and bank ID $bankId"
+                        ))
+                }
     end mapFioTransactionsToModel
 
     /** Maps FIO transaction data to our domain model
@@ -186,17 +381,16 @@ class FioTransactionImportService(
             transaction
         }
     end mapTransactions
-    
-    /**
-     * Updates the import state with the latest transaction ID
-     * Only executes if importStateRepository is available
-     */
+
+    /** Updates the import state with the latest transaction ID Only executes if
+      * importStateRepository is available
+      */
     private def updateImportState(
         transactions: List[Transaction],
         response: FioResponse
     ): Task[Unit] =
         val maxTransactionId = response.accountStatement.info.idTo
-        
+
         // Get source account ID from the first transaction if available
         ZIO.whenCase(importStateRepository) {
             case Some(repo) if transactions.nonEmpty =>
@@ -208,24 +402,81 @@ class FioTransactionImportService(
                 )
                 repo.updateImportState(state)
         }.unit
-    
-    /**
-     * Gets the last transaction ID for a source account
-     */
-    private def getLastTransactionId(sourceAccountId: Long): Task[Option[Long]] =
-        importStateRepository match
+    end updateImportState
+
+    /** Updates the Fio account's last fetched ID and sync time Only executes if
+      * fioAccountRepository is available
+      */
+    private def updateFioAccountLastFetched(
+        sourceAccountId: Long,
+        response: FioResponse
+    ): Task[Unit] =
+        val maxTransactionId = response.accountStatement.info.idTo
+
+        ZIO.whenCase(fioAccountRepository) {
             case Some(repo) =>
-                repo.getImportState(sourceAccountId).map(_.flatMap(_.lastTransactionId))
+                repo.getBySourceAccountId(sourceAccountId).flatMap {
+                    case Some(account) =>
+                        repo.updateLastFetched(account.id, maxTransactionId, Instant.now())
+                    case None =>
+                        ZIO.unit
+                }
+        }.unit
+    end updateFioAccountLastFetched
+
+    /** Gets the last transaction ID for a source account
+      */
+    private def getLastTransactionId(sourceAccountId: Long): Task[Option[Long]] =
+        // First check the FioAccountRepository if available
+        fioAccountRepository match
+            case Some(repo) =>
+                repo.getBySourceAccountId(sourceAccountId).map(_.flatMap(_.lastFetchedId))
+
+            // Fall back to import state repository
             case None =>
-                ZIO.succeed(None)
+                importStateRepository match
+                    case Some(repo) =>
+                        repo.getImportState(sourceAccountId).map(_.flatMap(_.lastTransactionId))
+                    case None =>
+                        ZIO.succeed(None)
 end FioTransactionImportService
 
 object FioTransactionImportService:
-    // Layer that provides both TransactionImportService and FioImportService
-    val layer: ZLayer[
+    // Layer with all repositories
+    val completeLayer: ZLayer[
         FioClient &
             TransactionRepository &
-            SourceAccountRepository,
+            SourceAccountRepository &
+            FioAccountRepository &
+            FioImportStateRepository,
+        Config.Error,
+        TransactionImportService & FioImportService
+    ] =
+        ZLayer {
+            for
+                client <- ZIO.service[FioClient]
+                txRepo <- ZIO.service[TransactionRepository]
+                sourceRepo <- ZIO.service[SourceAccountRepository]
+                fioAccountRepo <- ZIO.service[FioAccountRepository]
+                importStateRepo <- ZIO.service[FioImportStateRepository]
+                config <- ZIO.config[FioConfig]
+                service = new FioTransactionImportService(
+                    client,
+                    txRepo,
+                    sourceRepo,
+                    Some(fioAccountRepo),
+                    Some(importStateRepo),
+                    Some(config)
+                )
+            yield service
+        }
+
+    // Layer with only FioAccountRepository (no import state)
+    val accountLayer: ZLayer[
+        FioClient &
+            TransactionRepository &
+            SourceAccountRepository &
+            FioAccountRepository,
         Nothing,
         TransactionImportService & FioImportService
     ] =
@@ -234,17 +485,25 @@ object FioTransactionImportService:
                 client <- ZIO.service[FioClient]
                 txRepo <- ZIO.service[TransactionRepository]
                 sourceRepo <- ZIO.service[SourceAccountRepository]
-                service = new FioTransactionImportService(client, txRepo, sourceRepo)
+                fioAccountRepo <- ZIO.service[FioAccountRepository]
+                service = new FioTransactionImportService(
+                    client,
+                    txRepo,
+                    sourceRepo,
+                    Some(fioAccountRepo),
+                    None,
+                    None
+                )
             yield service
         }
-        
+
     // Layer with import state repository
-    val layerWithImportState: ZLayer[
+    val legacyLayer: ZLayer[
         FioClient &
             TransactionRepository &
             SourceAccountRepository &
             FioImportStateRepository,
-        Nothing,
+        Config.Error,
         TransactionImportService & FioImportService
     ] =
         ZLayer {
@@ -253,11 +512,39 @@ object FioTransactionImportService:
                 txRepo <- ZIO.service[TransactionRepository]
                 sourceRepo <- ZIO.service[SourceAccountRepository]
                 importStateRepo <- ZIO.service[FioImportStateRepository]
+                config <- ZIO.config[FioConfig]
                 service = new FioTransactionImportService(
-                    client, 
-                    txRepo, 
+                    client,
+                    txRepo,
                     sourceRepo,
-                    Some(importStateRepo)
+                    None,
+                    Some(importStateRepo),
+                    Some(config)
+                )
+            yield service
+        }
+
+    // Minimal layer for backward compatibility
+    val minimalLayer: ZLayer[
+        FioClient &
+            TransactionRepository &
+            SourceAccountRepository,
+        Config.Error,
+        TransactionImportService & FioImportService
+    ] =
+        ZLayer {
+            for
+                client <- ZIO.service[FioClient]
+                txRepo <- ZIO.service[TransactionRepository]
+                sourceRepo <- ZIO.service[SourceAccountRepository]
+                config <- ZIO.config[FioConfig]
+                service = new FioTransactionImportService(
+                    client,
+                    txRepo,
+                    sourceRepo,
+                    None,
+                    None,
+                    Some(config)
                 )
             yield service
         }
