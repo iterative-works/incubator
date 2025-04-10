@@ -31,7 +31,7 @@ The Fio Bank integration has been successfully implemented with all core functio
   - Environment variable configuration
   - Shell script wrapper for easy execution
 
-### Architecture 
+### Architecture
 
 The implementation follows DDD principles with clean architecture:
 
@@ -47,7 +47,7 @@ The implementation follows DDD principles with clean architecture:
 3. **Infrastructure Layer**:
    - Client: FioClient for API communication
    - Service implementations
-   - Repository implementations 
+   - Repository implementations
    - CLI tool implementation
 
 4. **Cross-Context Integration**:
@@ -126,21 +126,23 @@ Environment variables:
 
 ### 1. Database Integration (High Priority)
 
-- [ ] Add Magnum library dependencies to build.sbt:
+- [x] Add Magnum library dependencies to build.sbt:
   ```scala
-  val magnumVersion = "0.1.1"
-  libraryDependencies ++= Seq(
-    "com.augustnagro" %% "magnum" % magnumVersion,
-    "com.augustnagro" %% "magnumzio" % magnumVersion
-  )
+  // Added to Fio project in build.sbt
+  IWDeps.magnumZIO,
+  IWDeps.magnumPG,
+  IWDeps.chimney
   ```
 
-- [ ] Implement full PostgreSQLFioImportStateRepository:
-  - Follow repository implementation guidance with Magnum integration
-  - Include proper DTOs with @Table and @SqlName annotations
-  - Add migration script for creating the table
+- [x] Implement full PostgreSQLFioImportStateRepository:
+  - Created proper implementation with Magnum integration
+  - Added DTOs with @Table and @SqlName annotations
+  - Created SQL migration script (V2__fio_import_state.sql)
 
-- [ ] Update CLI tool to conditionally use PostgreSQL implementation
+- [x] Update CLI tool to conditionally use PostgreSQL implementation:
+  - Added environment variables for DB connection
+  - Improved help message with new options
+  - Implemented runtime switching based on USE_POSTGRES flag
 
 ### 2. Integration Testing (High Priority)
 
@@ -187,7 +189,7 @@ Environment variables:
 
 ## Lessons Learned
 
-### ZIO Testing Framework 
+### ZIO Testing Framework
 
 - **ZIO Chunk Handling**: When reading files, convert Chunk to Array:
   ```scala

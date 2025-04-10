@@ -36,6 +36,7 @@ lazy val core = (project in file("bounded-contexts/core"))
     .settings(name := "core")
     .enablePlugins(IWScalaProjectPlugin)
     .settings(commonDependencies)
+    .settings(IWDeps.magnum)
 
 // Bounded Contexts
 
@@ -85,7 +86,10 @@ lazy val fio = (project in file("bounded-contexts/fio"))
         commonDependencies,
         IWDeps.zioJson,
         IWDeps.sttpClient4Core,
-        IWDeps.sttpClient4Lib("zio")
+        IWDeps.sttpClient4Lib("zio"),
+        IWDeps.magnumZIO,
+        IWDeps.magnumPG,
+        IWDeps.chimney
     )
     .dependsOn(core, transactions)
 

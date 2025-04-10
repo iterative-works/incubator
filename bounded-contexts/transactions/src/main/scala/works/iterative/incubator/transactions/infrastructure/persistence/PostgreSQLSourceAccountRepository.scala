@@ -4,7 +4,7 @@ import zio.*
 import works.iterative.incubator.transactions.domain.repository.SourceAccountRepository
 import works.iterative.incubator.transactions.domain.model.{SourceAccount, CreateSourceAccount}
 import works.iterative.incubator.transactions.domain.query.SourceAccountQuery
-import works.iterative.incubator.transactions.infrastructure.DbCodecs.given
+import works.iterative.incubator.infrastructure.DbCodecs.given
 import works.iterative.incubator.transactions.infrastructure.config.{
     PostgreSQLDataSource,
     PostgreSQLTransactor

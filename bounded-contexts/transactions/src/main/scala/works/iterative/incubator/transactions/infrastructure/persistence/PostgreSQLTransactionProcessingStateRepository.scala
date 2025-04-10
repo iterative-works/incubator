@@ -8,7 +8,7 @@ import works.iterative.incubator.transactions.domain.model.{
     TransactionStatus
 }
 import works.iterative.incubator.transactions.domain.query.TransactionProcessingStateQuery
-import works.iterative.incubator.transactions.infrastructure.DbCodecs.given
+import works.iterative.incubator.infrastructure.DbCodecs.given
 import works.iterative.incubator.transactions.infrastructure.config.{
     PostgreSQLDataSource,
     PostgreSQLTransactor

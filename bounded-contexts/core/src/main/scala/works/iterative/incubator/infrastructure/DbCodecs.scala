@@ -1,7 +1,6 @@
-package works.iterative.incubator.transactions
-package infrastructure
+package works.iterative.incubator.infrastructure
 
-import com.augustnagro.magnum.magzio.*
+import com.augustnagro.magnum.*
 import java.time.Instant
 
 /** Shared database codecs for use across repository implementations */

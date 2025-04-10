@@ -13,11 +13,10 @@ import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 class PostgreSQLDataSource(val dataSource: DataSource)
 
 object PostgreSQLDataSource:
-    val layer: ZLayer[Scope, Throwable, DataSource] = ZLayer.scoped:
+    def initDataSource(config: PostgreSQLConfig): ZIO[Scope, Throwable, HikariDataSource] =
         for
             _ <- ZIO.attempt(Class.forName("org.postgresql.Driver"))
-            config <- ZIO.config[PostgreSQLConfig](PostgreSQLConfig.config)
-            dataSource <- ZIO.attempt {
+            dataSource <- ZIO.acquireRelease(ZIO.attempt {
                 val conf = HikariConfig()
                 // TODO: use configurable properties
                 conf.setJdbcUrl(config.jdbcUrl)
@@ -30,9 +29,22 @@ object PostgreSQLDataSource:
                 conf.setMaxLifetime(1800000)
                 conf.setInitializationFailTimeout(-1)
                 HikariDataSource(conf)
-            }
+            })(ds => ZIO.attempt(ds.close()).ignore)
         yield dataSource
+
+    val layer: ZLayer[Scope, Throwable, DataSource] = ZLayer:
+        for
+            config <- ZIO.config[PostgreSQLConfig](PostgreSQLConfig.config)
+            dataSource <- initDataSource(config)
+        yield dataSource
+
+    def layerWithConfig(config: PostgreSQLConfig): ZLayer[Scope, Throwable, DataSource] =
+        ZLayer(initDataSource(config))
 
     val managedLayer: ZLayer[Scope, Throwable, PostgreSQLDataSource] =
         layer >>> ZLayer.fromFunction(PostgreSQLDataSource.apply)
+
+    def managedLayerWithConfig(config: PostgreSQLConfig)
+        : ZLayer[Scope, Throwable, PostgreSQLDataSource] =
+        layerWithConfig(config) >>> ZLayer.fromFunction(PostgreSQLDataSource.apply)
 end PostgreSQLDataSource

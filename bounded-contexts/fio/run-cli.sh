@@ -14,9 +14,13 @@ function show_usage {
   echo "Environment variables:"
   echo "  FIO_TOKEN                      Fio API token (required)"
   echo "  USE_POSTGRES                   Use PostgreSQL instead of in-memory storage (default: false)"
+  echo "  PG_URL                         PostgreSQL URL (default: jdbc:postgresql://localhost:5432/incubator)"
+  echo "  PG_USERNAME                    PostgreSQL username (default: incubator)"
+  echo "  PG_PASSWORD                    PostgreSQL password (default: incubator)"
   echo ""
-  echo "Example:"
+  echo "Examples:"
   echo "  FIO_TOKEN=your-token $0 import --from=2025-04-01 --to=2025-04-09"
+  echo "  FIO_TOKEN=your-token USE_POSTGRES=true $0 import-new"
 }
 
 # Show usage if no arguments provided
