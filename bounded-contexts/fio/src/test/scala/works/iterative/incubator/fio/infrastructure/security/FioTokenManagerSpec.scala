@@ -2,7 +2,6 @@ package works.iterative.incubator.fio.infrastructure.security
 
 import zio.*
 import zio.test.*
-import zio.test.Assertion.*
 import works.iterative.incubator.fio.domain.model.*
 import works.iterative.incubator.fio.infrastructure.persistence.InMemoryFioAccountRepository
 import java.time.Instant

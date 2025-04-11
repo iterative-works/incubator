@@ -3,76 +3,88 @@ package works.iterative.incubator.ynab.infrastructure.persistence
 import zio.*
 import works.iterative.incubator.ynab.domain.model.{CreateYnabAccountMapping, YnabAccountMapping}
 import works.iterative.incubator.ynab.domain.repository.YnabAccountMappingRepository
-import works.iterative.incubator.transactions.infrastructure.config.{PostgreSQLDataSource, PostgreSQLTransactor}
-import works.iterative.incubator.infrastructure.DbCodecs.given
+import works.iterative.incubator.transactions.infrastructure.config.{
+    PostgreSQLDataSource,
+    PostgreSQLTransactor
+}
 import com.augustnagro.magnum.PostgresDbType
 import com.augustnagro.magnum.magzio.*
 import io.scalaland.chimney.dsl.*
 
-/**
- * PostgreSQL implementation of YnabAccountMappingRepository
- *
- * @param xa Transactor for executing database operations
- */
+/** PostgreSQL implementation of YnabAccountMappingRepository
+  *
+  * @param xa
+  *   Transactor for executing database operations
+  */
 class PostgreSQLYnabAccountMappingRepository(xa: Transactor) extends YnabAccountMappingRepository:
-    import PostgreSQLYnabAccountMappingRepository.{mappingRepo, YnabAccountMappingDTO, CreateYnabAccountMappingDTO}
+    import PostgreSQLYnabAccountMappingRepository.{
+        mappingRepo,
+        YnabAccountMappingDTO,
+        CreateYnabAccountMappingDTO
+    }
 
-    /**
-     * Find mapping by source account ID
-     *
-     * @param sourceAccountId ID of the source account
-     * @return The mapping if found
-     */
-    override def findBySourceAccountId(sourceAccountId: Long): IO[Throwable, Option[YnabAccountMapping]] =
+    /** Find mapping by source account ID
+      *
+      * @param sourceAccountId
+      *   ID of the source account
+      * @return
+      *   The mapping if found
+      */
+    override def findBySourceAccountId(sourceAccountId: Long)
+        : IO[Throwable, Option[YnabAccountMapping]] =
         xa.connect {
             val spec = Spec[YnabAccountMappingDTO].where(sql"sourceAccountId = $sourceAccountId")
             mappingRepo.findAll(spec).headOption.map(_.toModel)
         }.orDie
 
-    /**
-     * Find mapping by YNAB account ID
-     *
-     * @param ynabAccountId ID of the YNAB account
-     * @return The mapping if found
-     */
-    override def findByYnabAccountId(ynabAccountId: String): IO[Throwable, Option[YnabAccountMapping]] =
+    /** Find mapping by YNAB account ID
+      *
+      * @param ynabAccountId
+      *   ID of the YNAB account
+      * @return
+      *   The mapping if found
+      */
+    override def findByYnabAccountId(ynabAccountId: String)
+        : IO[Throwable, Option[YnabAccountMapping]] =
         xa.connect {
             val spec = Spec[YnabAccountMappingDTO].where(sql"ynabAccountId = $ynabAccountId")
             mappingRepo.findAll(spec).headOption.map(_.toModel)
         }.orDie
 
-    /**
-     * Find all mappings
-     *
-     * @return List of all account mappings
-     */
+    /** Find all mappings
+      *
+      * @return
+      *   List of all account mappings
+      */
     override def findAll(): IO[Throwable, List[YnabAccountMapping]] =
         xa.connect {
             mappingRepo.findAll.map(_.toModel).toList
         }.orDie
 
-    /**
-     * Find all active mappings
-     *
-     * @return List of all active account mappings
-     */
+    /** Find all active mappings
+      *
+      * @return
+      *   List of all active account mappings
+      */
     override def findAllActive(): IO[Throwable, List[YnabAccountMapping]] =
         xa.connect {
             val spec = Spec[YnabAccountMappingDTO].where(sql"active = true")
             mappingRepo.findAll(spec).map(_.toModel).toList
         }.orDie
 
-    /**
-     * Save a new mapping
-     *
-     * @param mapping The mapping to save
-     * @return The saved mapping
-     */
+    /** Save a new mapping
+      *
+      * @param mapping
+      *   The mapping to save
+      * @return
+      *   The saved mapping
+      */
     override def save(mapping: CreateYnabAccountMapping): IO[Throwable, YnabAccountMapping] =
         xa.transact {
             // Check if a mapping with this source_account_id already exists
-            val spec = Spec[YnabAccountMappingDTO].where(sql"sourceAccountId = ${mapping.sourceAccountId}")
-            
+            val spec =
+                Spec[YnabAccountMappingDTO].where(sql"sourceAccountId = ${mapping.sourceAccountId}")
+
             mappingRepo.findAll(spec).headOption match
                 case Some(_) =>
                     throw new RuntimeException(
@@ -89,12 +101,13 @@ class PostgreSQLYnabAccountMappingRepository(xa: Transactor) extends YnabAccount
             end match
         }.orDie
 
-    /**
-     * Update an existing mapping
-     *
-     * @param mapping The mapping to update
-     * @return The updated mapping
-     */
+    /** Update an existing mapping
+      *
+      * @param mapping
+      *   The mapping to update
+      * @return
+      *   The updated mapping
+      */
     override def update(mapping: YnabAccountMapping): IO[Throwable, YnabAccountMapping] =
         xa.transact {
             val dto = YnabAccountMappingDTO.fromModel(mapping)
@@ -102,12 +115,13 @@ class PostgreSQLYnabAccountMappingRepository(xa: Transactor) extends YnabAccount
             mapping
         }.orDie
 
-    /**
-     * Delete a mapping
-     *
-     * @param sourceAccountId ID of the source account
-     * @return Unit if successful
-     */
+    /** Delete a mapping
+      *
+      * @param sourceAccountId
+      *   ID of the source account
+      * @return
+      *   Unit if successful
+      */
     override def delete(sourceAccountId: Long): IO[Throwable, Unit] =
         xa.transact {
             // Delete the mapping with the given source account ID
@@ -150,7 +164,8 @@ object PostgreSQLYnabAccountMappingRepository:
     end CreateYnabAccountMappingDTO
 
     // Repository definition using Magnum's Repo pattern
-    val mappingRepo = Repo[CreateYnabAccountMappingDTO, YnabAccountMappingDTO, YnabAccountMappingDTO]
+    val mappingRepo =
+        Repo[CreateYnabAccountMappingDTO, YnabAccountMappingDTO, YnabAccountMappingDTO]
 
     /** ZIO layer for the repository */
     val layer: ZLayer[PostgreSQLTransactor, Nothing, YnabAccountMappingRepository] =
