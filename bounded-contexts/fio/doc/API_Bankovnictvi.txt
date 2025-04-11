@@ -1,0 +1,7661 @@
+FIO API
+BANKOVNICTVÍ
+
+Verze 1.8
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+OBSAH
+1
+
+FUNKČNÍ POPIS ....................................................................................................................................... 4
+
+2
+
+ZÍSKÁNÍ TOKENU ..................................................................................................................................... 4
+
+3
+
+TYPY KOMUNIKACE ................................................................................................................................ 4
+GET .................................................................................................................................................... 4
+POST .................................................................................................................................................. 5
+
+4
+
+VYSVĚTLIVKY K DATOVÝM TYPŮM ...................................................................................................... 5
+
+5
+
+EXPORT (DOWNLOAD) POHYBŮ A VÝPISŮ Z BANKY ........................................................................ 6
+Podporované formáty dat ................................................................................................................... 6
+Struktura URL dotazu ......................................................................................................................... 7
+Pohyby na účtu za určené období .............................................................................................. 7
+Oficiální výpisy pohybů z účtu .................................................................................................... 7
+Pohyby na účtu od posledního stažení ...................................................................................... 8
+Nastavení zarážky ...................................................................................................................... 8
+Karetní transakce obchodníka za určené období ....................................................................... 8
+Číslo posledního vytvořeného oficiálního výpisu ........................................................................ 8
+Struktura formátu ................................................................................................................................ 9
+Bankovní pohyby ........................................................................................................................ 9
+5.3.1.1
+
+Fio XML .................................................................................................................................. 9
+
+5.3.1.2
+
+OFX ......................................................................................................................................15
+
+5.3.1.3
+
+GPC ......................................................................................................................................21
+
+5.3.1.4
+
+CSV ......................................................................................................................................23
+
+5.3.1.5
+
+HTML ....................................................................................................................................25
+
+5.3.1.6
+
+JSON ....................................................................................................................................26
+
+5.3.1.7
+
+STA (MT940) ........................................................................................................................30
+
+5.3.1.8
+
+SBA XML (camt.053) ............................................................................................................35
+
+5.3.1.9
+
+ČBA XML (camt.053) ............................................................................................................35
+Transakce z POS terminálů nebo platební brány obchodníka ................................................. 35
+
+6
+
+5.3.2.1
+
+XML ......................................................................................................................................35
+
+5.3.2.2
+
+CSV ......................................................................................................................................38
+
+IMPORT (UPLOAD) PLATEBNÍCH PŘÍKAZŮ DO BANK ...................................................................... 40
+Parametry pro upload dat ................................................................................................................. 40
+ABO .................................................................................................................................................. 41
+Fio XML ............................................................................................................................................ 41
+XML příkaz platba v rámci ČR .................................................................................................. 41
+XML příkaz Europlatba ............................................................................................................. 42
+XML příkaz zahraniční platba ................................................................................................... 45
+Platební titul .............................................................................................................................. 46
+SEPA (pain) ...................................................................................................................................... 49
+pain.001 (platební příkazy) ....................................................................................................... 49
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+pain.008 (příkazy k inkasu) ....................................................................................................... 52
+7
+
+UPOZORNĚNÍ NA BEZPEČNOSTNÍ RIZIKA SOUVISEJÍCÍ S POUŽÍVÁNÍM API ............................... 54
+
+8
+
+ZNÁMÉ CHYBOVÉ STAVY ..................................................................................................................... 54
+The server encoutered an internal error () that prevented it from fulfilling this request. .................. 54
+Status Code:404 Not Found ............................................................................................................. 54
+Status Code:409 Conflict .................................................................................................................. 54
+Status Code:500 Internal Server Error ............................................................................................. 54
+SSL certificate problém: unable to get local issuer certificate .......................................................... 54
+Status Code: 413 Příliš mnoho položek ........................................................................................... 55
+Error: 422 .......................................................................................................................................... 55
+
+9
+
+ZMĚNY VE VERZÍCH DOKUMENTACE ................................................................................................. 56
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+1
+
+FUNKČNÍ POPIS
+
+Automatizace rozhraní s Fio bankovním systémem Vám umožní podávání příkazů a získávání dat z účtů
+vedených u Fio banky. Rozhraní může být použito pro napojení účetních programů nebo pro automatické
+strojové zpracování pohybů či výpisů (dále data) z bankovního systému. Veškerá komunikace mezi bankou
+a cílovou stanicí probíhá pomocí SSL protokolu s minimálně 128bitovým šifrováním.
+Přístup k datům z účtu vytváří majitel nebo osoba s patřičnými právy ke zvolenému účtu. Ve svém
+internetovém bankovnictví musí oprávněná osoba vygenerovat token (64 znakový unikátní řetězec), po jehož
+vytvoření lze po 5 minutách podávat příkazy nebo stahovat data. Pro podání příkazů nebo stažení dat není
+nutné být přihlášen do internetového bankovnictví, odpovědi na požadavky se získávají prostřednictvím
+rozhraní https. Rozhraní má různé metody pro podávání příkazů, získávání strukturovaných dat nebo jejich
+nastavení.
+
+2
+
+ZÍSKÁNÍ TOKENU
+
+Pro získání platného tokenu je zapotřebí provést následující kroky:
+1. Oprávněná osoba se musí přihlásit do internetového bankovnictví.
+2. Administrace tokenů je přístupná po stisku tlačítka „Nastavení“ (v pravém horním rohu obrazovky)
+na obrazovce „Nastavení“, poté na záložce „API“.
+3. Požadavek na zřízení tokenu musí být silně autorizován (sms, push notifikace). V případě, že je na
+příslušném účtu nastavena autorizace více osobami, musí token podepsat všechny podepisující
+osoby. Po úspěšné autorizaci je token zobrazen v přehledu.
+4. Po 5 minutách od úspěšné autorizace lze token použít v API.
+
+Vlastnosti tokenu:
+•
+•
+
+•
+
+3
+
+Každý token je platný pouze k jednomu účtu. Potřebujete-li přistupovat k více účtům, je nutné
+vygenerovat další token.
+Je možno volit mezi dvěma typy nastavení práv tokenu:
+o Sledování účtu – token pouze pro získání (export) dat z banky. Data z účtu je možné
+stahovat současně i v různých formátech. Např. pohyby v XML a oficiální výpisy v STA.
+Nedoporučujeme získávat data o pohybech v různých formátech na stejný token.
+Potřebujete-li dva formáty, vygenerujte si ke stejnému účtu nový token.
+o Sledování účtu a zadávání platebních a inkasních příkazů – token pro získání a zároveň i
+pro odeslání platebních příkazů a inkas (import) do banky
+Platnost tokenu – každý nově založený token musí mít nastavenou platnost, nelze založit token bez
+doby platnosti nebo platnosti delší jak 180 dní. Pokud je zvoleno automatické prodlužování, tak při
+každém přihlášení do Internetbankingu nebo Smartbankingu se platnost tokenu prodlouží na 180
+dnů ode dne přihlášení.
+
+TYPY KOMUNIKACE
+
+Komunikace s bankovním systémem probíhá přes https pomocí metod GET a POST. GET slouží k získání
+dat z účtů a nastavení hodnot (zarážek). Metoda POST k podávání platebních příkazů.
+
+GET
+Poskytnutí dat starších více než 90 dní
+Pro získání dat mladších 90 dní není potřebná dodatečná silná autorizace v internetovém bankovnictví.
+Požadujete-li získat data starší 90 dní, tak je nutné dočasně odemknout přístup ke kompletní historii.
+Toto odemknutí se nastavuje v internetovém bankovnictví na záložce „Nastavení“ a zvolte složku „API“.
+Kliknutím na ikonku zámku se pro daný token vytvoří autorizační pokyn. Po úspěšné autorizaci budou
+historická data, po dobu 10 minut, přístupná.
+www.fio.cz
+
+Verze 17. 5. 2024
+
+Získání dat:
+•
+•
+•
+•
+
+Stažení pohybů na účtu za dané období
+Stažení oficiálních výpisů na účtu
+Stažení pohybů na účtu od posledního stažení
+Stažení karetních transakcí na platebních terminálech/platební bráně za dané období
+
+Nastavení hodnot (zarážek) pro následné získání dat:
+•
+•
+
+Posledního úspěšně staženého ID pohybu
+Datum posledního neúspěšného dne
+
+POST
+Podání platebních příkazů:
+•
+•
+•
+•
+
+Platba v rámci ČR
+Europlatba
+Zahraniční platba
+Inkaso a SEPA inkaso
+
+VYSVĚTLIVKY K DATOVÝM TYPŮM
+
+4
+M
+
+Povinné pole (mandatory)
+
+O
+
+Nepovinné pole (optional)
+
+C
+
+Podmínkové pole (conditional) – při vyjmenovaných situacích je pole povinné
+
+x
+
+Alfanumerické pole
+
+e
+
+Alfanumerické pole a další povolené znaky: , . / - Mezera
+
+i
+
+Alfanumerické pole (včetně diakritiky) a další povolené znaky: , . / - Mezera
+
+n
+
+Numerické pole
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+5
+
+!
+
+Fixní délka pole
+
+d
+
+Desetinné číslo (Decimal). Tečka jako oddělovač desetinných míst
+
+D
+
+Desetinné číslo (Decimal). Čárka jako oddělovač desetinných míst
+
+[]
+
+Formát př. [//16x] pole má 16 alfanumerických znaků, které vždy začíná //
+
+EXPORT (DOWNLOAD) POHYBŮ A VÝPISŮ Z BANKY
+Podporované formáty dat
+
+API umožňuje získávat data v následujících formátech:
+Pohyby:
+CSV, GPC, HTML, JSON, OFX, FIO XML
+Výpisy:
+CSV, GPC, HTML, JSON, OFX, XML (Fio), PDF, MT940, ČBA XML (CAMT.053), SBA XML (CAMT.053)
+
+Typy pohybů na účtu:
+1. Příjem převodem uvnitř banky
+2. Platba převodem uvnitř banky
+3. Vklad pokladnou
+4. Výběr pokladnou
+5. Vklad v hotovosti
+6. Výběr v hotovosti
+7. Platba
+8. Příjem
+9. Bezhotovostní platba
+10. Bezhotovostní příjem
+11. Platba kartou
+12. Bezhotovostní platba
+13. Úrok z úvěru
+14. Sankční poplatek
+15. Posel – předání
+16. Posel – příjem
+17. Převod uvnitř konta
+18. Připsaný úrok
+19. Vyplacený úrok
+20. Odvod daně z úroků
+21. Evidovaný úrok
+22. Poplatek
+23. Evidovaný poplatek
+24. Převod mezi bankovními konty (platba)
+25. Převod mezi bankovními konty (příjem)
+26. Neidentifikovaná platba z bankovního konta
+27. Neidentifikovaný příjem na bankovní konto
+www.fio.cz
+
+Verze 17. 5. 2024
+
+28. Vlastní platba z bankovního konta
+29. Vlastní příjem na bankovní konto
+30. Vlastní platba pokladnou
+31. Vlastní příjem pokladnou
+32. Opravný pohyb
+33. Přijatý poplatek
+34. Platba v jiné měně
+35. Poplatek – platební karta
+36. Inkaso
+37. Inkaso ve prospěch účtu
+38. Inkaso z účtu
+39. Příjem inkasa z cizí banky
+40. Evidovaný úrok
+41. Okamžitá příchozí platba
+42. Okamžitá odchozí platba
+43. Poplatek - pojištění hypotéky
+44. Okamžitá příchozí Europlatba
+45. Okamžitá odchozí Europlatba
+
+Struktura URL dotazu
+Doporučený nejmenší interval dotazu na stejný token je 30 sekund bez ohledu na typ formátu. Pro účely
+reálného testování při vývoji je nutné mít zřízen skutečný účet. Všechny pohyby na účtech v bankovním
+systému jsou evidovány podle jedinečného klíče IDpohyb.
+Všechny uvedené příklady mají neplatný vzorový token.
+
+Pohyby na účtu za určené období
+Struktura:
+
+Příklad:
+
+https://fioapi.fio.cz/v1/rest/periods/{token}/{datum od}/{datum do}/transactions.{format}
+Token
+unikátní vygenerovaný token
+Datum od
+datum - začátek stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
+Datum do
+datum - konec stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
+Formát
+formát pohybů
+Získání pohybů v období od 25.8.2023 do 31.8.2023 v xml
+
+https://fioapi.fio.cz/v1/rest/periods/aGEMQB9Idh35fh1g51h3ekkQwyGlQ/2023-08-25/2023-08-31/transactions.xml
+
+Oficiální výpisy pohybů z účtu
+Struktura:
+
+Příklad:
+
+https://fioapi.fio.cz/v1/rest/by-id/{token}/{year}/{id}/transactions.{format}
+Token
+
+unikátní vygenerovaný token
+
+Year
+
+rok – formát: rrrr
+
+Id
+
+číslo výpisu
+
+Formát
+
+formát pohybů
+
+Získání 1. výpisu z roku 2012
+
+https://fioapi.fio.cz/v1/rest/by-id/aGEMtmwcsg5EbfIjqIhunibjhuvfdtsersxexdtgMIdh6u3/2012/1/transactions.cba_xml
+www.fio.cz
+
+Verze 17. 5. 2024
+
+Pohyby na účtu od posledního stažení
+Při každém dotazu bankovní systém automaticky zapíše novou zarážku posledního IDpohybu nebo data
+jestliže v odpovědi jsou pohyby na účtu. Pokud odpověď je prázdná, tak zarážka zůstává na serveru stejná a
+odpověď obsahuje pouze základní informace o účtu (hlavička).
+Struktura: https://fioapi.fio.cz/v1/rest/last/{token}/transactions.{format}
+
+Příklad:
+
+Token
+
+unikátní vygenerovaný token
+
+Formát
+
+formát pohybů
+
+Získání pohybů od posledního stažení v xml
+
+https://fioapi.fio.cz/v1/rest/last/aGEMtmwcsWAjPzhg3bPH3j7Iu15g56d66AdEbfIjqIgMR9Idh6u3/transactions.xml
+
+Nastavení zarážky
+Tato funkce je vhodná zejména při výskytu chyby na straně zpracování pohybů nebo potřebujete-li získat
+informace zpětně. Vlastní nastavení zarážky se provádí výjimečně. A lze jí nastavit dvěma způsoby:
+1) Na ID posledního úspěšně staženého pohybu
+Struktura:
+
+Příklad:
+
+https://fioapi.fio.cz/v1/rest/set-last-id/{token}/{id}/
+Token
+
+unikátní vygenerovaný token
+
+Id
+
+ID posledního úspěšně staženého pohybu
+
+Nastavení ID posledního úspěšně staženého pohybu na č. 1147608196
+
+https://fioapi.fio.cz/v1/rest/set-last-id/Pu5CMBu5nYBtWAk4gsj0FaUlY7JIjUnYBthKaquSWf1eUl/1147608196/
+
+2) Na datum posledního neúspěšně staženého dne
+Struktura:
+
+https://fioapi.fio.cz/v1/rest/set-last-date/{token}/{rrrr-mm-dd}/
+unikátní vygenerovaný token
+datum poslední neúspěšně staženého výpisu ve formátu rok- měsíc- den (rrrrDatum
+mm-dd)
+Nastavení data posledního neúspěšného stažení pohybů na 27. 7. 2023
+Token
+
+Příklad:
+
+https://fioapi.fio.cz/v1/rest/set-last-date/Pu5CMBu5nYBthKaqM0FaUlY7JIjUnY0FaUlY7JIjU1eUl/2023-07-27/
+
+Karetní transakce obchodníka za určené období
+Struktura:
+
+Příklad:
+
+https://fioapi.fio.cz/v1/rest/merchant/{token}/{datum od}/{datum do}/transactions.{format}
+Token
+
+unikátní vygenerovaný token
+
+Datum od
+
+datum - začátek stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
+
+Datum do
+
+datum - konec stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
+
+Formát
+formát pohybů
+Získání karetních transakcí v období od 1. 7. 2023 do 31. 7. 2023 je možné pouze ve formátu
+xml
+
+https://fioapi.fio.cz/v1/rest/merchant/ Pu5CMBu5nYBthKaqM0FaUlY7JIjUnY0FaUlY7JIjU1eUl/2023-07-01/2023-0731/transactions.xml
+
+Číslo posledního vytvořeného oficiálního výpisu
+Struktura:
+
+https://fioapi.fio.cz/v1/rest/lastStatement/{token}/statement
+Token
+
+www.fio.cz
+
+unikátní vygenerovaný token
+Verze 17. 5. 2024
+
+Příklad:
+
+Získání čísla posledního vytvořeného oficiálního výpisu pohybů na účtu
+
+https://fioapi.fio.cz/v1/rest/lastStatement/Pu5CMBu5nYBthKaqM0FaUlY7JIjUnY0FaUlY7JIjU1eUl/statement
+
+Struktura formátu
+ID pohybu
+- jednoznačná unikátní číselná identifikace pohybu na účtu, neexistují dva pohyby se stejným ID
+ID pokynu
+- číselné označení příkazu bankovním systémem Fio banky, může se vyskytovat vícekrát
+Př. 1 Klient zadá odchozí zahraniční platbu - pokynID: 123. Bankovní systém Fio banky vytvoří pohybID:1
+(samotný převod peněz) a pohybID:2 (poplatek za převod peněz). Na svém účtu budou zobrazeny pohyby č.
+1 a 2, oba se stejným pokynID: 123.
+Př. 2 Dojde-li ke stornu příchozí platby ze strany banky, bude mít platba a její storno rozdílné ID pohybu, ale
+stejné ID pokynu. Objem pohybu na účtu u storna bude uveden s opačným znaménkem, než byl původní
+duplicitní pohyb
+
+Bankovní pohyby
+5.3.1.1 Fio XML
+XML se skládá ze dvou částí - Info a TransactionList. Schéma odpovědi v XML uvedena na adrese
+https://www.fio.cz/xsd/IBSchema.xsd. Číselníky zemí, platebních titulů a typů plateb jsou dostupné v XSD na
+adrese https://www.fio.cz/schema/fio_xml_type.xsd.
+Info poskytuje informace o účtu, počátečních a konečných stavech na tomto účtu a období, za které jsou
+dané transakce zobrazeny, identifikace výpisu, posledního stažení pohybů.
+V části TransactionList jsou zobrazeny pohyby na účtu za dané období.
+Znaková sada: UTF-8
+
+Struktura XML Info:
+Element
+accountId
+
+Stav
+M
+
+Formát
+16n
+
+currency
+
+M
+
+3!x
+
+iban
+
+M
+
+34x
+
+bic
+
+M
+
+11x
+
+openingBalance
+
+M
+
+18d
+
+closingBalance
+
+M
+
+18d
+
+dateStart
+dateEnd
+yearList
+idList
+
+O
+O
+O
+O
+
+rrrr-mm-dd+GMT
+rrrr-mm-dd+GMT
+4!n
+3n
+
+idFrom
+
+O
+
+12n
+
+idTo
+
+O
+
+12n
+
+idLastDownload
+
+O
+
+12n
+
+www.fio.cz
+
+Popis
+číslo účtu
+měna účtu dle standardu ISO
+4217
+mezinárodní číslo bankovního
+účtu dle standardu ISO 13616
+bankovní identifikační kód dle
+standardu ISO 9362
+počáteční zůstatek na účtu na
+počátku zvoleného období
+konečný zůstatek na účtu na
+konci zvoleného období
+počátek zvoleného období
+konec zvoleného období
+rok zvoleného výpisu
+číslo zvoleného výpisu
+číslo prvního pohybu v daném
+výběru
+číslo posledního pohybu
+v daném výběru
+číslo posledního úspěšně
+staženého pohybu
+
+Příklad
+1234562
+CZK
+CZ7820100000000001
+234562
+FIOBCZPPXXX
+123.20
+123.22
+2012-07-27+02:00
+2012-01-15+01:00
+2012
+1
+1158152824
+1158152824
+1158152824
+Verze 17. 5. 2024
+
+Struktura TransactionList:
+Atribut
+ID pohybu
+Datum
+Objem
+
+Stav
+M
+M
+M
+
+Formát
+12n
+rrrr-mm-dd+GMT
+18d
+
+Měna
+
+M
+
+3!x
+
+Protiúčet
+Název protiúčtu
+Kód banky
+Název banky
+KS
+VS
+SS
+
+O
+O
+O
+O
+O
+O
+O
+
+255x
+255i
+10x
+255i
+4n
+10n
+10n
+
+Popis
+jedinečné číslo ID pohybu
+datum pohybu ve tvaru
+velikost přijaté/odeslané částky
+měna přijaté /odeslané částky
+dle standardu ISO 4217
+číslo protiúčtu
+název protiúčtu
+číslo banky protiúčtu
+název banky protiúčtu
+konstantní symbol
+variabilní symbol
+specifický symbol
+
+Uživatelská
+identifikace
+
+O
+
+255i
+
+uživatelská identifikace
+
+Zpráva pro
+příjemce
+
+O
+
+140i
+
+zpráva pro příjemce
+
+Typ
+
+M
+
+255i
+
+typ operace
+
+Provedl
+
+O
+
+50i
+
+Upřesnění
+
+O
+
+255i
+
+Komentář
+
+O
+
+255i
+
+BIC
+
+O
+
+11x
+
+ID Pokynu
+Reference
+plátce
+
+O
+
+12n
+
+O
+
+255i
+
+www.fio.cz
+
+oprávněná osoba, která zadala
+příkaz
+upřesňující informace k pohybu.
+Zpravidla částka a měna.
+upřesňující informace
+bankovní identifikační kód banky
+protiúčtu dle ISO 9362
+číslo příkazu
+bližší identifikace platby dle
+ujednání mezi účastníky platby
+
+Příklad
+1158152824
+2012-07-27+02:00
+12225.25
+EUR
+2212-2000000699
+Béďa Trávníček
+2010
+Fio banka, a.s.
+0558
+1234567890
+1234567890
+Nákup: PENNY
+MARKET s.r.o.,
+Jaromer, CZ
+Libovolný text, který se
+zobrazí příjemci platby
+Platba převodem
+uvnitř banky
+Béďa Trávníček
+15.90 EUR
+Hračky pro děti v
+PENNY MARKET
+UNCRITMMXXX
+2102382863
+2000000003
+
+Verze 17. 5. 2024
+
+Výsledek dotazu na pohyby v období od 1. 7. 2012 do 31. 7. 2012
+1: <AccountStatement>
+2:
+<Info>
+3:
+<accountId>2111111111</accountId>
+4:
+<bankId>2010</bankId>
+5:
+<currency>CZK</currency>
+6:
+<iban>CZ7920100000002111111111</iban>
+7:
+<bic>FIOBCZPPXXX</bic>
+8:
+<openingBalance>7356.22</openingBalance>
+9:
+<closingBalance>7321.22</closingBalance>
+10:
+<dateStart>2012-07-01+02:00</dateStart>
+11:
+<dateEnd>2012-07-31+02:00</dateEnd>
+12:
+<idFrom>1147608196</idFrom>
+13:
+<idTo>1147608197</idTo>
+14:
+</Info>
+15:
+<TransactionList>
+16:
+<Transaction>
+17:
+<column_22 id="22" name="ID pohybu">1147608196</column_22>
+18:
+<column_0 id="0" name="Datum">2012-07-27+02:00</column_0>
+19:
+<column_1 id="1" name="Objem">-15.00</column_1>
+20:
+<column_14 id="14" name="Měna">CZK</column_14>
+21:
+<column_2 id="2" name="Protiúčet">2222233333</column_2>
+22:
+<column_3 id="3" name="Kód banky">2010</column_3>
+23:
+<column_12 id="12" name="Název banky">Fio banka, a.s.</column_12>
+24:
+<column_7 id="7" name="Uživatelská identifikace"> </column_7>
+25:
+<column_8 id="8" name="Typ">Platba převodem uvnitř
+26:
+banky</column_8>
+27:
+<column_9 id="9" name="Provedl">Novák, Jan</column_9>
+28:
+<column_25 id="25" name="Komentář">Můj test</column_25>
+29:
+<column_17 id="17" name="ID pokynu">2102392862</column_17>
+30:
+</Transaction>
+31:
+<Transaction>
+32:
+<column_22 id="22" name="ID pohybu">1147608197</column_22>
+33:
+<column_0 id="0" name="Datum">2012-07-27+02:00</column_0>
+34:
+<column_1 id="1" name="Objem">-20.00</column_1>
+35:
+<column_14 id="14" name="Měna">CZK</column_14>
+36:
+<column_2 id="2" name="Protiúčet">2222233333</column_2>
+37:
+<column_3 id="3" name="Kód banky">2010</column_3>
+38:
+<column_12 id="12" name="Název banky">Fio banka, a.s.</column_12>
+39:
+<column_7 id="7" name="Uživatelská identifikace"> </column_7>
+40:
+<column_8 id="8" name="Typ">Platba převodem uvnitř
+41:
+banky</column_8>
+42:
+<column_9 id="9" name="Provedl">Novák, Jan</column_9>
+43:
+<column_25 id="25" name="Komentář"></column_25>
+44:
+<column_17 id="17" name="ID pokynu">2102392863</column_17>
+45:
+</Transaction>
+</TransactionList>
+</AccountStatement>
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+Výsledek dotazu na 4. výpis z roku 2012
+1: <AccountStatement>
+2:
+<Info>
+3:
+<accountId>2111111111</accountId>
+4:
+<bankId>2010</bankId>
+5:
+<currency>CZK</currency>
+6:
+<iban>CZ7920100000002111111111</iban>
+7:
+<bic>FIOBCZPPXXX</bic>
+8:
+<openingBalance>7356.22</openingBalance>
+9:
+<closingBalance>7362.22</closingBalance>
+10:
+<yearList>2012</ yearList >
+11:
+<idList>4</ idList >
+12:
+</Info>
+13:
+<TransactionList>
+14:
+<Transaction>
+15:
+<column_22 id="22" name="ID pohybu">1147301403</column_22>
+16:
+<column_0 id="0" name="Datum">2012-06-30+02:00</column_0>
+17:
+<column_1 id="1" name="Objem">7.76</column_1>
+18:
+<column_14 id="14" name="Měna">CZK</column_14>
+19:
+<column_8 id="8" name="Typ">Připsaný úrok</column_8>
+20:
+<column_17 id="17" name="ID pokynu">2099310186</column_17>
+21:
+</Transaction>
+22:
+<Transaction>
+23:
+<column_22 id="22" name="ID pohybu">1147301404</column_22>
+24:
+<column_0 id="0" name="Datum">2012-06-30+02:00</column_0>
+25:
+<column_1 id="1" name="Objem">-1.00</column_1>
+26:
+<column_14 id="14" name="Měna">CZK</column_14>
+27:
+<column_8 id="8" name="Typ">Odvod daně z úroků</column_8>
+28:
+<column_17 id="17" name="ID pokynu">2099310186</column_17>
+29:
+</Transaction>
+30:
+</TransactionList>
+31: </AccountStatement>
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+Výsledek dotazu na pohyby od posledního stažení, zarážka ID 1147608196
+1: <AccountStatement>
+2:
+<Info>
+3:
+<accountId>2111111111</accountId>
+4:
+<bankId>2010</bankId>
+5:
+<currency>CZK</currency>
+6:
+<iban>CZ7920100000002111111111</iban>
+7:
+<bic>FIOBCZPPXXX</bic>
+8:
+<openingBalance>6969.22</openingBalance>
+9:
+<closingBalance>6597.22</closingBalance>
+10:
+<idFrom>1147608197</idFrom>
+11:
+<idTo>1147608198</idTo>
+12:
+<idLastDownload>1147608196</idLastDownload>
+13:
+</Info>
+14:
+<TransactionList>
+15:
+<Transaction>
+16:
+<column_22 id="22" name="ID pohybu">1147608197</column_22>
+17:
+<column_0 id="0" name="Datum">2012-07-27+02:00</column_0>
+18:
+<column_1 id="1" name="Objem">-20.00</column_1>
+19:
+<column_14 id="14" name="Měna">CZK</column_14>
+20:
+<column_2 id="2" name="Protiúčet">2222233333</column_2>
+21:
+<column_3 id="3" name="Kód banky">2010</column_3>
+22:
+<column_12 id="12" name="Název banky">Fio banka, a.s.</column_12>
+23:
+<column_7 id="7" name="Uživatelská identifikace"> </column_7>
+24:
+<column_8 id="8" name="Typ">Platba převodem uvnitř
+25:
+banky</column_8>
+26:
+<column_9 id="9" name="Provedl">Novák, Jan</column_9>
+27:
+<column_25 id="25" name="Komentář"></column_25>
+28:
+<column_17 id="17" name="ID pokynu">2102382863</column_17>
+29:
+</Transaction>
+30:
+<Transaction>
+31:
+<column_22 id="22" name="ID pohybu">1147608198</column_22>
+32:
+<column_0 id="0" name="Datum">2012-07-27+02:00</column_0>
+33:
+<column_1 id="1" name="Objem">-352.00</column_1>
+34:
+<column_14 id="14" name="Měna">CZK</column_14>
+35:
+<column_2 id="2" name="Protiúčet">2222233333</column_2>
+36:
+<column_3 id="3" name="Kód banky">2010</column_3>
+37:
+<column_12 id="12" name="Název banky">Fio banka, a.s.</column_12>
+38:
+<column_7 id="7" name="Uživatelská identifikace"> </column_7>
+39:
+<column_8 id="8" name="Typ">Platba převodem uvnitř
+40:
+banky</column_8>
+41:
+<column_9 id="9" name="Provedl">Novák, Jan</column_9>
+42:
+<column_25 id="25" name="Komentář"></column_25>
+43:
+<column_17 id="17" name="ID pokynu">2102382864</column_17>
+44:
+</Transaction>
+</TransactionList>
+</AccountStatement>
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+Výsledek dotazu na pohyby od posledního stažení, zarážka datum 27.7.2012
+1: <AccountStatement>
+2:
+<Info>
+3:
+<accountId>2111111111</accountId>
+4:
+<bankId>2010</bankId>
+5:
+<currency>CZK</currency>
+6:
+<iban>CZ7920100000002111111111</iban>
+7:
+<bic>FIOBCZPPXXX</bic>
+8:
+<openingBalance>6969.22</openingBalance>
+9:
+<closingBalance>6582.22</closingBalance>
+10:
+<dateStart>2012-07-27+02:00</dateStart>
+11:
+<dateEnd>2012-07-27+02:00</dateEnd>
+12:
+<idFrom>1147608196</idFrom>
+13:
+<idTo>1147608198</idTo>
+14:
+<idLastDownload>1147301404</idLastDownload>
+15:
+</Info>
+16:
+<TransactionList>
+17:
+<Transaction>
+18:
+<column_22 id="22" name="ID pohybu">1147608196</column_22>
+19:
+<column_0 id="0" name="Datum">2012-07-27+02:00</column_0>
+20:
+<column_1 id="1" name="Objem">-15.00</column_1>
+21:
+<column_14 id="14" name="Měna">CZK</column_14>
+22:
+<column_2 id="2" name="Protiúčet">2222233333</column_2>
+23:
+<column_3 id="3" name="Kód banky">2010</column_3>
+24:
+<column_12 id="12" name="Název banky">Fio banka, a.s.</column_12>
+25:
+<column_7 id="7" name="Uživatelská identifikace"> </column_7>
+26:
+<column_8 id="8" name="Typ">Platba převodem uvnitř
+27:
+banky</column_8>
+28:
+<column_9 id="9" name="Provedl">Novák, Jan</column_9>
+29:
+<column_25 id="25" name="Komentář"></column_25>
+30:
+<column_17 id="17" name="ID pokynu">2102382862</column_17>
+31:
+</Transaction>
+32:
+<Transaction>
+33:
+<column_22 id="22" name="ID pohybu">1147608197</column_22>
+34:
+<column_0 id="0" name="Datum">2012-07-27+02:00</column_0>
+35:
+<column_1 id="1" name="Objem">-20.00</column_1>
+36:
+<column_14 id="14" name="Měna">CZK</column_14>
+37:
+<column_2 id="2" name="Protiúčet">2222233333</column_2>
+38:
+<column_3 id="3" name="Kód banky">2010</column_3>
+39:
+<column_12 id="12" name="Název banky">Fio banka, a.s.</column_12>
+40:
+<column_7 id="7" name="Uživatelská identifikace"> </column_7>
+41:
+<column_8 id="8" name="Typ">Platba převodem uvnitř
+42:
+banky</column_8>
+43:
+<column_9 id="9" name="Provedl">Novák, Jan</column_9>
+44:
+<column_25 id="25" name="Komentář"></column_25>
+45:
+<column_17 id="17" name="ID pokynu">2102382863</column_17>
+46:
+</Transaction>
+47:
+<Transaction>
+.
+<column_22 id="22" name="ID pohybu">1147608198</column_22>
+.
+<column_0 id="0" name="Datum">2012-07-27+02:00</column_0>
+.
+.
+55:
+.
+56:
+.
+57:
+<column_9 id="9" name="Provedl">Novák, Jan</column_9>
+58:
+<column_25 id="25" name="Komentář"></column_25>
+59:
+<column_17 id="17" name="ID pokynu">2102382864</column_17>
+60:
+</Transaction>
+</TransactionList>
+</AccountStatement>
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+5.3.1.2 OFX
+Ofx seznamu pohybů se skládá z několika částí
+•
+
+BANKMSGSRSV1
+o STMTTRNRS
+▪ TRNUID - unikátní identifikátor příkazu
+▪ STATUS - část vracející chybová hlášení
+• CODE
+• SEVERITY
+▪ STMTRS - vlastní odpověď
+• CURDEF - měna, ve které je účet veden
+• BANKACCTFROM - poskytuje data o účtu
+o BANKID
+o ACCTID
+o ACCTTYPE
+• BANKTRANLIST- jednotlivé pohyby na účtu
+o DTSTART
+o DTEND
+o STMTTRN - konkrétní pohyb
+▪ TRNTYPE
+▪ DTPOSTED
+▪ TRNAMT
+▪ FITD
+▪ NAME
+▪ BANKACCTO
+▪ MEMO
+
+Podrobnější informace o formátu ofx lze nalézt na jejich webových stránkách.
+Znaková sada: UTF-8
+STATUS - část vracející chybová hlášení
+Atribut
+CODE
+SEVERITY
+MESSAGE
+
+Formát
+6x
+INFO, WARN, ERROR
+255x
+
+Popis
+chybový kód
+závažnost chyby
+textový popis chyby
+
+BANKACCTFROM - poskytuje data o účtu
+Atribut
+BANKID
+ACCTID
+
+Formát
+9x
+22x
+
+ACCTTYPE
+
+22x
+
+Popis
+číslo banky
+číslo účtu
+typ účtu:
+CHECKING - běžný účet
+SAVINGS - Fio konto, termínovaný
+vklad atd.
+CREDITLINE - úvěr, kontokorent,
+hypotéka
+
+BANKTRANLIST - jednotlivé pohyby na účtu
+Atribut
+DTSTART
+DTEND
+
+Formát
+RRRRMMDDHHMMSS.000[+HH.MM:ZZZ]
+RRRRMMDDHHMMSS.000[+HH.MM:ZZZ]
+
+Popis
+počátek zvoleného období/pohyb
+konec zvoleného období/pohyb
+
+STMTTRN - konkrétní pohyb
+www.fio.cz
+
+Verze 17. 5. 2024
+
+Atribut
+
+Formát
+
+TRNTYPE
+
+22x
+
+DTPOSTED
+
+RRRRMMDDHHMMSS.000[+HH.MM:ZZZ]
+
+Popis
+typ transakce:
+CREDIT - příjem na bankovní konto
+DEBIT- platba z bankovního konta
+INT- úrok
+FEE- poplatek
+DEP - vklad v hotovosti
+ATM -výběr z bankomatu
+POS - platba kartou/výběr z bankomatu
+XFER - převod uvnitř banky
+CASH - výběr v hotovosti
+OTHER – další transakce
+datum pohybu
+
+TRNAMT
+
+15d
+
+částka pohybu
+
+FITID
+
+255x
+
+id pohybu 5
+
+NAME
+
+32e
+
+typ operace
+
+MEMO
+
+255x
+
+komentář
+
+BANKACCTTO
+
+255x
+
+informace o protiúčtu
+
+BANKACCTTO
+Atribut
+BANKID
+ACCTID
+
+Formát
+9x
+22x
+
+ACCTTYPE
+
+22x
+
+Popis
+číslo banky protiúčtu
+číslo účtu protiúčtu
+Typ protiúčtu:
+CHECKING - běžný účet
+SAVINGS - Fio konto, termínovaný
+vklad atd.
+CREDITLINE - úvěr, kontokorent,
+hypotéka
+
+Transakce jsou ve formátu OFX uváděny v časové zóně UTC -2 (proti CET jsou posunuté o 3 (léto - 4)
+hodiny.
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+Výsledek dotazu na pohyby v období od 1. 7. 2012 do 31. 7. 2012
+1:
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+9:
+10:
+11:
+12:
+13:
+14:
+15:
+16:
+17:
+18:
+19:
+20:
+21:
+22:
+23:
+24:
+25:
+26:
+27:
+28:
+29:
+30:
+31:
+32:
+33:
+34:
+35:
+36:
+37:
+38:
+39:
+40:
+41:
+42:
+43:
+44:
+45:
+46:
+47:
+48:
+49:
+50:
+51:
+52:
+53:
+54:
+55:
+56:
+57:
+58:
+59:
+www.fio.cz
+
+<OFX>
+<BANKMSGSRSV1>
+<STMTTRNRS>
+<TRNUID>d94a4b79-694d-419d-ba63-d7ea0d48c042</TRNUID>
+<STATUS>
+<CODE>0</CODE>
+<SEVERITY>INFO</SEVERITY>
+</STATUS>
+<STMTRS>
+<CURDEF>CZK</CURDEF>
+<BANKACCTFROM>
+<BANKID>2010</BANKID>
+<ACCTID>2111111111</ACCTID>
+<ACCTTYPE>CHECKING</ACCTTYPE>
+</BANKACCTFROM>
+<BANKTRANLIST>
+<DTSTART>20120701000000.000[+02.00:CET]</DTSTART>
+<DTEND>20120731000000.000[+02.00:CET]</DTEND>
+<STMTTRN>
+<TRNTYPE>CHECK</TRNTYPE>
+<DTPOSTED>20120727000000.000[+02.00:CET]</DTPOSTED>
+<TRNAMT>-15.0000</TRNAMT>
+<FITID>1147608196</FITID>
+<NAME>Prijem prevodem uvnitr banky</NAME>
+<BANKACCTTO>
+<BANKID>2010</BANKID>
+<ACCTID>2222233333</ACCTID>
+<ACCTTYPE>CHECKING</ACCTTYPE>
+</BANKACCTTO>
+</STMTTRN>
+<STMTTRN>
+<TRNTYPE>CHECK</TRNTYPE>
+<DTPOSTED>20120727000000.000[+02.00:CET]</DTPOSTED>
+<TRNAMT>-20.0000</TRNAMT>
+<FITID>1147608197</FITID>
+<NAME>Prijem prevodem uvnitr banky</NAME>
+<BANKACCTTO>
+<BANKID>2010</BANKID>
+<ACCTID>2222233333</ACCTID>
+<ACCTTYPE>CHECKING</ACCTTYPE>
+</BANKACCTTO>
+</STMTTRN>
+<STMTTRN>
+<TRNTYPE>CHECK</TRNTYPE>
+<DTPOSTED>20120727000000.000[+02.00:CET]</DTPOSTED>
+<TRNAMT>-352.0000</TRNAMT>
+<FITID>1147608198</FITID>
+<NAME>Prijem prevodem uvnitr banky</NAME>
+<BANKACCTTO>
+<BANKID>2010</BANKID>
+<ACCTID>2222233333</ACCTID>
+<ACCTTYPE>CHECKING</ACCTTYPE>
+</BANKACCTTO>
+</STMTTRN>
+</BANKTRANLIST>
+</STMTRS>
+</STMTTRNRS>
+</BANKMSGSRSV1>
+</OFX>
+Verze 17. 5. 2024
+
+Výsledek dotazu na na 4. výpis z roku 2012
+1:
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+9:
+10:
+11:
+12:
+13:
+14:
+15:
+16:
+17:
+18:
+19:
+20:
+21:
+22:
+23:
+24:
+25:
+26:
+27:
+28:
+29:
+30:
+31:
+32:
+33:
+34:
+35:
+36:
+37:
+38:
+
+www.fio.cz
+
+<OFX>
+<BANKMSGSRSV1>
+<STMTTRNRS>
+<TRNUID>6036522c-dae4-47a5-93c9-0d27c27488be</TRNUID>
+<STATUS>
+<CODE>0</CODE>
+<SEVERITY>INFO</SEVERITY>
+</STATUS>
+<STMTRS>
+<CURDEF>CZK</CURDEF>
+<BANKACCTFROM>
+<BANKID>2010</BANKID>
+<ACCTID>2111111111</ACCTID>
+<ACCTTYPE>CHECKING</ACCTTYPE>
+</BANKACCTFROM>
+<BANKTRANLIST>
+<DTSTART>20120630000000.000[+02.00:CET]</DTSTART>
+<DTEND>20120630000000.000[+02.00:CET]</DTEND>
+<STMTTRN>
+<TRNTYPE>CHECK</TRNTYPE>
+<DTPOSTED>20120630000000.000[+02.00:CET]</DTPOSTED>
+<TRNAMT>7.760.0000</TRNAMT>
+<FITID>1147301403</FITID>
+<NAME> Pripsany urok</NAME>
+</STMTTRN>
+<STMTTRN>
+<TRNTYPE>CHECK</TRNTYPE>
+<DTPOSTED>20120701000000.000[+02.00:CET</DTPOSTED>
+<TRNAMT>-1.0000</TRNAMT>
+<FITID>1147301404</FITID>
+<NAME>Odvod dane z uroku</NAME>
+</STMTTRN>
+<STMTTRN>
+</BANKTRANLIST>
+</STMTRS>
+</STMTTRNRS>
+</BANKMSGSRSV1>
+</OFX>
+
+Verze 17. 5. 2024
+
+Výsledek dotazu na pohyby od posledního stažení, zarážka ID 1147608196
+1:
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+9:
+10:
+11:
+12:
+13:
+14:
+15:
+16:
+17:
+18:
+19:
+20:
+21:
+22:
+23:
+24:
+25:
+26:
+27:
+28:
+29:
+30:
+31:
+32:
+33:
+34:
+35:
+36:
+37:
+38:
+39:
+40:
+41:
+42:
+43:
+44:
+45:
+46:
+47:
+
+www.fio.cz
+
+<OFX>
+<BANKMSGSRSV1>
+<STMTTRNRS>
+<TRNUID>0411f79c-d5da-4439-838f-8ed1b032503e</TRNUID>
+<STATUS>
+<CODE>0</CODE>
+<SEVERITY>INFO</SEVERITY>
+</STATUS>
+<STMTRS>
+<CURDEF>CZK</CURDEF>
+<BANKACCTFROM>
+<BANKID>2010</BANKID>
+<ACCTID>2111111111</ACCTID>
+<ACCTTYPE>CHECKING</ACCTTYPE>
+</BANKACCTFROM>
+<BANKTRANLIST>
+<DTSTART>20120727000000.000[+02.00:CET]</DTSTART>
+<DTEND>20120727000000.000[+02.00:CET]</DTEND>
+<STMTTRN>
+<TRNTYPE>CHECK</TRNTYPE>
+<DTPOSTED>20120727000000.000[+02.00:CET]</DTPOSTED>
+<TRNAMT>-20.0000</TRNAMT>
+<FITID>1147608197</FITID>
+<NAME>Platba prevodem uvnitr banky</NAME>
+<BANKACCTTO>
+<BANKID>2010</BANKID>
+<ACCTID>2222233333</ACCTID>
+<ACCTTYPE>CHECKING</ACCTTYPE>
+</BANKACCTTO>
+</STMTTRN>
+<STMTTRN>
+<TRNTYPE>CHECK</TRNTYPE>
+<DTPOSTED>20120727000000.000[+02.00:CET]</DTPOSTED>
+<TRNAMT>-352.0000</TRNAMT>
+<FITID>1147608198</FITID>
+<NAME>Platba prevodem uvnitř banky</NAME>
+<BANKACCTTO>
+<BANKID>2010</BANKID>
+<ACCTID>2222233333</ACCTID>
+<ACCTTYPE>CHECKING</ACCTTYPE>
+</BANKACCTTO>
+</STMTTRN>
+</BANKTRANLIST>
+</STMTRS>
+</STMTTRNRS>
+</BANKMSGSRSV1>
+</OFX>
+
+Verze 17. 5. 2024
+
+Výsledek dotazu na pohyby od posledního stažení, zarážka datum 27.7.2012
+1:
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+9:
+10:
+11:
+12:
+13:
+14:
+15:
+16:
+17:
+18:
+19:
+20:
+21:
+22:
+23:
+24:
+25:
+26:
+27:
+28:
+29:
+30:
+31:
+32:
+33:
+34:
+35:
+36:
+37:
+38:
+39:
+40:
+41:
+42:
+43:
+44:
+45:
+46:
+47:
+
+www.fio.cz
+
+<OFX>
+<BANKMSGSRSV1>
+<STMTTRNRS>
+<TRNUID>14494224-90bf-4d17-9bd5-a820059c6b21</TRNUID>
+<STATUS>
+<CODE>0</CODE>
+<SEVERITY>INFO</SEVERITY>
+</STATUS>
+<STMTRS>
+<CURDEF>CZK</CURDEF>
+<BANKACCTFROM>
+<BANKID>2010</BANKID>
+<ACCTID>2111111111</ACCTID>
+<ACCTTYPE>CHECKING</ACCTTYPE>
+</BANKACCTFROM>
+<BANKTRANLIST>
+<DTSTART>20120727000000.000[+02.00:CET]</DTSTART>
+<DTEND>20120727000000.000[+02.00:CET]</DTEND>
+<STMTTRN>
+<TRNTYPE>CHECK</TRNTYPE>
+<DTPOSTED>20120727000000.000[+02.00:CET]</DTPOSTED>
+<TRNAMT>-15.0000</TRNAMT>
+<FITID>1147608196</FITID>
+<NAME>Platba prevodem uvnitr banky</NAME>
+<BANKACCTTO>
+<BANKID>2010</BANKID>
+<ACCTID>2222233333</ACCTID>
+<ACCTTYPE>CHECKING</ACCTTYPE>
+</BANKACCTTO>
+</STMTTRN>
+<STMTTRN>
+<TRNTYPE>CHECK</TRNTYPE>
+<DTPOSTED>20120727000000.000[+02.00:CET]</DTPOSTED>
+<TRNAMT>-20.0000</TRNAMT>
+<FITID>1147608197</FITID>
+<NAME>Platba prevodem uvnitř banky</NAME>
+<BANKACCTTO>
+<BANKID>2010</BANKID>
+<ACCTID>2222233333</ACCTID>
+<ACCTTYPE>CHECKING</ACCTTYPE>
+</BANKACCTTO>
+</STMTTRN>
+</BANKTRANLIST>
+</STMTRS>
+</STMTTRNRS>
+</BANKMSGSRSV1>
+</OFX>
+
+Verze 17. 5. 2024
+
+5.3.1.3 GPC
+GPC se skládá ze dvou častí - "Data - výpis v Kč"
+(informace o účtu) a "Data - obratová položka" (jednotlivé pohyby). Obě části mají pevnou délku 130 znaků.
+Mezi jednotlivými údaji v záznamu není žádný oddělovač. Do pevné délky jsou údaje doplňovány zleva
+příslušným počtem znaků nula.
+Znaková sada: Windows-1250
+
+Struktura "Data - výpis v Kč"
+Byty
+
+Popis
+
+1-3
+4 - 19
+20 - 39
+40 - 45
+46 - 59
+60
+61 - 74
+75
+76 - 89
+90
+91 - 104
+105
+106 - 108
+109 - 114
+115 - 128
+129 - 130
+
+"074" = označení typu záznamu "Data - výpis v Kč"
+přidělené č. účtu s vodícími nulami
+20 alfanumerických znaků zkráceného názvu účtu, doplněných mezerami zprava
+datum starého zůstatku ve formátu DDMMRR
+starý zůstatek v haléřích 14 numerických znaků s vodícími nulami
+znaménko starého zůstatku, 1 znak "+" nebo "-"
+nový zůstatek v haléřích 14 numerických znaků s vodícími nulami
+znaménko nového zůstatku, 1 znak "+" nebo "-"
+obraty debet (MD) v haléřích 14 numerických znaků s vodícími nulami
+znaménko obratů debet (MD), 1 znak "0" nebo "-"
+obraty kredit (D) v haléřích 14 numerických znaků s vodícími nulami
+znaménko obratů kredit (D), 1 znak "0" nebo "-"
+pořadové číslo výpisu
+datum účtování ve formátu DDMMRR
+(vyplněno 14 znaky mezera z důvodu sjednocení délky záznamů)
+ukončovací znaky CR a LF
+
+Struktura "Data – obratová položka v Kč"
+Byty
+
+Popis
+
+1-3
+4 – 19
+20 – 35
+36 – 48
+49 – 60
+
+"075" = označení typu záznamu "Data - obratová položka"
+přidělené číslo účtu 16 numerických znaků s vodícími nulami
+číslo účtu 16 numerických znaků s vodícími nulami (případně v pořadí předčíslí + číslo účtu)
+číslo dokladu 13 numerických znaků
+částka v haléřích 12 numerických znaků s vodícími nulami
+kód účtování vztažený k číslu účtu: 1 = položka debet, 2 = položka kredit, 4 = storno položky
+debet, 5 = storno položky kredit
+variabilní symbol 10 numerických znaků s vodícími nulami
+konstantní symbol 10 numerických znaků s vodícími nulami ve formátu BBBBKSYM, kde:
+BBBB - kód banky, KSYM - konstantní symbol
+specifický symbol 10 numerických znaků s vodícími nulami
+"000000" = valuta, platba v ČR - datum splatnosti ve formátu DDMMRR
+20 alfanumerických znaků zkráceného názvu klienta, doplněno mezerami zprava
+"0"
+
+61
+62 – 71
+72 – 81
+82 – 91
+92 – 97
+98 – 117
+118
+119 –
+122
+123 –
+128
+129 - 130
+1-3
+
+www.fio.cz
+
+"0203" = kód měny pro Kč
+datum splatnosti ve formátu DDMMRR
+ukončovací znaky CR a LF
+"075" = označení typu záznamu "Data - obratová položka"
+
+Verze 17. 5. 2024
+
+Výsledek dotazu na pohyby v období od 26. 6. 2012 do 30. 6. 2012
+1:
+2:
+3:
+4:
+
+0740000002400222222Novák, Jan
+26061200000000019500+00000000019501
++00000000000100-000000000001010000300612FIO
+075000000240022222200000029002333330001148734530000000000100200000000000
+0201005580000000000260612Novák, Pavel
+00203260612
+075000000240022222200000029002333330001148734781000000000100100000000000
+0201005580000000000260612
+00203260612
+075000000240022222200000000000000000001149190193000000000001200000000000
+0000000000000000000300612Připsaný úrok
+00203300612
+
+Výsledek dotazu na 3. výpis z roku 2012
+1:
+2:
+
+0740000002400222222Novák, Jan
+01081200000000018503+00000000018505
++000000000000000000000000000020003310812FIO
+075000000240022222200000000000000000001155172472000000000002200000000000
+0000000000000000000310812Připsaný úrok
+00203310812
+
+Výsledek dotazu na pohyby od posledního stažení, zarážka ID 1150392361
+1:
+2:
+3:
+4:
+5:
+
+0740000002400222222Novák, Jan
+17071200000000018505+00000000018501
++00000000001500-000000000000060000300912FIO
+075000000240022222200000026000444440001150808074000000001500100000000010
+0201005580000000002170712
+00203170712
+075000000240022222200000000000000000001152125621000000000002200000000000
+0000000000000000000310712Připsaný úrok
+00203310712
+075000000240022222200000000000000000001155172472000000000002200000000000
+0000000000000000000310812Připsaný úrok
+00203310812
+075000000240022222200000000000000000001158218819000000000002200000000000
+0000000000000000000300912Připsaný úrok
+00203300912
+
+Výsledek dotazu na pohyby od posledního stažení, zarážka datum 27.7.2012
+1:
+2:
+3:
+4:
+
+0740000002400222222Novák, Jan
+31071200000000018505+00000000018503
++000000000000000000000000000060000300912FIO
+075000000240022222200000000000000000001152125621000000000002200000000000
+0000000000000000000310712Připsaný úrok
+00203310712
+075000000240022222200000000000000000001155172472000000000002200000000000
+0000000000000000000310812Připsaný úrok
+00203310812
+075000000240022222200000000000000000001158218819000000000002200000000000
+0000000000000000000300912Připsaný úrok
+00203300912
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+5.3.1.4 CSV
+CSV je textový formát tabulkového souboru, kde jsou jednotlivé sloupce tabulky odděleny středníky.
+Jednotlivé řádky tabulky jsou oddělené řádkováním. Jednotlivá pole mohou být ještě zabalená do uvozovek,
+pokud se v nich vyskytuje středník. Každé vložené uvozovky uvnitř pole budou reprezentovány párem
+uvozovek.
+Znaková sada: UTF-8
+
+Struktura hlavičky
+Atribut
+
+Stav
+
+Formát
+
+Popis
+
+Příklad
+
+accountId
+
+M
+
+16n
+
+1234562
+
+currency
+
+M
+
+3!x
+
+iban
+
+M
+
+24x
+
+bic
+
+M
+
+11x
+
+openingBalance
+
+M
+
+18D
+
+closingBalance
+
+M
+
+18D
+
+dateStart
+
+O
+
+dd.mm.rrrr
+
+dateEnd
+
+O
+
+dd.mm.rrrr
+
+idFrom
+
+O
+
+12n
+
+idTo
+
+O
+
+12n
+
+číslo účtu
+měna účtu dle standardu ISO
+4217
+mezinárodní číslo bankovního
+účtu dle standardu ISO 13616
+bankovní identifikační kód dle
+standardu ISO 9362
+počáteční zůstatek na účtu na
+počátku zvoleného období
+konečný zůstatek na účtu na
+konci zvoleného období
+počátek zvoleného období ve
+tvaru den.měsíc.rok
+konec zvoleného období ve tvaru
+den.měsíc.rok
+číslo prvního pohybu v daném
+výběru
+číslo posledního pohybu
+v daném výběru
+
+Atribut
+
+Stav
+
+Formát
+
+Popis
+
+Příklad
+
+ID pohybu
+Datum
+Objem
+
+M
+M
+M
+
+12n
+dd.mm.rrrr
+18D
+
+1158152824
+01.03.2012
+125,30
+
+Měna
+
+M
+
+3!x
+
+Protiúčet
+
+O
+
+255x
+
+Název protiúčtu
+
+O
+
+255i
+
+Kód banky
+
+O
+
+10x
+
+Název banky
+
+O
+
+255i
+
+KS
+VS
+SS
+
+O
+O
+O
+
+4n
+10n
+10n
+
+Uživatelská
+identifikace
+
+O
+
+255i
+
+Zpráva pro
+příjemce
+
+O
+
+140i
+
+Jedinečné číslo pohybu
+datum pohybu ve tvaru
+velikost přijaté (odeslané) částky
+měna přijaté (odeslané) částky dle
+standardu ISO 4217
+číslo protiúčtu
+název protiúčtu, pokud hodnota není
+null, tak je vždy v uvozovkách
+číslo banky protiúčtu
+název banky protiúčtu, pokud hodnota
+není null, tak je vždy v uvozovkách
+konstantní symbol
+variabilní symbol
+specifický symbol
+uživatelská identifikace, pokud
+hodnota není null, tak je vždy v
+uvozovkách
+zpráva pro příjemce, pokud hodnota
+není null, tak je vždy v uvozovkách
+
+Typ
+
+M
+
+255i
+
+Provedl
+
+O
+
+50i
+
+Upřesnění
+
+O
+
+255i
+
+CZK
+CZ7820100000000001234562
+FIOBCZPPXXX
+1223,20
+1223,22
+28.02.2012
+01.03.2012
+1158152824
+1158152824
+
+Struktura pohybu
+
+www.fio.cz
+
+typ operace
+oprávněná osoba, která zadala příkaz,
+pokud hodnota není null, tak je vždy v
+uvozovkách
+upřesňující informace k pohybu.
+
+EUR
+2212-2000000699
+„Béďa Trávníček“
+2010
+„Fio banka, a.s.“
+0558
+1234567890
+1234567890
+„Nákup: ““PENNY““
+MARKET s.r.o., Jaromer,
+CZ“
+„Libovolný text, který se
+zobrazí příjemci platby“
+Platba převodem uvnitř
+banky
+„Béďa Trávníček“
+„15.90 EUR“
+Verze 17. 5. 2024
+
+Komentář
+
+O
+
+255i
+
+BIC
+
+O
+
+11x
+
+ID Pokynu
+
+O
+
+12n
+
+Zpravidla to bývá kurz, pokud hodnota
+není null, tak je vždy v uvozovkách
+upřesňující informace, pokud hodnota
+není null, tak je vždy v uvozovkách
+bankovní identifikační kód banky
+protiúčtu dle standardu ISO 9362
+jedinečné číslo příkazu
+
+„Hračky pro děti v
+PENNY MARKET“
+FIOBCZPPXXX
+2102382863
+
+Výsledek dotazu na pohyby v období od 26. 6. 2012 do 30. 6. 2012
+1: accountId;2200018111
+2: bankId;2010
+3: currency;CZK
+4: iban;CZ3520100000002200018111
+5: bic;FIOBCZPPXXX
+6: openingBalance;12894,79
+7: closingBalance;12845,93
+8: dateStart;25.07.2012
+9: dateEnd;15.09.2012
+10: idFrom; 1252062368
+11: idTo; 1255107881
+12: idLastDownload; 1252062367
+13:
+14: ID pohybu;Datum;Objem;Měna;Protiúčet;Název protiúčtu;Kód banky;Název
+banky;KS;VS;SS;Uživatelská identifikace;Zpráva pro
+příjemce;Typ;Provedl;Upřesnění;Komentář;BIC;ID pokynu;
+15: 1252062368;31.07.2012;0,07;CZK;;;;;;;;;;Připsaný úrok;;;;;2120891307;
+1252273009;01.08.2012;-49,00;CZK;1231231231;;2010;“Fio banka,
+a.s.“;0558;;; ;;Platba převodem uvnitř banky;“Béďa, ““Trávníček“““;;
+;;2121709706;
+1255107881;31.08.2012;0,07;CZK;;;;;;;;;;Připsaný úrok;;;;;2134853563;
+
+Výsledek dotazu - pohyby na POS terminálu v období od 1. 7. 2012 do 31. 7. 2012
+1:
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+9:
+
+accountId;2200018111
+bankId;2010
+currency;CZK
+iban;CZ3520100000002200018111
+bic;FIOBCZPPXXX
+dateStart;01.07.2012
+dateEnd;31.07.2012
+
+ID pohybu;ID pokynu;Datum;Objem;Poznámka;Název pobočky;Identifikátor
+transakce;Číslo zařízení;Datum transakce;Autorizační číslo;Číslo
+karty;Objem;Měna;Typ;Vystavitel karty;Poplatky celkem;Poplatek
+Fio;Poplatek intercharge;Poplatek karetní asociace;Zaúčtováno;Datum
+zaúčtování
+10: 8216165940;9277937165;19.07.2015;4700,00;Zaúčtování POS terminálů
+MasterCard, Operace ON-US;Potrefený Sokol;28;00203O999999
+1;16.04.2015
+11:28:12;997476;553937******9052;200,00;CZK;ON_US;MASTERCARD;0,00;;;;tru
+e;19.07.2015
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+5.3.1.5 HTML
+HTML používá znakovou sadu UTF-8 a má následují strukturu.
+
+Popis
+
+Příklad
+1234562
+2010
+
+255x
+10x
+255i
+255i
+4n
+10n
+10n
+
+číslo účtu
+číslo banky - 4 numerické znaky
+měna účtu dle standardu ISO
+4217
+mezinárodní číslo bankovního
+účtu dle standardu ISO 13616
+bankovní identifikační kód dle
+standardu ISO 9362
+počáteční zůstatek na účtu na
+počátku zvoleného období
+konečný zůstatek na účtu na
+konci zvoleného období
+počátek zvoleného období ve
+tvaru den.měsíc.rok
+konec zvoleného období
+rok zvoleného výpisu
+číslo zvoleného výpisu
+číslo prvního pohybu v daném
+výběru
+číslo posledního pohybu v daném
+výběru
+číslo posledního úspěšně
+staženého pohybu
+unikátní číslo pohybu
+datum
+velikost přijaté (odeslané) částky
+měna přijaté (odeslané) částky dle
+standardu ISO 4217
+číslo protiúčtu
+číslo banky protiúčtu
+název protiúčtu
+název banky protiúčtu
+konstantní symbol
+variabilní symbol
+specifický symbol
+
+O
+
+255i
+
+uživatelská identifikace
+
+Zpráva
+propříjemce
+
+O
+
+140i
+
+zpráva pro příjemce
+
+Typ
+
+M
+
+255i
+
+typ operace
+
+Provedl
+
+O
+
+50i
+
+Upřesnění
+
+O
+
+255i
+
+Komentář
+
+O
+
+255i
+
+BIC
+
+O
+
+11x
+
+ID Pokynu
+
+O
+
+12x
+
+Atribut
+accountId
+bankId
+
+Stav
+M
+O
+
+Popis
+16n
+10x
+
+currency
+
+M
+
+3!x
+
+iban
+
+M
+
+24x
+
+bic
+
+M
+
+11x
+
+openingBalance
+
+M
+
+18d
+
+closingBalance
+
+M
+
+18d
+
+dateStart
+
+O
+
+rrrr-mm-dd+GMT
+
+dateEnd
+yearList
+idList
+
+O
+O
+O
+
+rrrr-mm-dd+GMT
+4!n
+3n
+
+idFrom
+
+O
+
+12n
+
+idTo
+
+O
+
+12n
+
+idLastDownload
+
+O
+
+12n
+
+ID pohybu
+Datum
+Objem
+
+M
+M
+M
+
+12n
+rrrr-mm-dd+GMT
+18d
+
+Měna
+
+M
+
+3!x
+
+Protiúčet
+Kód banky
+Název protiúčtu
+Název banky
+KS
+VS
+SS
+
+O
+O
+O
+O
+O
+O
+O
+
+Uživatelská
+identifikace
+
+www.fio.cz
+
+oprávněná osoba, která zadala
+příkaz
+upřesňující informace (zpravidla
+to bývá kurz)
+upřesňující informace
+bankovní identifikační kód banky
+protiúčtu dle standardu ISO 9362
+číslo příkazu
+
+CZK
+CZ782010000000000
+1234562
+FIOBCZPPXXX
+123.20
+123.22
+2012-07-27+0200
+2012-01-15+0100
+2012
+1
+1158152824
+1158152824
+1158152824
+1158152824
+2012-07-27+02:00
+12225.25
+EUR
+2212-2000000699
+2010
+Béďa Trávníček
+Fio banka, a.s.
+0558
+1234567890
+1234567890
+Nákup: PENNY
+MARKET s.r.o.,
+Jaromer, CZ
+Libovolný text, který se
+zobrazí příjemci platby
+Platba převodem
+uvnitř banky
+Béďa Trávníček
+15.90 EUR
+Hračky pro děti
+v PENNY MARKET
+UNCRITMMXXX
+2102382863
+
+Verze 17. 5. 2024
+
+5.3.1.6 JSON
+JSON je založen na podmnožině programovacího jazyka JavaScript. Data jsou v JSON ve dvou hlavních
+strukturách, ve dvojicích název:hodnota a v tříděných seznamech hodnot.
+Podrobnější informace o formátu lze nalézt na jejich webových stránkách.
+JSON seznamu pohybů se skládá ze dvou hlavních částí - info a transactionList. Info poskytuje informace o
+účtu, počátečních a konečných stavech na tomto účtu a období, za které jsou dané pohyby zobrazeny,
+identifikace výpisu, posledního stažení pohybů. V části transactionList jsou zobrazeny pohyby na účtu za
+dané období.
+Znaková sada: UTF-8
+
+Struktura Info
+Atribut
+accountId
+bankId
+currency
+IBAN
+BIC
+openingBalance
+closingBalance
+dateStart
+dateEnd
+yearList
+idList
+idFrom
+idTo
+idLastDownload
+
+Popis
+číslo účtu
+číslo banky - 4 numerické znaky
+měna účtu dle standardu ISO 4217
+mezinárodní číslo bankovního účtu dle standardu ISO 13616
+bankovní identifikační kód dle standardu ISO 9362
+počáteční zůstatek na účtu na počátku zvoleného období
+konečný zůstatek na účtu na konci zvoleného období
+počátek zvoleného období ve tvaru rrrr-mm-dd+GMT
+konec zvoleného období ve tvaru rrrr-mm-dd+GMT
+rok zvoleného výpisu
+číslo zvoleného výpisu
+číslo prvního pohybu v daném výběru
+číslo posledního pohybu v daném výběru
+číslo posledního úspěšně staženého pohybu
+
+Struktura TransactionList
+ID sloupce
+Column22
+Column0
+Column1
+Column14
+Column2
+Column10
+Column3
+Column12
+Column4
+Column5
+Column6
+Column7
+Column16
+Column8
+Column9
+Column18
+Column25
+
+Atribut
+ID pohybu
+Datum
+Objem
+Měna
+Protiúčet
+Název protiúčtu
+Kód banky
+Název banky
+KS
+VS
+SS
+Uživatelská identifikace
+Zpráva pro příjemce
+Typ pohybu
+Provedl
+Upřesnění
+Komentář
+
+Column26
+
+BIC
+
+Column17
+Column27
+
+ID pokynu
+Reference plátce
+
+www.fio.cz
+
+Popis
+unikátní číslo pohybu - 10 numerických znaků
+datum pohybu ve tvaru rrrr-mm-dd+GMT
+velikost přijaté (odeslané) částky
+měna přijaté (odeslané) částky dle standardu ISO 4217
+číslo protiúčtu
+název protiúčtu
+číslo banky protiúčtu
+název banky protiúčtu
+konstantní symbol
+variabilní symbol
+specifický symbol
+uživatelská identifikace
+zpráva pro příjemce
+typ operace
+oprávněná osoba, která zadala příkaz
+upřesňující informace
+komentář
+bankovní identifikační kód banky protiúčtu dle standardu ISO
+9362
+číslo příkazu
+bližší identifikace platby dle ujednání mezi účastníky platby
+
+Verze 17. 5. 2024
+
+Výsledek dotazu na pohyby v období od 26. 6. 2012 do 30. 6. 2012
+1:
+
+{"accountStatement":{"info":{"accountId":"2400222222","bankId":"2010","c
+urrency":"CZK","iban":"CZ7920100000002400222222","bic":"FIOBCZPPXXX","op
+eningBalance":195.00,"closingBalance":195.01,"dateStart":1340661600000,"
+dateEnd":1341007200000,"yearList":null,"idList":null,"idFrom":1148734530
+,"idTo":1149190193,"idLastDownload":1149190192},"transactionList":{"tran
+saction":[{"column22":{"value":1148734530,"name":"ID
+pohybu","id":22},"column0":{"value":1340661600000,"name":"Datum","id":0}
+,"column1":{"value":1.00,"name":"Objem","id":1},"column14":{"value":"CZK
+","name":"Měna","id":14},"column2":{"value":"2900233333","name":"Protiúč
+et","id":2},"column10":{"value":"Pavel, Novák","name":"Název
+protiúčtu","id":10},"column3":{"value":"2010","name":"Kód
+banky","id":3},"column12":{"value":"Fio banka, a.s.","name":"Název
+banky","id":12},"column4":{"value":"0558","name":"KS","id":4},"column5":
+null,"column6":null,"column7":null,"column16":null,"column8":{"value":"P
+říjem převodem uvnitř
+banky","name":"Typ","id":8},"column9":null,"column18":null,"column25":nu
+ll,"column26":null,"column17":{"value":2105685816,"name":"ID
+pokynu","id":17}},{"column22":{"value":1148734781,"name":"ID
+pohybu","id":22},"column0":{"value":1340661600000,"name":"Datum","id":0}
+,"column1":{"value":1.00,"name":"Objem","id":1},"column14":{"value":"CZK","name":"Měna","id"
+:14},"column2":{"value":"2900233333","name":"Protiúčet","id":2},"column1
+0":null,"column3":{"value":"2010","name":"Kód
+banky","id":3},"column12":{"value":"Fio banka, a.s.","name":"Název
+banky","id":12},"column4":{"value":"0558","name":"KS","id":4},"column5":
+null,"column6":null,"column7":{"value":" ","name":"Uživatelská
+identifikace","id":7},"column16":null,"column8":{"value":"Platba
+převodem uvnitř banky","name":"Typ","id":8},"column9":{"value":"Novák,
+Jan","name":"Provedl","id":9},"column18":null,"column25":{"value":"
+","name":"Komentář","id":25},"column26":null,"column17":{"value":2105687
+343,"name":"ID
+pokynu","id":17}},{"column22":{"value":1149190193,"name":"ID
+pohybu","id":22},"column0":{"value":1341007200000,"name":"Datum","id":0}
+,"column1":{"value":0.01,"name":"Objem","id":1},"column14":{"value":"CZK
+","name":"Měna","id":14},"column2":null,"column10":null,"column3":null,"
+column12":null,"column4":null,"column5":null,"column6":null,"column7":nu
+ll,"column16":null,"column8":{"value":"Připsaný
+úrok","name":"Typ","id":8},"column9":null,"column18":null,"column25":nul
+l,"column26":null,"column17":{"value":2107642322,"name":"ID
+pokynu","id":17}}]}}}
+
+Výsledek dotazu na 3. výpis z roku 2012
+1:
+
+{"accountStatement":{"info":{"accountId":"2400222222","bankId":"2010","c
+urrency":"CZK","iban":"CZ7920100000002400222222","bic":"FIOBCZPPXXX","op
+eningBalance":185.03,"closingBalance":185.05,"dateStart":1343772000000,"
+dateEnd":1346364000000,"yearList":2012,"idList":3,"idFrom":1155172472,"i
+dTo":1155172472,"idLastDownload":null},"transactionList":{"transaction":
+[{"column22":{"value":1155172472,"name":"ID
+pohybu","id":22},"column0":{"value":1346364000000,"name":"Datum","id":0}
+,"column1":{"value":0.02,"name":"Objem","id":1},"column14":{"value":"CZK
+","name":"Měna","id":14},"column2":null,"column10":null,"column3":null,"
+column12":null,"column4":null,"column5":null,"column6":null,"column7":nu
+ll,"column16":null,"column8":{"value":"Připsaný
+úrok","name":"Typ","id":8},"column9":null,"column18":null,"column25":nul
+l,"column26":null,"column17":{"value":2135081594,"name":"ID
+pokynu","id":17}}]}}}
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+Výsledek dotazu na pohyby od posledního stažení, zarážka ID 1150392361
+1:
+
+{"accountStatement":{"info":{"accountId":"2400222222","bankId":"2010","c
+urrency":"CZK","iban":"CZ7920100000002400222222","bic":"FIOBCZPPXXX","op
+eningBalance":185.05,"closingBalance":185.01,"dateStart":1342476000000,"
+dateEnd":1348956000000,"yearList":null,"idList":null,"idFrom":null,"idTo
+":null,"idLastDownload":1150392361},"transactionList":{"transaction":[{"
+column22":{"value":1150808074,"name":"ID
+pohybu","id":22},"column0":{"value":1342476000000,"name":"Datum","id":0}
+,"column1":{"value":15.00,"name":"Objem","id":1},"column14":{"value":"CZK","name":"Měna","id
+":14},"column2":{"value":"2600044444","name":"Protiúčet","id":2},"column
+10":null,"column3":{"value":"2010","name":"Kód
+banky","id":3},"column12":{"value":"Fio banka, a.s.","name":"Název
+banky","id":12},"column4":{"value":"0558","name":"KS","id":4},"column5":
+{"value":"0001","name":"VS","id":5},"column6":{"value":"0002","name":"SS
+","id":6},"column7":{"value":" ","name":"Uživatelská
+identifikace","id":7},"column16":null,"column8":{"value":"Platba
+převodem uvnitř banky","name":"Typ","id":8},"column9":{"value":"Novák,
+Jan","name":"Provedl","id":9},"column18":null,"column25":{"value":"
+","name":"Komentář","id":25},"column26":null,"column17":{"value":2115327
+276,"name":"ID
+pokynu","id":17}},{"column22":{"value":1152125621,"name":"ID
+pohybu","id":22},"column0":{"value":1343685600000,"name":"Datum","id":0}
+,"column1":{"value":0.02,"name":"Objem","id":1},"column14":{"value":"CZK
+","name":"Měna","id":14},"column2":null,"column10":null,"column3":null,"
+column12":null,"column4":null,"column5":null,"column6":null,"column7":nu
+ll,"column16":null,"column8":{"value":"Připsaný
+úrok","name":"Typ","id":8},"column9":null,"column18":null,"column25":nul
+l,"column26":null,"column17":{"value":2121115983,"name":"ID
+pokynu","id":17}},{"column22":{"value":1155172472,"name":"ID
+pohybu","id":22},"column0":{"value":1346364000000,"name":"Datum","id":0}
+,"column1":{"value":0.02,"name":"Objem","id":1},"column14":{"value":"CZK
+","name":"Měna","id":14},"column2":null,"column10":null,"column3":null,"
+column12":null,"column4":null,"column5":null,"column6":null,"column7":nu
+ll,"column16":null,"column8":{"value":"Připsaný
+úrok","name":"Typ","id":8},"column9":null,"column18":null,"column25":nul
+l,"column26":null,"column17":{"value":2135081594,"name":"ID
+pokynu","id":17}},{"column22":{"value":1158218819,"name":"ID
+pohybu","id":22},"column0":{"value":1348956000000,"name":"Datum","id":0}
+,"column1":{"value":0.02,"name":"Objem","id":1},"column14":{"value":"CZK
+","name":"Měna","id":14},"column2":null,"column10":null,"column3":null,"
+column12":null,"column4":null,"column5":null,"column6":null,"column7":nu
+ll,"column16":null,"column8":{"value":"Připsaný
+úrok","name":"Typ","id":8},"column9":null,"column18":null,"column25":nul
+l,"column26":null,"column17":{"value":2151261787,"name":"ID
+pokynu","id":17}}]}}}
+
+Výsledek dotazu na pohyby od posledního stažení, zarážka datum 30.7.2012
+1:
+
+{"accountStatement":{"info":{"accountId":"2400222222","bankId":"2010","c
+urrency":"CZK","iban":"CZ7920100000002400222222","bic":"FIOBCZPPXXX","op
+eningBalance":185.05,"closingBalance":185.03,"dateStart":1343685600000,"
+dateEnd":1348956000000,"yearList":null,"idList":null,"idFrom":1152125621
+,"idTo":1158218819,"idLastDownload":1150808074},"transactionList":{"tran
+saction":[{"column22":{"value":1152125621,"name":"ID
+pohybu","id":22},"column0":{"value":1343685600000,"name":"Datum","id":0}
+,"column1":{"value":0.02,"name":"Objem","id":1},"column14":{"value":"CZK
+","name":"Měna","id":14},"column2":null,"column10":null,"column3":null,"
+column12":null,"column4":null,"column5":null,"column6":null,"column7":nu
+ll,"column16":null,"column8":{"value":"Připsaný
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+úrok","name":"Typ","id":8},"column9":null,"column18":null,"column25":nul
+l,"column26":null,"column17":{"value":2121115983,"name":"ID
+pokynu","id":17}},{"column22":{"value":1155172472,"name":"ID
+pohybu","id":22},"column0":{"value":1346364000000,"name":"Datum","id":0}
+,"column1":{"value":0.02,"name":"Objem","id":1},"column14":{"value":"CZK
+","name":"Měna","id":14},"column2":null,"column10":null,"column3":null,"
+column12":null,"column4":null,"column5":null,"column6":null,"column7":nu
+ll,"column16":null,"column8":{"value":"Připsaný
+úrok","name":"Typ","id":8},"column9":null,"column18":null,"column25":nul
+l,"column26":null,"column17":{"value":2135081594,"name":"ID
+pokynu","id":17}},{"column22":{"value":1158218819,"name":"ID
+pohybu","id":22},"column0":{"value":1348956000000,"name":"Datum","id":0}
+,"column1":{"value":0.02,"name":"Objem","id":1},"column14":{"value":"CZK
+","name":"Měna","id":14},"column2":null,"column10":null,"column3":null,"
+column12":null,"column4":null,"column5":null,"column6":null,"column7":nu
+ll,"column16":null,"column8":{"value":"Připsaný
+úrok","name":"Typ","id":8},"column9":null,"column18":null,"column25":nul
+l,"column26":null,"column17":{"value":2151261787,"name":"ID
+pokynu","id":17}}]}}}
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+5.3.1.7 STA (MT940)
+Formát výpisů z účtu je založen na mezinárodním SWIFT formátu MT940. Systém generuje vždy příponu
+STA. MT940 je pouze pro výpisy a nelze jej použít pro výpis pohybů na účtu.
+Jeden logický výpis z účtu může mít jednu nebo více stránek (listů). Každá stránka výpisu z účtu se skládá
+ze záhlaví, textového bloku a ukončovacích znaků.
+Struktura výpisů obsažených v souboru vypadá tak, že každý výpis je tvořen bloky, které jsou rozpoznatelné
+pomocí složených závorek {1:} {2:} atd. Hlavní tělo výpisu se nachází v poli {4:}
+Maximální délka zprávy je 2000 znaků. Znaková sada: UTF-8
+Pole uvozená a ukončená „:“ jsou oddělena pomocí <CR><LF>
+Pole :86: je maximálně dlouhé 65x. Pokud je pole větší, jsou hodnoty odděleny <CR><LF>
+
+Blok 1
+Struktura:
+
+{1:F01aaaaaaaaAbbbccccdddddd}
+{1:
+Začátek bloku 1
+F01
+Zpráva - vždy hodnota: F01
+BIC Fio Banky, kde:
+aaaaaaaa: BIC8
+aaaaaaaaAbbb
+Logical terminal: A
+Pobočka: XXX
+cccc
+Stav (session number) - vždy hodnota: 0000
+dddddd
+Číslo transakce - vždy hodnota: 0000
+}
+Konec bloku 1
+Příklad:
+Blok 1 z Fio banka ČR
+{1:F01FIOBCZPPAXXX0000000000}
+
+Blok 2
+Struktura:
+
+{2:I940aaaaaaaaAbbbcdeee}
+Začátek bloku 2
+{2:
+Vstup;Typ zprávy – vždy hodnota: I940
+I940
+BIC Fio Banky, kde:
+aaaaaaaa: BIC8
+aaaaaaaaAbbb
+Logical terminal: A
+Pobočka: XXX
+Priorita – vždy hodnota: N
+c
+Monitorování – vždy hodnota: mezera
+d
+Zastarávání – vždy hodnota: 020
+eee
+Konec bloku 2
+}
+
+Příklad:
+Blok 1 z Fio banka ČR
+{2:I940FIOZSKBAAXXXN 020}
+
+Blok 4
+Blok 4 bude vždy začínat {4:
+
+Pole
+
+Status
+
+:20:
+
+M
+
+:25:
+
+M
+
+:28C:
+:60a:
+
+M
+M
+
+www.fio.cz
+
+Sub
+pole
+
+Formát
+
+Popis
+
+Příklad
+:20:120812095511-1
+
+16x
+
+referenční číslo výpisů
+YYMMDDHHMMSSČísloStránkyVýpisu
+
+35x
+5n[/5n]
+1!a6!n3!a15d
+
+číslo účtu ve formátu IBAN
+číslo výpisu/číslo stránky
+Počáteční stav účtu
+
+:25:
+CZ78201000000000
+01234562
+:28C:00124/00003
+:60F:C120611CZK53
+Verze 17. 5. 2024
+
+:61:
+
+O
+
+6!n[4!n]2a[1!a]
+15d1!a3!c16x[/
+/16x]
+:86:
+
+O
+
+6,72
+
+Tuzemský platební styk (TPS) - clearing ČNB, NBS
+
+M
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+
+60a = typ salda:
+F= počáteční saldo
+M = mezisoučet
+1!a označení druhu transakce:
+C = kreditní
+D = debetní
+6!n = účetní den (YYMMDD)
+3!a = kód měny dle ISO 4217
+15d = částka s desetinným
+oddělovačem
+Strukturované údaje o pohybu
+6!n = datum splatnosti
+4!n = datum zaúčtování
+2a = typ zaúčtování
+C = kredit,
+D = debet,
+RC = storno kredit,
+RD = storno debet
+3!a = kód měny dle ISO 4217
+15d = částka
+1!a = Typ transakce
+S = SWIFT transfer
+N = non-SWIFT transfer
+3!c = Označení transakce
+103 = swiftová klientská platba
+DDT = inkaso
+CHG = poplatek
+INT = úroky
+MSC = ostatní
+TRF = převod
+16x reference klienta (pokud není
+uvede se NONREF)
+[//16x] jedinečný identifikátor banky
+(pohybID)
+
+3!n
+?00
+?20
+?21
+?22
+?23
+?24
+?25
+?26
+?27
+?28
+?29
+
+27x
+27x
+[VS27x]
+[SS27x]
+[KS27x]
+27x
+27x
+27x
+27x
+27x
+27x
+
+vždy hodnota 010
+slovní popis transakce (viz. Tabulka
+transakcí)
+číslo účtu plátce(příjemce)/kód banky
+variabilní číslo (VS)
+specifické číslo (SS)
+konstatní symbol (KS)
+vaše označení
+vaše označení
+vaše označení
+vaše označení
+zpráva pro příjemce
+zpráva pro příjemce
+
+Zahraniční platební styk (ZPS) - SWIFT
+M
+
+www.fio.cz
+
+3!n
+
+O
+
+?00
+
+27x
+
+O
+O
+O
+O
+O
+O
+
+?20
+?21
+?22
+?23
+?24
+?25
+
+27x
+27x
+27x
+27x
+27x
+27x
+
+vždy hodnota 020
+slovní popis transakce (viz. Tabulka
+transakcí)
+identifikace bankovního účtu (př.
+IBAN, číslo účtu, ABA)
+kód banky (BIC, identifikace banky)
+převáděná měna a částka
+směnný kurz
+vaše označení
+vaše označení
+
+CZK1234567890,00
+
+Verze 17. 5. 2024
+
+O
+O
+O
+O
+O
+O
+
+?26
+?27
+?28
+?29
+?32
+?33
+
+27x
+27x
+27x
+27x
+27x
+27x
+
+vaše označení
+vaše označení
+zpráva pro příjemce
+zpráva pro příjemce
+název příjemce/plátce
+název příjemce/plátce
+
+Ostatní formátované transakce
+M
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+
+:62a:
+
+www.fio.cz
+
+M
+
+3!n
+?00
+?20
+?21
+?22
+?23
+?24
+?25
+?26
+?27
+?28
+?29
+
+27x
+27x
+27x
+27x
+27x
+27x
+27x
+27x
+27x
+27x
+27x
+
+1!a6!n3!a15
+d
+
+hodnota 030 vyjadřuje ostatní platby
+slovní popis transakce (viz. Tabulka
+transakcí)
+variabilní číslo (VS)
+specifické číslo (SS)
+konstatní symbol (KS)
+vaše označení
+vaše označení
+vaše označení
+vaše označení
+zpráva pro příjemce
+zpráva pro příjemce
+zpráva pro příjemce
+počáteční stav účtu
+kde a = typ salda:
+F – počáteční saldo
+M – mezisoučet
+
+VS0000000000
+SS0000000000
+KS0000
+
+další subpole (viz. ciselnik60a)
+
+Verze 17. 5. 2024
+
+Výsledek na dotaz zobrazení výpisu 2012/01
+1:
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+9:
+
+{1:F01FIOBCZPPAXXX0000000000}{2:I940FIOBCZPPAXXXN 020}{4:
+:20:121003163157-1
+:25:CZ7920100000002400222222
+:28C:00121/00001
+:60F:C120101CZK106,17
+:61:1201020102CCZK49981,25NTRFFREMIS A.S.//1144273065
+:86:010?00TP_PRIJEM?20168851386/0600?21VS110456?23KS0008?24FREMIS A.S.
+:61:1201020102DCZK-3000,00NTRFPřevod do GE MB//1134290899
+:86:010?00TP_PLATBA?20196704703/0600?23KS0558?24Převod do GE MB?28Převod
+do GE MB
+10: :61:1201020102CCZK2454,48NMSCNONREF//1144307477
+11: :86:010?00TP_PREVOD_UVNITR?202100131680/2010?23KS0558?28ARCO feed
+převod ze SÚ na B?29Ú
+12: :61:1201020102DCZK-5723,97NTRFNONREF//1144307518
+13: :86:010?00TP_PLATBA?20000000-0017145783/0300?21VS0000729776?23KS0308
+14: :61:1201020102DCZK-12200,00NTRFNONREF//1144307519
+15: :86:010?00TP_PLATBA?20000019-1249450247/0100?21VS0000331641?23KS0308
+16: :61:1201020102CCZK11000,00NMSCNONREF//1144307593
+17: :86:010?00TP_PREVOD_UVNITR?202100131680/2010?23KS0558?28ARCO deed
+převod ze SÚ na B?29Ú
+18: :61:1201020102DCZK-10943,52NMSCNákup EUR//1144307632
+19: :86:010?00TP_PREVOD_UVNITR?202600131679/2010?23KS0558?24Nákup
+EUR?28Nákup EUR
+20: :61:1201030103CCZK19800,00NTRFZEMĚDĚLSKÁ SPOLEČN//1144359806
+21: :86:010?00TP_PRIJEM?20174385908/0600?21VS110465?23KS0308?24ZEMĚDĚLSKÁ
+SPOLEČN
+22: :61:1201030103CCZK30000,00NTRF123456789//1144367297
+23: :86:010?00TP_PRIJEM?205855970267/0100?21VS110446?22SS0?23KS0008?24PALOMO
+, A.S.
+24: :61:1201030103CCZK3674,00NTRFAGRO//1144376794
+25: :86:010?00TP_PRIJEM?201163555339/0800?21VS110431?23KS0308?24AGRO
+26: Chomutice
+27: :62M:C120131CZK55148,41
+28: -}${1:F01FIOBCZPPAXXX0000000000}{2:I940FIOBCZPPAXXXN 020}{4:
+29: :20:121003163157-8
+30: :25:CZ7920100000002400222222
+31: :28C:00121/00002
+32: :60M:C120131CZK55148,41
+33: :61:1201040104CCZK60000,00NTRFVÝROBNĚ-OBCHODNÍ D//1144429094
+:86:010?00TP_PRIJEM?20754307674/0600?21VS110466?23KS0008?24VÝROBNĚ34: OBCHODNÍ D
+35: :61:1201040104CCZK58296,00NTRFZOD POTĚHY//1144432377
+36: :86:010?00TP_PRIJEM?20512161/0100?21VS110458?22SS0?23KS0008?24ZODPOTĚHY
+37: :62F:C120131CZK173444,41
+-}
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+Popis transakčních kódů
+Transakce kód
+
+Význam
+
+TP_PREVOD_UVNITR
+TP_VKLAD
+TP_VYBER
+TP_BLOKACE
+TP_UROK
+TP_UROK_DAN
+TP_EVID_UROK
+TP_EVID_POPLATEK
+TP_PLATBA
+TP_PRIJEM
+TP_POPLATEK
+TP_PLATBA_KARTOU
+TP_PLATBA_POTVRZENI
+TP_UROK_KK
+TP_UROK_SANKCNI
+TP_PREVOD_KONTO
+TP_UROK_RUCNI
+TP_UROK_DAN_RUCNI
+TP_EVID_UROK_RUCNI
+TP_POPLATEK_RUCNI
+TP_EVID_POPLATEK_RUCNI
+TP_BANKA_BANKA_PLATBA
+TP_BANKA_BANKA_PRIJEM
+TP_BANKA_VLASTNI_PLATBA
+TP_BANKA_VLASTNI_PRIJEM
+TP_POKLADNA_VLASTNI_PLATBA
+TP_POKLADNA_VLASTNI_PRIJEM
+TP_OPRAVNY_POHYB
+TP_PLACPOP_PRIJEM
+TP_PLATBA_CM
+TP_KARTA_POPLATEK
+TP_INKASO
+TP_AVIZO_PLATBA_KARTOU
+TP_INKASO_FIO
+TP_INKASO_PRIJEM
+TP_AVIZO_PLATBA_KARTOU
+
+Převod uvnitř Fio
+Vklad v hotovosti
+Výběr v hotovosti
+Blokace
+Úrok
+Daň z úroku
+Evidovaný úrok
+Evidovaný poplatek
+Platba ven z modulu
+Příjem zvenčí modulu
+Poplatek
+Platba kartou
+Potvrzeni platby ven z modulu
+Úrok z úvěru
+Sankční poplatek
+Převod v rámci jednoho konta
+Úrok (opravný pohyb)
+Daň z úroku (opravný pohyb)
+Evidovaný úrok (opravný pohyb)
+Poplatek (opravný pohyb)
+Evidovaný poplatek (opravný pohyb)
+Platba z bankovního konta (na jiné konto)
+Příjem na bankovní konto (z jiného konta)
+Platba z bankovního konta (vlastní platba)
+Příjem na bankovní konto (vlastní příjem)
+Platba z pokladny (vlastní platba)
+Příjem do pokladny (vlastní příjem)
+Opravný pohyb
+Přijatý poplatek
+Platba cizoměnová či zahraniční
+Poplatek za používání platební karty
+Inkaso z účtu
+Avizovaná platba kartou
+Inkaso z účtu v rámci FIO
+Příjem inkasa z cizí banky
+Avizovaná platba kartou
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+5.3.1.8 SBA XML (camt.053)
+Jedná se o jednotný slovenský národní formát XML výpisu vycházející z ISO 20022 CAMT.053.001.02.
+
+5.3.1.9 ČBA XML (camt.053)
+Jedná se o český národní formát výpisu vycházející z ISO 20022 CAMT.053.001.02, určený pro výpisy z
+účtu.
+Oddělovače VS, KS, SS
+Od 6. 4. 2020 dochází ke změnám v oddělování variabilního, specifického a konstantního symbolu platby.
+Stávající oddělování pomocí lomítka – zaniká
+/VS/1234567890/SS/1234567890/KS/1234
+Nový způsob oddělování je pomocí dvojtečky
+VS:1234567890SS:1234567890KS:1234
+
+Transakce z POS terminálů nebo platební brány obchodníka
+Klienti s podnikatelským účtem využívající Platební terminály nebo e-shopy s platební bránou si mohou
+získávat informace o karetních transakcích. API nabízí data o karetních transakcích ve dvou formátech XML
+a CSV.
+
+5.3.2.1 XML
+XML se skládá ze dvou částí - Info a TransactionList. Schéma odpovědi v XML uvedena na adrese
+https://www.fio.cz/xsd/IBSchema.xsd
+Info poskytuje informace o účtu a vybraném období.
+V části TransactionList jsou zobrazeny karetní transakce a transakce přes platební bránu za dané období.
+Znaková sada: UTF-8
+
+Struktura XML Info:
+Formát
+
+Popis
+
+Příklad
+
+accountId
+
+Sta
+v
+M
+
+16n
+
+1234562
+
+bankId
+
+M
+
+4!n
+
+currency
+
+M
+
+3!x
+
+iban
+
+M
+
+34x
+
+bic
+
+M
+
+11x
+
+dateStart
+dateEnd
+
+O
+O
+
+rrrr-mm-dd+GMT
+rrrr-mm-dd+GMT
+
+číslo účtu
+bankovní identifikační kód ve
+formátu BBAN
+měna účtu dle standardu ISO
+4217
+mezinárodní číslo bankovního
+účtu dle standardu ISO 13616
+bankovní identifikační kód dle
+standardu ISO 9362
+počátek zvoleného období
+konec zvoleného období
+
+Element
+
+www.fio.cz
+
+2010
+CZK
+CZ78201000000000
+01234562
+FIOBCZPPXXX
+2012-07-27+02:00
+2012-01-15+01:00
+
+Verze 17. 5. 2024
+
+Struktura TransactionList:
+Atribut
+
+Sta
+v
+
+Formát
+
+operationId
+
+M
+
+12n
+
+orderId
+
+M
+
+12n
+
+date
+
+M
+
+rrrr-mm-dd+GMT
+
+amount
+
+M
+
+18d
+
+note
+
+O
+
+50e
+
+branchName
+
+O
+
+50e
+
+transactionId
+
+O
+
+12n
+
+deviceId
+
+O
+
+20e
+
+transactionDateTime
+
+O
+
+rrrr-mm-dd+GMT
+
+autorizationNumber
+
+O
+
+10x
+
+cardNumber
+transactionAmount
+
+O
+O
+
+50e
+18d
+
+transactionCurrency
+
+O
+
+3!x
+
+type
+
+O
+
+12e
+
+cardIssuer
+
+O
+
+12x
+
+totalFees
+
+O
+
+18d
+
+fioFee
+
+O
+
+18d
+
+interchangeFee
+
+O
+
+18d
+
+cardAsosiationFee
+
+O
+
+18d
+
+O
+
+18d
+
+O
+
+5x
+
+O
+
+rrrr-mm-dd+GMT
+
+O
+
+20n
+
+flexibleCommission
+settlement
+settlementDate
+
+VS
+
+www.fio.cz
+
+Popis
+jedinečné číslo pohybu karetní
+transakce
+jedinečné číslo příkazu karetní
+transakce
+datum provedení ve tvaru rokměsíc-den
+suma transakcí v hromadné
+dávce
+poznámka - upřesňující
+informace o transakci
+identifikace pobočky
+jedinečné identifikační číslo
+transakce
+číslo zařízení - identifikace
+platebního terminálu/brány
+datum transakce ve tvaru rok
+měsíc den
+jedinečné autorizační číslo
+transakce
+číslo karty ve zkráceném tvaru
+objem dané transakce
+měna transakce dle standardu
+ISO 4217
+typ transakce, ON_US - kartou
+Fio / DOMESTIC - českou
+kartou / FOREIGN - zahraniční
+kartou
+vystavitel karty
+celkové poplatek spojený s
+transakcí
+poplatek Fio spojený s
+transakcí
+mezibankovní poplatek
+spojený s transakcí
+poplatek karetní asociace
+spojený s transakcí
+Poplatek vydavatele karty
+spojený s transakcí
+zaúčtování pohybu true/false
+datum zaúčtování ve tvaru rok
+měsíc den
+Variabilní symbol, unikátní
+označení transakce zadané
+během POS/ecomm transakce
+
+Příklad
+8216165940
+9277937165
+2012-07-27+02:00
+4700.0000
+Zaúčtování POS
+terminálů
+MasterCard,
+Operace ON-US
+Provozovna Ječná
+28
+00203O999999 1
+2012-07-27+02:00
+997476
+553553******5553
+200.0000
+CZK
+
+ON_US
+MASTERCARD
+20.0000
+5.0000
+5.0000
+10.000
+5.0000
+true
+2012-07-27+02:00
+12345678911234567
+891
+
+Verze 17. 5. 2024
+
+Výsledek dotazu na karetní transakce v období od 1. 7. 2012 do 31. 7. 2012
+1: <MerchantStatement>
+2:
+<Info>
+3:
+<accountId>2111111111</accountId>
+4:
+<bankId>2010</bankId>
+5:
+<currency>CZK</currency>
+6:
+<iban>CZ7920100000002111111111</iban>
+7:
+<bic>FIOBCZPPXXX</bic>
+8:
+<dateStart>2012-07-01</dateStart>
+9:
+<dateEnd>2012-07-31</dateEnd>
+10:
+</Info>
+11:
+<TransactionList>
+12:
+<Transaction>
+13:
+<operationId>9277937165</operationId>
+14:
+<orderId>8216165940</orderId>
+15:
+<date>2012-07-19+02:00</date>
+16:
+<amount>4700.0000</amount>
+17:
+<note>Zaúčtování POS terminálů MasterCard, Operace ON-US</note>
+18:
+<branchName>Pobocka 1</branchName>
+19:
+<transactionId>28</transactionId>
+20:
+<deviceId>00203O999999 1</deviceId>
+21:
+<transactionDateTime>2012-0722:
+16T11:28:12+02:00</transactionDateTime>
+23:
+<autorizationNumber>997476</autorizationNumber>
+24:
+<cardNumber>553937******9052</cardNumber>
+25:
+<transactionAmount>200.0000</transactionAmount>
+26:
+<transactionCurrency>CZK</transactionCurrency>
+27:
+<type>ON_US</type>
+28:
+<cardIssuer>MASTERCARD</cardIssuer>
+29:
+<totalFees>0.0000</totalFees>
+30:
+<fioFee>1.3</fioFee>
+31:
+<interchangeFee>0.0000</interchangeFee>
+32:
+<cardAsosiationFee>0.25</cardAsosiationFee>
+33:
+<flexibleCommission>1.84</flexibleCommission>
+34:
+<settlement>true</settlement>
+<settlementDate>2012-07-19+02:00</settlementDate>
+</Transaction>
+</TransactionList >
+</MerchantStatement>
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+5.3.2.2 CSV
+CSV je textový formát tabulkového souboru, kde jsou jednotlivé sloupce tabulky odděleny středníky.
+Jednotlivé řádky tabulky jsou oddělené řádkováním. Jednotlivá pole mohou být ještě zabalená do uvozovek,
+pokud se v nich vyskytuje středník. Každé vložené uvozovky uvnitř pole budou reprezentovány párem
+uvozovek.
+Znaková sada: UTF-8
+
+Struktura hlavičky
+Atribut
+
+Stav
+
+Formát
+
+Popis
+
+Příklad
+
+accountId
+
+M
+
+16n
+
+1234562
+
+bankId
+
+M
+
+4!n
+
+currency
+
+M
+
+3!x
+
+iban
+
+M
+
+24x
+
+bic
+
+M
+
+11x
+
+dateStart
+
+O
+
+dd.mm.rrrr
+
+dateEnd
+
+O
+
+dd.mm.rrrr
+
+číslo účtu
+bankovní identifikační kód ve
+formátu BBAN
+měna účtu dle standardu ISO
+4217
+mezinárodní číslo bankovního
+účtu dle standardu ISO 13616
+bankovní identifikační kód dle
+standardu ISO 9362
+počátek zvoleného období ve
+tvaru den.měsíc.rok
+konec zvoleného období ve tvaru
+den.měsíc.rok
+
+www.fio.cz
+
+2010
+CZK
+CZ7820100000000001234562
+FIOBCZPPXXX
+28.02.2012
+01.03.2012
+
+Verze 17. 5. 2024
+
+Struktura pohybu
+Atribut
+
+Stav
+
+Formát
+
+Popis
+jedinečné číslo pohybu karetní
+transakce
+jedinečné číslo příkazu karetní
+transakce
+
+Příklad
+
+ID pohybu
+
+M
+
+12n
+
+ID Pokynu
+
+O
+
+12n
+
+O
+
+50e
+
+poznámka - upřesňující informace o
+transakci
+
+Název pobočky
+Identifikátor
+transakce
+Číslo zařízení
+
+O
+
+50e
+
+identifikace pobočky
+
+Zaúčtování POS
+terminálů MasterCard,
+Operace ON-US
+Provozovna Ječná
+
+O
+
+12n
+
+jedinečné identifikační číslo transakce
+
+28
+
+O
+
+20e
+
+00203O999999 1
+
+Datum transakce
+
+O
+
+dd-mm-rrrr
+
+Autorizační číslo
+Číslo karty
+
+O
+O
+
+10n
+50e
+
+Typ
+
+O
+
+12e
+
+Vystavitel karty
+Poplatky celkem
+Poplatek Fio
+Poplatek
+intercharge
+Poplatek karetní
+asociace
+Poplatek
+vydavatele karty
+Zaúčtováno
+
+O
+O
+O
+
+12x
+18D
+18D
+
+O
+
+18D
+
+O
+
+18D
+
+O
+
+18D
+
+O
+
+5x
+
+Datum zaúčtování
+
+O
+
+dd-mm-rrrr
+
+VS
+
+O
+
+20n
+
+identifikace platebního terminálu/brány
+datum transakce ve tvaru den měsíc
+rok
+jedinečné autorizační číslo transakce
+číslo karty ve zkráceném tvaru
+typ transakce, ON_US - kartou Fio /
+DOMESTIC - českou kartou /
+FOREIGN - zahraniční kartou
+karetní značka
+celkové poplatek spojený s transakcí
+poplatek Fio spojený s transakcí
+mezibankovní poplatek spojený s
+transakcí
+poplatek karetní asociace spojený s
+transakcí
+Poplatek vydavatele karty spojený s
+transakcí
+zaúčtování pohybu true/false
+datum transakce ve tvaru den měsíc
+rok
+Variabilní symbol, unikátní označení
+transakce zadané během POS/ecomm
+transakce
+
+Poznámka
+
+1158152824
+2102382863
+
+19.07.2012
+997476
+553553******5553
+ON_US
+MASTERCARD
+20,00
+5,00
+5,00
+5,00
+5,00
+true
+19.07.2012
+12345678911234567891
+
+Výsledek dotazu na karetní transakce v období od 1. 7. 2012 do 31. 7. 2012
+1:
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+9:
+
+accountId;2111111111
+bankId;2010
+currency;CZK
+iban;CZ7920100000002111111111
+bic;FIOBCZPPXXX
+dateStart;01.07.2012
+dateEnd;31.07.2012
+ID pohybu;ID pokynu;Datum;Objem;Poznámka;Název pobočky;Identifikátor
+transakce;Číslo zařízení;Datum transakce;Autorizační číslo;Číslo
+karty;Objem;Měna;Typ;Vystavitel karty;Poplatky celkem;Poplatek
+Fio;Poplatek intercharge;Poplatek karetní asociace;Poplatek vydavatele
+karty;Zaúčtováno;Datum zaúčtování
+8216165940;9277937165;19.07.2015;4700,00;Zaúčtování POS terminálů
+MasterCard, Operace ON-US;Pobocka 1;28;00203O999999
+1;16.07.2012
+11:28:12;997476;553937******9052;200,00;CZK;ON_US;MASTERCARD;0,00;1,3;0,
+00;0,25;1,84;true;19.07.2012
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+6
+
+IMPORT (UPLOAD) PLATEBNÍCH PŘÍKAZŮ DO BANK
+
+Platební příkazy jsou importovány skrze adresu https://fioapi.fio.cz/v1/rest/import/
+Po úspěšném uploadu dat se příkazy sdruží v bankovním systému do dávky, která musí být dodatečně
+autorizována (sms, fio podpis) oprávněnou osobou na účtu. Bez dodatečné autorizace nebudou příkazy
+zpracovány.
+
+Parametry pro upload dat
+Parametr
+token
+type
+
+Stav
+M
+M
+
+file
+lng
+
+M
+O
+
+Hodnoty
+abo
+xml
+pain001_xml
+pain008_xml
+
+Popis
+64 znakový unikátní řetězec
+Formát importu
+
+Soubor s daty
+Zvolení jazyka popisků v odpovědích serveru
+
+cs
+sk
+en
+
+Soubor s příkazy se posílají s kódováním multipart/form-data (data jsou oddělena hraniční čarou
+"boundary". Data jsou identifikována jménem "file" s elementem původního názvu souboru "filename" v
+hlavičce content-disposition: form-data.
+Nejjednodušší je použití již hotových knihoven na posílání dat, např. knihovny cURL
+
+Příklad použití cURL
+Knihovnu cURL je možné stáhnout z jejich webových stránek.
+Jestliže operační systém nezná certifikační autoritu, tak je nutné stáhnout certifikát (Root 5 - GeoTrust
+Primary Certification Authority – G3) a umístit ho do adresáře s curl.exe nebo na úložiště certifikátů a poté
+použít příkaz.
+Je dále nutné, aby na počítači byl naistalován Open SSL.
+Windows a Linux:
+1:
+
+curl -S -s --cacert GeoTrust_Primary_CA.pem -X POST -F "type=xml" -F
+"token=aGEMQB9Idh35fxxxxxxxxxxxxxQwyGlQ" -F "file=@C:\davka.xml"
+https://fioapi.fio.cz/v1/rest/import/> result.xml 2>errorlog.txt type
+errorlog.txt
+
+Odpověď na dávku příkazu je vždy ve formátu XML
+Element
+errorCode
+
+Hodnota
+0
+1
+2
+11
+12
+13
+14
+
+Popis
+ok - příkaz byl přijat
+nalezené chyby při kontrole příkazů
+varování kontrol - chybně vyplněné hodnoty
+syntaktická chyba
+prázdný import - v souboru nejsou žádné příkazy
+příliš dlouhý soubor - soubor je delší než 2 MB
+prázdný soubor - soubor neobsahuje příkazy
+číslo dávky - jednoznačný identifikátor dávky
+
+ok
+error
+warning
+
+příkaz přijat
+hrubá chyba v příkazu, dávka se všemi příkazy nebude přijata
+varování, některý z údajů nesouhlasí (např. měna platby a měna
+účtu), příkazy s odpovědí warning byly přijaty bankou
+
+idInstruction
+status
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+chyba na straně bankovního systému banky, všechny pokyny se
+odmítly
+suma debetních položek v dávce
+suma kreditních položek v dávce
+
+fatal
+sumDebet
+sumCredit
+
+18d
+18d
+
+Schéma XML odpovědi je uvedena na adrese https://www.fio.cz/schema/responseImportIB.xsd
+
+ABO
+Import příkazů ve formátu ABO v měně CZK je určen pouze pro banky v České republice. Ostatní měny
+jsou přípustné pouze v rámci Fio banky (kód banky 2010). Měna příkazů se určuje podle účtu
+odesílatele. Příkazy do slovenských bank v EUR nejsou tímto způsobem již možné. Struktura ABO souboru
+je uvedena na adrese https://www.fio.cz/docs/cz/struktura-abo.pdf
+
+Fio XML
+Je-li v rámci jednoho xml souboru podáno více typů pokynů, musí být pokyny v tomto pořadí: tuzemské
+platby, europlatby, zahraniční platby. V případě nedodržení tohoto pořadí bude soubor odmítnut.
+XSD pro všechny typy je dostupné zde: https://www.fio.cz/schema/importIB.xsd.
+
+XML příkaz platba v rámci ČR
+Tento pokyn je možné použít i k převodu cízích měn mezi účty v rámci Fio banky.
+Element
+accountFrom
+currency
+
+Stav
+M
+M
+
+Formát
+16n
+3!x
+
+Popis
+číslo účtu příkazce
+měna účtu dle standardu ISO
+4217
+
+Příklad
+1234562
+CZK
+
+amount
+
+M
+
+18d
+
+částka příkazu
+
+100.00
+
+accountTo
+
+M
+
+6n-10n
+
+2212-2000000699
+
+bankCode
+ks
+vs
+ss
+date
+messageForRecipient
+
+M
+O
+O
+O
+M
+O
+
+4!n
+4n
+10n
+10n
+RRRR-MM-DD
+140i
+
+číslo učtu
+příjemce/inkasovaného
+banka přijemce/inkasovaného
+konstantní symbol
+variabilní symbol
+specifický symbol
+datum
+zpráva pro příjemce
+
+comment
+
+O
+
+255i
+
+Vaše označení
+
+paymentReason
+
+O
+
+3!n
+
+paymentType
+
+O
+
+6!n
+
+platební titul – viz 6.3.4 Platební
+titul
+přípustné hodnoty typu platby
+jsou:
+431001 – standardní
+431005 – prioritní
+431022 – příkaz k inkasu
+
+0300
+0558
+1234567890
+1234567890
+2013-04-25
+Libovolný text, který
+se zobrazí příjemci
+platby
+Hračky pro děti
+v PENNY MARKET
+110
+431001
+
+Příklad platby v rámci ČR
+1:
+2:
+3:
+4:
+5:
+6:
+7:
+
+<?xml version="1.0" encoding="UTF-8"?>
+<Import xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:noNamespaceSchemaLocation="http://www.fio.cz/schema/importIB.xsd">
+<Orders>
+<DomesticTransaction>
+<accountFrom>1234562</accountFrom>
+<currency>CZK</currency>
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+8: <amount>100.00</amount>
+9: <accountTo>2212-2000000699</accountTo>
+10: <bankCode>0300</bankCode>
+11: <ks>0558</ks>
+12: <vs>1234567890</vs>
+13: <ss>1234567890</ss>
+14: <date>2013-04-25</date>
+15: <messageForRecipient>Hračky pro děti v PENNY
+16: MARKET</messageForRecipient>
+17: <comment></comment>
+18: <paymentType>431001</paymentType>
+19: </DomesticTransaction>
+20: </Orders>
+</Import>
+
+XML příkaz Europlatba
+Element
+accountFrom
+currency
+
+Stav
+M
+M
+
+Formát
+16n
+3!x
+
+Popis
+číslo účtu příkazce
+měna účtu dle standardu ISO
+4217
+
+Příklad
+1234562
+EUR
+
+amount
+
+M
+
+18d
+
+částka příkazu
+
+100.00
+
+accountTo
+
+M
+
+34x
+
+AT6119043002345
+73201
+
+ks
+vs
+ss
+bic
+
+O
+O
+O
+O
+
+4n
+10n
+10n
+11!x
+
+date
+comment
+benefName
+benefStreet
+benefCity
+benefCountry
+remittanceInfo1
+remittanceInfo2
+remittanceInfo3
+paymentReason
+
+M
+O
+M
+O
+O
+O
+O
+O
+O
+C
+
+RRRR-MM-DD
+140e
+35e
+35x
+35x
+3x
+35x
+35x
+35x
+3!n
+
+paymentType
+
+O
+
+6!n
+
+mezinárodní číslo bankovního
+účtu příjemce/inkasovaného dle
+standardu ISO 13616
+konstantní symbol
+variabilní symbol
+specifický symbol
+bankovní identifikační kód dle
+standardu ISO 9362
+datum
+Vaše označení
+majitel účtu
+bydliště majitele účtu-ulice
+bydliště majitele účtu-město
+země majitele účtu – viz. 12.2.1
+informace pro přijemce
+informace pro přijemce
+informace pro přijemce
+platební titul – povinný jen u
+účtů vedených Fio bankou
+pobočce zahraniční banky v SR
+pouze při platbě nad 50 000
+EUR
+viz 6.3.4 Platební titul
+Přípustné typy plateb jsou:
+431008 – standardní
+431009 – prioritní
+
+0558
+1234567890
+1234567890
+ABAGATWWXXX
+2013-04-25
+Erste Zahlung
+Hans Gruber
+Gugitzgasse 2
+Wien
+AT
+
+110
+
+431008
+
+Příklad Europlatba
+1:
+2:
+3:
+4:
+5:
+6:
+
+<?xml version="1.0" encoding="UTF-8"?>
+<Import xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:noNamespaceSchemaLocation="http://www.fio.cz/schema/importIB.xsd">
+<Orders>
+<T2Transaction>
+<accountFrom>1234562</accountFrom>
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+7: <currency>EUR</currency>
+8: <amount>100.00</amount>
+9: <accountTo>AT611904300234573201</accountTo>
+10: <ks>0558</ks>
+11: <vs>1234567890</vs>
+12: <ss>1234567890</ss>
+13: <bic>ABAGATWWXXX</bic>
+14: <date>2013-04-25</date>
+15: <comment>Erste Zahlung</comment>
+16: <benefName>Hans Gruber</benefName>
+17: <benefStreet>Gugitzgasse 2</benefStreet>
+18: <benefCity>Wien</benefCity>
+19: <benefCountry>AT</benefCountry>
+20: <remittanceInfo1></remittanceInfo1>
+21: <remittanceInfo2></remittanceInfo2>
+22: <remittanceInfo3></remittanceInfo3>
+23: <paymentType>431008</paymentType>
+24: </T2Transaction>
+25: </Orders>
+26: </Import>
+
+Země majitele účtu
+Kód Název země
+AF
+
+Afghánistán
+
+AX
+
+Alandské ostrovy
+
+DZ
+
+Alžírsko
+
+VI
+
+Americké Panenské ostrovy AS
+
+Americká Samoa
+
+AD
+
+Andorra
+
+AO
+
+Angola
+
+AI
+
+Anguilla
+
+AQ
+
+Antarktida
+
+AG
+
+Antigua a Barbuda
+
+AR
+
+Argentina
+
+AM
+
+Arménie
+
+AW
+
+Aruba
+
+AU
+
+Austrálie
+
+AZ
+
+Ázerbájdžán
+
+BS
+
+Bahamy
+
+BH
+
+Bahrajn
+
+BD
+
+Bangladéš
+
+BB
+
+Barbados
+
+BE
+
+Belgie
+
+BZ
+
+Belize
+
+BY
+
+Bělorusko
+
+BJ
+
+Benin
+
+BM
+
+Bermudy
+Bonaire, Svatý Eustach a
+Saba
+
+BT
+
+Bhútán
+
+BO
+
+Mnohonárodní stát Bolívie
+
+BA
+
+Bosna a Hercegovina
+
+BW
+
+Botswana
+
+BV
+
+Bouvetův ostrov
+
+BR
+
+Brazílie
+
+IO
+
+VG
+
+Britské Panenské ostrovy
+
+BN
+
+Brunej Darussalam
+
+BG
+
+Britské indickooceánské
+území
+Bulharsko
+
+BF
+
+Burkina Faso
+
+BI
+
+Burundi
+
+TD
+
+Čad
+
+CK
+
+Cookovy ostrovy
+
+CI
+
+Pobřeží Slonoviny
+
+CW
+
+Curaçao
+
+ME
+
+Černá Hora
+
+CZ
+
+Česká republika
+
+CN
+
+Čína
+
+DK
+
+Dánsko
+
+TL
+
+Demokratická republika
+Východní Timor
+
+GP
+
+Guadeloupe
+
+GF
+
+Francouzská Guyana
+
+MQ
+
+Martinik
+
+RE
+
+Réunion
+
+DM
+
+Dominika
+
+DO
+
+Dominikánská republika
+
+DJ
+
+Džibutsko
+
+EG
+
+Egypt
+
+EC
+
+Ekvádor
+
+ER
+
+Eritrea
+
+EE
+
+Estonsko
+Falklandské ostrovy
+(Malvíny)
+Finsko
+
+ET
+
+Etiopie
+
+FO
+
+Faerské ostrovy
+
+FJ
+
+Fidži
+
+PH
+
+Filipíny
+
+FR
+
+Francie
+
+TF
+
+Francouzská jižní území
+
+BQ
+
+FK
+FI
+
+www.fio.cz
+
+AL
+
+Albánie
+
+Verze 17. 5. 2024
+
+PF
+
+Francouzská Polynésie
+
+GA
+
+Gabon
+
+GM
+
+Gambie
+
+GH
+
+Ghana
+
+GI
+
+Gibraltar
+
+GD
+
+Grenada
+
+GL
+
+Grónsko
+
+GE
+
+Gruzie
+
+GU
+
+Guam
+
+GT
+
+Guatemala
+
+GG
+
+Guernsey
+
+GW
+
+Guinea-Bissau
+
+GN
+
+Guinea
+
+GY
+
+Guyana
+
+HT
+
+Haiti
+
+HM
+
+Heardův ostrov a
+McDonaldovy ostrovy
+
+HN
+
+Honduras
+
+HK
+
+Hongkong
+
+CL
+
+Chile
+
+HR
+
+Chorvatsko
+
+IN
+
+Indie
+
+ID
+
+Indonésie
+
+IQ
+
+Irák
+
+IR
+
+Írán (islámská republika)
+
+IE
+
+Irsko
+
+IS
+
+Island
+
+IT
+
+Itálie
+
+IL
+
+Izrael
+
+JM
+
+Jamajka
+
+JP
+
+Japonsko
+
+YE
+
+Jemen
+
+JE
+
+Jersey
+
+ZA
+
+Jižní Afrika
+
+JO
+
+Jordánsko
+
+GS
+
+Jižní Georgie a Jižní
+Sandwichovy ostrovy
+
+KY
+
+Kajmanské Ostrovy
+
+KH
+
+Kambodža
+
+CM
+
+Kamerun
+
+CA
+
+Kanada
+
+CV
+
+Kapverdy
+
+QA
+
+Katar
+
+KZ
+
+KE
+
+Keňa
+
+KI
+
+Kiribati
+
+CC
+
+CO
+
+Kolumbie
+
+KM
+
+Komory
+
+CD
+
+Kazachstán
+Kokosové (Keelingovy)
+ostrovy
+Kongo, demokratická
+republika
+
+CG
+
+Kongo, republika
+
+KR
+
+Korejská republika
+
+KP
+
+Korejská lidově
+demokratická republika
+
+CR
+
+Kostarika
+
+TO
+
+Tonga
+
+XK
+
+Kosovo
+
+CU
+
+Kuba
+
+KW
+
+Kuvajt
+
+CY
+
+Kypr
+
+KG
+
+Kyrgyzstán
+
+LA
+
+Laoská lidově demokratická
+republika
+
+LS
+
+Lesotho
+
+LB
+
+Libanon
+
+LR
+
+Libérie
+
+LY
+
+Libye
+
+LI
+
+Lichtenštejnsko
+
+LT
+
+Litva
+
+LV
+
+Lotyšsko
+
+LU
+
+Lucembursko
+
+MO
+
+Macao
+
+MG
+
+Madagaskar
+
+HU
+
+Maďarsko
+
+MK
+
+Makedonie, bývalá
+jugoslávská republika
+
+MY
+
+Malajsie
+
+MW
+
+Malawi
+
+MV
+
+Maledivská republika
+
+ML
+
+Mali
+
+MT
+
+Malta
+
+MA
+
+Maroko
+
+MH
+
+Marshallovy ostrovy
+
+MU
+
+Mauricius
+
+MR
+
+Mauritánie
+
+UM
+
+Menší odlehlé ostrovy USA
+
+MX
+
+Mexiko
+
+FM
+
+Mikronésie, federativní státy MD
+
+Moldavská republika
+
+MC
+
+Monako
+
+MN
+
+Mongolsko
+
+MS
+
+Montserrat
+
+MZ
+
+Mosambik
+
+MM
+
+Myanmar
+
+NA
+
+Namibie
+
+NR
+
+Nauru
+
+DE
+
+Německo
+
+NP
+
+Nepál
+
+WS
+
+Samoa
+
+NE
+
+Niger
+
+NG
+
+Nigérie
+
+NI
+
+Nikaragua
+
+NU
+
+Niue
+
+NL
+
+Nizozemsko
+
+AN
+
+Nizozemské Antily
+
+NF
+
+Ostrov Norfolk
+
+NO
+
+NC
+
+Nová Kaledonie
+
+NZ
+
+Nový Zéland
+
+PS
+
+OM
+
+Omán
+
+IM
+
+Ostrov Man
+
+TC
+
+Norsko
+Palestinské území
+(okupované)
+Ostrovy Turks a Caicos
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+PK
+
+Pákistán
+
+PW
+
+Palau
+
+PA
+
+Panama
+
+PG
+
+Papua Nová Guinea
+
+PY
+
+Paraguay
+
+PE
+
+Peru
+
+PN
+
+Pitcairn
+
+PL
+
+Polsko
+
+PR
+
+Portoriko
+
+PT
+
+Portugalsko
+
+AT
+
+Rakousko
+
+GQ
+
+Rovníková Guinea
+
+RO
+
+Rumunsko
+
+RU
+
+Ruská federace
+
+RW
+
+Rwanda
+
+GR
+
+Řecko
+
+SV
+
+Salvador
+
+PM
+
+Saint-Pierre a Miquelon
+
+SM
+
+San Marino
+
+SA
+
+Saúdská Arábie
+
+SN
+
+Senegal
+
+SC
+
+Seychely
+
+SL
+
+Sierra Leone
+
+SG
+
+Singapur
+
+SK
+
+Slovensko
+
+SI
+
+Slovinsko
+
+SO
+
+Somálsko
+
+AE
+
+Spojené arabské emiráty
+
+MP
+
+Severní Mariany
+
+LK
+
+Srí Lanka
+
+RS
+
+Srbsko
+
+CF
+
+Středoafrická republika
+
+SD
+
+Súdán
+
+SR
+
+Surinam
+
+SJ
+
+Svalbard a Jan Mayen
+
+SH
+
+Svatá Helena
+
+LC
+
+BL
+
+SZ
+
+Svatý Bartoloměj
+Svatý Martin (nizozemská
+část)
+Svazijsko
+
+KN
+
+VC
+
+Svatá Lucie
+Svatý Martin (francouzská
+část)
+Svatý Vincenc a Grenadiny
+
+SY
+
+Svatý Kryštof a Nevis
+Svatý Tomáš a Princův
+ostrov
+Syrská arabská republika
+
+SB
+
+Šalomounovy ostrovy
+
+ES
+
+Španělsko
+
+SE
+
+Švédsko
+
+CH
+
+Švýcarsko
+
+TJ
+
+Tádžikistán
+
+TZ
+
+Tanzanská sjednocená
+republika
+
+TH
+
+Thajsko
+
+TW
+
+Tchaj-Wan, čínská provincie TCH Tichomořské ostrovy (USA)
+
+TK
+
+Tokelau
+
+TG
+
+Togo
+
+TT
+
+Trinidad a Tobago
+
+TN
+
+Tunisko
+
+TR
+
+Turecko
+
+TM
+
+Turkmenistán
+
+TV
+
+Tuvalu
+
+UG
+
+Uganda
+
+UA
+
+Ukrajina
+
+UY
+
+Uruguay
+
+US
+
+Spojené státy americké
+
+UZ
+
+Uzbekistán
+
+YT
+
+Mayotte
+
+CX
+
+Vánoční ostrov
+
+VU
+
+Vanuatu
+
+VA
+
+Vatikán
+
+GB
+
+Velká Británie
+
+VE
+
+Bolívarovská republika
+Venezuela
+
+VN
+
+Vietnam
+
+TP
+
+Východní Timor
+
+WF
+
+Wallis a Futuna
+
+ZM
+
+Zambie
+
+EH
+
+Západní Sahara
+
+ZW
+
+Zimbabwe
+
+MF
+
+SX
+
+ST
+
+XML příkaz zahraniční platba
+Element
+accountFrom
+currency
+
+Stav
+M
+M
+
+Formát
+16n
+3!x
+
+Popis
+číslo účtu příkazce
+měna účtu dle standardu ISO
+4217
+
+Příklad
+1234562
+USD
+
+amount
+
+M
+
+18d
+
+částka příkazu
+
+100.00
+
+accountTo
+
+M
+
+34x
+
+bic
+
+M
+
+11!x
+
+PK36SCBL000000
+1123456702
+ALFHPKKAXXX
+
+date
+comment
+benefName
+benefStreet
+benefCity
+
+M
+O
+M
+M
+M
+
+RRRR-MM-DD
+140e
+35e
+35x
+35x
+
+číslo učtu
+příjemce/inkasovaného
+bankovní identifikační kód dle
+standardu ISO 9362
+datum
+upřesňující informace
+majitel účtu
+bydliště majitele účtu-ulice
+bydliště majitele účtu-město
+
+www.fio.cz
+
+2013-04-25
+Payment a0315
+Amir Khan
+Nishtar Rd 13
+Karachi
+Verze 17. 5. 2024
+
+benefCountry
+remittanceInfo1
+
+M
+M
+
+3x
+35x
+
+země majitele účtu
+informace pro přijemce
+
+remittanceInfo2
+remittanceInfo3
+remittanceInfo4
+detailsOfCharges
+
+O
+O
+O
+M
+
+35x
+35x
+35x
+6!n
+
+paymentReason
+
+M
+
+3!n
+
+informace pro přijemce
+informace pro přijemce
+informace pro přijemce
+poplatky:
+470501 – vše plátce (OUR)
+470502 – vše přijemce (BEN)
+470503 – každý sám své (SHA)
+platební titul viz 6.3.4 Platební
+titul
+
+PK
+Payment for hotel
+032013
+
+470502
+
+348
+
+Příklad zahraniční platby
+1: <?xml version="1.0" encoding="UTF-8"?>
+2: <Import xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+3: xsi:noNamespaceSchemaLocation="http://www.fio.cz/schema/importIB.xsd">
+4: <Orders>
+5: <ForeignTransaction>
+6: <accountFrom>1234562</accountFrom>
+7: <currency>USD</currency>
+8: <amount>100.00</amount>
+9: <accountTo>PK36SCBL0000001123456702</accountTo>
+10: <bic>ALFHPKKAXXX</bic>
+11: <date>2013-04-25</date>
+12: <comment>Payment a0315</comment>
+13: <benefName>Amir Khan</benefName>
+14: <benefStreet>Nishtar Rd 13</benefStreet>
+15: <benefCity>Karachi</benefCity>
+16: <benefCountry>PK</benefCountry>
+17: <remittanceInfo1>Payment for hotel 032013</remittanceInfo1>
+18: <remittanceInfo2></remittanceInfo2>
+19: <remittanceInfo3></remittanceInfo3>
+20: <remittanceInfo4></remittanceInfo4>
+21: <detailsOfCharges>470502</detailsOfCharges>
+22: <paymentReason>348</paymentReason>
+23: </ForeignTransaction>
+24: </Orders>
+25: </Import>
+
+Platební titul
+Hodnota
+110
+112
+120
+122
+130
+132
+135
+190
+195
+210
+211
+212
+213
+214
+www.fio.cz
+
+Popis
+Vývoz zboží
+Finanční pronájem (leasing) – vývoz
+Dovoz zboží
+Finanční pronájem (leasing) – dovoz
+Reexport
+Zpracování
+Opravy
+Transakce z použití směnek a šeků
+Časově neidentifikované platební tituly
+Železniční nákladní – inkasa a platby spojené s přepravou zboží po železnici
+Železniční osobní – inkasa a platby spojené s přepravou osob po železnici
+Železniční ostatní
+Námořní nákladní
+Námořní osobní
+Verze 17. 5. 2024
+
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+226
+233
+235
+239
+260
+262
+265
+270
+272
+275
+280
+282
+285
+295
+310
+311
+312
+315
+318
+320
+325
+326
+327
+328
+330
+332
+335
+340
+345
+346
+347
+348
+352
+355
+360
+361
+365
+368
+369
+370
+372
+375
+376
+378
+380
+382
+384
+www.fio.cz
+
+Námořní ostatní
+Vnitrozemská vodní nákladní
+Vnitrozemská vodní osobní
+Vnitrozemská vodní ostatní
+Letecká nákladní
+Letecká osobní
+Letecká ostatní
+Silniční nákladní
+Silniční osobní
+Silniční ostatní
+Kombinovaná doprava
+Kosmická doprava
+Potrubní tranzit
+Ostatní přepravní služby
+Nákup cizí měny za hotovost
+Nákup cizí měny s připsáním na účet fyzické osoby v Kč
+Nákup cizí měny s připsáním na účet právnické osoby v Kč
+Prodej cizí měny za hotovost
+Prodej cizí měny s odepsáním z účtu fyzické osoby v Kč
+Prodej cizí měny s odepsáním z účtu právnické osoby v Kč
+Aktivní cestovní ruch
+Pasivní cestovní ruch
+Mimobankovní směnárny
+Transakce z použití platebních karet
+Poštovní služby
+Kurýrní služby
+Telekomunikační a radiokomunikační služby
+Stavební a montážní práce v zahraničí
+Stavební a montážní práce v tuzemsku
+Ziskové operace se zbožím
+Opravy
+Pojištění zboží
+Zajištění (pojišťoven)
+Pomocné služby při pojištění
+Ostatní pojištění
+Životní a penzijní pojištění
+Finanční služby
+Reklama
+Právní služby
+Účetnické a auditorské služby
+Poradenství v podnikání a řízení, služby v oblasti vytváření vztahu k veřejnosti – public
+relations
+Nájemné
+Pronájem strojů a zařízení
+Výzkum a vývoj
+Autorské honoráře, licenční poplatky
+Ochranné známky, franšízy
+Služby výpočetní techniky
+Informační služby
+Služby mezi podniky v rámci přímých investic
+Diplomatická zastoupení České republiky v zahraničí
+Zahraniční diplomatická zastoupení v České republice
+Vládní příjmy a výdaje
+Ostatní vládní příjmy a výdaje
+Zprostředkovatelské služby
+Ostatní služby obchodní povahy
+Audiovizuální služby
+Služby v oblasti vzdělávání
+Verze 17. 5. 2024
+
+385
+386
+387
+388
+390
+392
+395
+397
+410
+412
+510
+520
+530
+532
+535
+538
+540
+550
+610
+612
+615
+618
+620
+622
+625
+628
+630
+632
+635
+640
+650
+652
+653
+725
+735
+740
+742
+745
+748
+750
+752
+755
+760
+762
+770
+790
+818
+820
+822
+825
+835
+850
+852
+855
+862
+890
+950
+952
+www.fio.cz
+
+Služby v oblasti kultury, zábavy, sportu a rekreace
+Služby v oblasti zdravotnictví a veterinární péče
+Služby v oblasti zemědělství
+Služby v oblasti odpadového hospodářství
+Technické služby
+Služby v oblasti těžebního průmyslu
+Zastoupení českých firem v zahraničí
+Zastoupení zahraničních firem v ČR
+Převody pracovních příjmů u krátkodobého pobytu
+Převody pracovních příjmů u dlouhodobého pobytu
+Výnosy z přímých investic
+Výnosy z portfoliových investic
+Úroky – přímé investice
+Úroky – portfoliové investice
+Úroky z finančních a ostatních úvěrů
+Úroky z obchodních úvěrů
+Úroky z depozit
+Důchody z půdy
+Převody (nenávratné) – podpory, odškodnění, věna apod.
+Dědictví a dary
+Výživné
+Penze
+Příspěvky mezinárodním organizacím ze státního rozpočtu
+Příspěvky mezinárodním organizacím mimo státní rozpočet
+Převody v souvislosti s vystěhováním
+Zahraniční pomoc
+Dotace
+Pokuty, penále
+Daně a poplatky
+Nákup a prodej vlastnických práv a nefinančních aktiv
+Ostatní finanční převody
+Příspěvky a výhry
+Vklady a příspěvky do nadací a nadačních fondů
+Finanční deriváty
+Nákup a prodej nemovitostí v zahraničí
+Poskytnuté úvěry krátkodobé účelové
+Poskytnuté úvěry krátkodobé finanční (bez stanoveného účelu)
+Poskytnuté úvěry střednědobé a dlouhodobé účelové
+Poskytnuté úvěry střednědobé a dlouhodobé finanční (bez stanoveného účelu)
+Vklady a výběry z vkladů promptních a krátkodobých
+Dotace účtů
+Vklady a výběry z vkladů střednědobých a dlouhodobých
+Konverze, arbitráže a další operace
+Řízení likvidity peněžních prostředků (cash-pooling, zero balancing)
+Členské podíly v mezinárodních organizacích
+Zajištění závazků cizozemce
+Tuzemské portfoliové investice
+Tuzemské dluhové cenné papíry krátkodobé
+Tuzemské dluhové cenné papíry střednědobé a dlouhodobé
+Finanční deriváty
+Nákup a prodej nemovitostí v tuzemsku
+Vklady a výběry z vkladů promptních a krátkodobých
+Dotace účtů
+Vklady a výběry z vkladů střednědobých a dlouhodobých
+Řízení likvidity peněžních prostředků (cash-pooling, zero balancing)
+Zajištění závazku tuzemce
+Převody mezi tuzemci
+Převody mezi cizozemci
+Verze 17. 5. 2024
+
+SEPA (pain)
+pain.001 (platební příkazy)
+Zpracování dávkového souboru ve struktuře pain.001.001.03 odpovídá standardu, který je definovaný ve
+standardu SEPA Credit Transfer Scheme Customer-to-Bank Implementation Guidelines Version .
+Import plateb lze provést pouze v měně EUR. Jiná měna není povolena.
+XSD je dostupné zde: https://www.fio.cz/schema/pain.001.001.03.xsd
+Elementy <BIC> a <BICOrBEI> jsou nepovinná. Je-li použit jeden z těchto elementů, tak obsah polí
+musí být v souladu s XSD a splňovat jeho formát.
+
+Příklad platebního EUR příkazu:
+1:
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+9:
+10:
+11:
+12:
+13:
+14:
+15:
+16:
+17:
+18:
+19:
+20:
+21:
+22:
+23:
+24:
+25:
+26:
+27:
+28:
+29:
+30:
+31:
+32:
+33:
+34:
+35:
+36:
+37:
+38:
+39:
+40:
+41:
+42:
+43:
+44:
+45:
+www.fio.cz
+
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03
+pain.001.001.03.xsd">
+<CstmrCdtTrfInitn>
+<GrpHdr>
+<MsgId>MCCT000000035166629</MsgId>
+<CreDtTm>2015-11-11T09:46:06</CreDtTm>
+:
+<NbOfTxs>000000000000003</NbOfTxs>
+:
+<CtrlSum>16.00</CtrlSum>
+:
+<InitgPty>
+:
+<Nm>Jan Novák</Nm>
+:
+</InitgPty>
+:
+</GrpHdr>
+:
+<PmtInf>
+:
+<PmtInfId>15100700002</PmtInfId>
+:
+<PmtMtd>TRF</PmtMtd>
+:
+<BtchBookg>true</BtchBookg>
+:
+<NbOfTxs>000000000000003</NbOfTxs>
+:
+<CtrlSum>16.00</CtrlSum>
+:
+<PmtTpInf>
+:
+<InstrPrty>NORM</InstrPrty>
+:
+<SvcLvl>
+:
+<Cd>SEPA</Cd>
+:
+</SvcLvl>
+:
+</PmtTpInf>
+:
+<ReqdExctnDt>2015-11-11</ReqdExctnDt>
+:
+<Dbtr>
+:
+<Nm>Jan Novák</Nm>
+:
+<PstlAdr>
+:
+<Ctry>CZ</Ctry>
+:
+<AdrLine>Novakova 178</AdrLine>
+:
+<AdrLine>Praha 1</AdrLine>
+:
+</PstlAdr>
+:
+</Dbtr>
+:
+<DbtrAcct>
+:
+<Id>
+:
+<IBAN>CZ5220100000000000000123</IBAN>
+:
+</Id>
+:
+<Ccy>EUR</Ccy>
+:
+</DbtrAcct>
+:
+<DbtrAgt>
+:
+<FinInstnId>
+:
+<BIC>FIOBCZPPXXX</BIC>
+Verze 17. 5. 2024
+
+46:
+47:
+48:
+49:
+50:
+51:
+52:
+53:
+54:
+55:
+56:
+57:
+58:
+59:
+60:
+61:
+62:
+63:
+64:
+65:
+66:
+67:
+68:
+69:
+70:
+71:
+72:
+73:
+74:
+75:
+76:
+77:
+78:
+79:
+80:
+81:
+82:
+83:
+84:
+85:
+86:
+87:
+88:
+89:
+90:
+91:
+92:
+93:
+94:
+95:
+96:
+97:
+98:
+99:
+100:
+101:
+102:
+103:
+104:
+105:
+106:
+www.fio.cz
+
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+:
+
+</FinInstnId>
+</DbtrAgt>
+<ChrgBr>SLEV</ChrgBr>
+<CdtTrfTxInf>
+<PmtId>
+<InstrId>191</InstrId>
+<EndToEndId>/VS0123456789/SS9876543210/KS1234</EndToEndId>
+</PmtId>
+<Amt>
+<InstdAmt Ccy="EUR">1.00</InstdAmt>
+</Amt>
+<CdtrAgt>
+<FinInstnId>
+<BIC>KOMBCZPPXXX</BIC>
+</FinInstnId>
+</CdtrAgt>
+<Cdtr>
+<Nm>Sepa,s.r.o.</Nm>
+<PstlAdr>
+<Ctry>CZ</Ctry>
+<AdrLine>Okruzni 55</AdrLine>
+<AdrLine>Praha 1</AdrLine>
+</PstlAdr>
+</Cdtr>
+<CdtrAcct>
+<Id>
+<IBAN>CZ6701000000000000123123</IBAN>
+</Id>
+</CdtrAcct>
+<RmtInf>
+</RmtInf>
+</CdtTrfTxInf>
+<CdtTrfTxInf>
+<PmtId>
+<InstrId>192</InstrId>
+<EndToEndId>/VS0123456789/SS9876543210/KS1234</EndToEndId>
+</PmtId>
+<Amt>
+<InstdAmt Ccy="EUR">5.00</InstdAmt>
+</Amt>
+<CdtrAgt>
+<FinInstnId>
+<BIC>DABASESXXXX</BIC>
+</FinInstnId>
+</CdtrAgt>
+<Cdtr>
+<Nm>Adrian Sweet</Nm>
+<PstlAdr>
+<Ctry>SE</Ctry>
+<AdrLine>Street 225</AdrLine>
+<AdrLine>Stockholm</AdrLine>
+</PstlAdr>
+</Cdtr>
+<CdtrAcct>
+<Id>
+<IBAN>SE6412000000012170145230</IBAN>
+</Id>
+</CdtrAcct>
+<RmtInf>
+</RmtInf>
+</CdtTrfTxInf>
+Verze 17. 5. 2024
+
+107: :
+<CdtTrfTxInf>
+108: :
+<PmtId>
+109: :
+<InstrId>190</InstrId>
+110: :
+<EndToEndId>example of end2end</EndToEndId>
+111: :
+</PmtId>
+112: :
+<Amt>
+113: :
+<InstdAmt Ccy="EUR">10.00</InstdAmt>
+114: :
+</Amt>
+115: :
+<CdtrAgt>
+116: :
+<FinInstnId>
+117: :
+<BIC>WBKPPLPPXXX</BIC>
+118: :
+</FinInstnId>
+119: :
+</CdtrAgt>
+120: :
+<Cdtr>
+121: :
+<Nm>Poland Marco</Nm>
+122: :
+<PstlAdr>
+123: :
+<Ctry>PL</Ctry>
+124: :
+<AdrLine>Address 11</AdrLine>
+125: :
+<AdrLine>Wroclaw</AdrLine>
+126: :
+</PstlAdr>
+127: :
+</Cdtr>
+128: :
+<CdtrAcct>
+129: :
+<Id>
+130: :
+<IBAN>PL37109024020000000610000434</IBAN>
+131: :
+</Id>
+132: :
+</CdtrAcct>
+133: :
+<RmtInf>
+134: :
+</RmtInf>
+135: :
+</CdtTrfTxInf>
+136: :
+</PmtInf>
+137: : </CstmrCdtTrfInitn>
+138: </Document>
+:
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+pain.008 (příkazy k inkasu)
+Zpracování dávkového souboru ve struktuře pain.008.001.02 odpovídá standardu.
+XSD je dostupné zde: https://www.fio.cz/schema/pain.008.001.02.xsd
+
+Příklad SEPA inkaso:
+1:
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+9:
+10:
+11:
+12:
+13:
+14:
+15:
+16:
+17:
+18:
+19:
+20:
+21:
+22:
+23:
+24:
+25:
+26:
+27:
+28:
+29:
+30:
+31:
+32:
+33:
+34:
+35:
+36:
+37:
+38:
+39:
+40:
+41:
+42:
+43:
+44:
+45:
+46:
+47:
+48:
+49:
+50:
+51:
+52:
+53:
+www.fio.cz
+
+<?xml version="1.0" encoding="utf-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.008.001.02"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="urn:iso:std:iso:20022:tech:xsd:pain.008.001.02
+pain.008.001.02.xsd">
+<CstmrDrctDbtInitn>
+<GrpHdr>
+<MsgId>MCCT000000032497622</MsgId>
+<CreDtTm>2015-11-13T09:01:37</CreDtTm>
+:
+<NbOfTxs>000000000000001</NbOfTxs>
+:
+<CtrlSum>25.00</CtrlSum>
+:
+<InitgPty>
+:
+<Nm>firma, a.s.</Nm>
+:
+</InitgPty>
+:
+</GrpHdr>
+:
+<PmtInf>
+:
+<PmtInfId>15100700002</PmtInfId>
+:
+<PmtMtd>DD</PmtMtd>
+:
+<BtchBookg>true</BtchBookg>
+:
+<NbOfTxs>000000000000001</NbOfTxs>
+:
+<CtrlSum>25.00</CtrlSum>
+:
+<PmtTpInf>
+:
+<SvcLvl>
+:
+<Cd>SEPA</Cd>
+:
+</SvcLvl>
+:
+<LclInstrm>
+:
+<Cd>CORE</Cd>
+:
+</LclInstrm>
+:
+</PmtTpInf>
+:
+<ReqdColltnDt>2015-11-17</ReqdColltnDt>
+:
+<Cdtr>
+:
+<Nm>firma, a.s.</Nm>
+:
+</Cdtr>
+:
+<CdtrAcct>
+:
+<Id>
+:
+<IBAN>SK6383300000000000000123</IBAN>
+:
+</Id>
+:
+<Ccy>EUR</Ccy>
+:
+</CdtrAcct>
+:
+<CdtrAgt>
+:
+<FinInstnId>
+:
+<BIC>FIOZSKBAXXX</BIC>
+:
+</FinInstnId>
+:
+</CdtrAgt>
+:
+<DrctDbtTxInf>
+:
+<PmtId>
+:
+<InstrId>183</InstrId>
+:
+<EndToEndId>/VS555/KS0309/SS12345</EndToEndId>
+:
+</PmtId>
+:
+<PmtTpInf>
+:
+<SeqTp>OOFF</SeqTp>
+:
+</PmtTpInf>
+:
+<InstdAmt Ccy="EUR">25.00</InstdAmt>
+Verze 17. 5. 2024
+
+54:
+55:
+56:
+57:
+58:
+59:
+60:
+61:
+62:
+63:
+64:
+65:
+66:
+67:
+68:
+69:
+70:
+71:
+72:
+73:
+74:
+75:
+76:
+77:
+78:
+79:
+80:
+81:
+82:
+83:
+84:
+85:
+86:
+87:
+88:
+89:
+90:
+91:
+92:
+93:
+94:
+95:
+96:
+97:
+98:
+
+www.fio.cz
+
+:
+<ChrgBr>SLEV</ChrgBr>
+:
+<DrctDbtTx>
+:
+<MndtRltdInf>
+:
+<MndtId>12345</MndtId>
+:
+<DtOfSgntr>2009-01-19</DtOfSgntr>
+:
+<AmdmntInd>false</AmdmntInd>
+:
+</MndtRltdInf>
+:
+<CdtrSchmeId>
+:
+<Id>
+:
+<PrvtId>
+:
+<Othr>
+:
+<Id>SK251235222</Id>
+:
+<SchmeNm>
+:
+<Prtry>SEPA</Prtry>
+:
+</SchmeNm>
+:
+</Othr>
+:
+</PrvtId>
+:
+</Id>
+:
+</CdtrSchmeId>
+:
+</DrctDbtTx>
+:
+<DbtrAgt>
+:
+<FinInstnId>
+:
+<BIC>SUBASKBXXXX</BIC>
+:
+</FinInstnId>
+:
+</DbtrAgt>
+:
+<Dbtr>
+:
+<Nm>Klient</Nm>
+:
+<PstlAdr>
+:
+<Ctry>SK</Ctry>
+:
+<AdrLine>Adresa</AdrLine>
+:
+<AdrLine>Bratislava</AdrLine>
+:
+</PstlAdr>
+:
+</Dbtr>
+:
+<DbtrAcct>
+:
+<Id>
+:
+<IBAN>SK1502000000001444615051</IBAN>
+:
+</Id>
+:
+</DbtrAcct>
+:
+<RmtInf>
+:
+<Ustrd>Testovaci prikaz k inkasu (VS555/KS/SS)</Ustrd>
+:
+</RmtInf>
+:
+</DrctDbtTxInf>
+:
+</PmtInf>
+: </CstmrDrctDbtInitn>
+</Document>
+:
+
+Verze 17. 5. 2024
+
+7
+
+UPOZORNĚNÍ NA BEZPEČNOSTNÍ RIZIKA SOUVISEJÍCÍ S POUŽÍVÁNÍM API
+a. Data obsažená v konfiguraci API jsou velmi citlivé údaje, a to zejména token k účtům. Chraňte svůj
+soubor nebo uložená data s konfigurací k API proti jejich zneužití, zejména proti odcizení,
+okopírování apod. Zneužitím Vašich konfiguračních údajů může jiná osoba předstírat Vaši identitu a
+zadávat pokyny Vaším jménem či získávat informace o pohybech. Zneužití souboru s konfigurací
+nebo dat Vám může způsobit škodu.
+b. Soubor s konfigurací nebo data uchovávejte pouze na počítači, o kterém víte, že je chráněn proti
+možným hrozbám plynoucím z připojení k datové síti. Neukládejte konfiguraci na počítač, který je
+veřejně přístupný.
+c. Uchováváte-li konfiguraci na jiném přenosném médiu, ukládejte toto médium na místo, kde nedojde
+k jeho zneužití, zejména odcizení, okopírování nebo poškození.
+
+8
+
+ZNÁMÉ CHYBOVÉ STAVY
+
+The server encoutered an internal error () that prevented it from fulfilling this
+request.
+Pokoušíte se soubor odeslat jako klasický POST a nikoli jako přílohu. Viz část 6.1 Parametry pro upload dat.
+
+Status Code:404 Not Found
+Špatně zaslaný dotaz, na který server nemůže řádně odpovědět. Zkontrolujte si parametry URL
+v dotazu/importu.
+
+Status Code:409 Conflict
+Není dodržen minimální interval 30 sekund mezi stažením dat z banky / uploadem dat do banky u
+konkrétního tokenu (bez ohledu na typ formátu). Konkrétní token lze použít pouze 1x pro čtení nebo zápis
+během 30 sekund
+
+Status Code:500 Internal Server Error
+Chyba indikuje neexistující nebo neaktivní token. Zkontrolujte si platnost a správnost tokenu v internetovém
+bankovnictví.
+
+SSL certificate problém: unable to get local issuer certificate
+Při importu příkazů do bankovního systému probíhá kontrola certifikátu certifikační autority. Tato kontrola
+selhala a je nutné získat nový používaný certifikát, a to buď dle bodu 6.1., anebo přímo ze stránek Fio
+banky:
+Pro uživatele Google Chrome:
+a. ib.fio.cz/ib/login
+b. kliknout na zámeček v URL prohlížeče
+c. prokliknout certifikát
+d. záložka Cesta k certifikátu
+e. zvolte první řádek (root CA)
+f. tlačítko Zobrazit certifikát
+g. záložka Podrobnosti
+h. tlačítko Kopírovat do souboru
+i. po vyžádání typu formátu zvolte X.509, kódování Base-64(CER)
+j. vyplňte umístění, kam chcete soubor s certifikátem uložit
+k. po dokončení najděte soubor v adresáři a změňte koncovku na .pem
+l. v bodu e. zvolte prostřední řádek (intermediate certifikát) a pokračujte až do bodu k.
+m. nahrajte oba certifikáty do truststore aplikace používané k vytvoření SSL komunikace
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+Pro uživatele Mozilla Firefox:
+a. ib.fio.cz/ib/login
+b. kliknout na zámeček v URL prohlížeče
+c. šipkou doprava Zobrazte podrobnosti spojení
+d. tlačítko Více informací
+e. záložka Zabezpečení
+f. tlačítko Zobrazit certifikát
+g. nahoře kliknout na prostřední (intermediate) certifikát
+h. v řádku Stáhnout prokliknout nápis PEM (certifikát)
+i. nahoře kliknout na pravý (root CA) certifikát
+j. v řádku Stáhnout prokliknout nápis PEM (certifikát)
+k. nahrajte oba certifikáty do truststore aplikace používané k vytvoření SSL komunikace
+
+Status Code: 413 Příliš mnoho položek
+Stahujete velkou množinu dat. Limit pro stažení je nastaven na max 50 000 pohybů.
+Upravte si adekvátně datumový rozsah v zasílaném dotazu nebo je nutné nastavit zarážku na novější pohyb.
+
+Error: 422
+Jsou požadována data starší 90 dní, aniž byl přístup k historickým datům silně autorizován. Pro získání dat
+je potřeba postupovat dle 3.1.
+
+www.fio.cz
+
+Verze 17. 5. 2024
+
+9
+
+ZMĚNY VE VERZÍCH DOKUMENTACE
+
+Verze
+
+Datum
+
+Obsah
+0
+
+0.9.1
+
+5.10.2012
+
+0.9.2.
+
+24.10.2012
+
+5.3.1.4
+
+25.10.2012
+
+5.3.1.4
+
+0.9.2.
+
+26.10.2012
+
+5.3.1
+5.3.1.4
+5.3.1.6
+
+1.0.
+
+1.11.2012
+
+1.0.1
+
+5.11.2012
+
+1.0.2
+
+6.11.2012
+
+1.0.3
+
+20.11.2012
+
+1.0.4.
+
+14.1.2013
+
+1.0.5.
+
+20.2.2013
+
+1.0.6
+
+23.2.2013
+
+5.2
+5.2.3
+5.2.4
+5
+
+1.0.7
+
+22.4.2013
+
+5.3.1
+
+1.2
+
+25.4.2013
+
+4
+
+1.2.1
+
+12.6.2013
+
+5.3.1.8
+
+www.fio.cz
+
+Změna na
+Opraveno na
+dateStart, dateEnd
+příklad: 2012-07-27+0200
+Přidáno upozornění do
+dokumentace:
+Pole :86: je maximálně dlouhé 65x.
+Pokud je pole větší, tak hodnoty jsou
+odděleny <CR><LF>
+
+5.3.1.7
+
+5.3.1.7
+
+0.9.2
+
+Změna z
+Chybný příklad
+v dokumentaci
+dateStart, dateEnd
+příklad: 2012-07-27+02:00
+
+Chyba v příkladu
+v dokumentaci
+:20:1210031631571
+:20:1210031631578
+Za posledním polem u
+pohybu na řádku
+obsahovala hodnota
+oddělovač a <CR><LF>
+
+:20:121003163157-1
+:20:121003163157-8
+Hodnota má za sebou pouze
+<CR><LF>
+Hodnoty u pohybů ve sloupcích:
+Název protiúčtu, Název banky,
+Uživatelská identifikace, Zpráva pro
+příjemce, Provedl, Upřesnění,
+Komentář budou v polích zobrazeny
+vždy v uvozovkách, pokud bude pole
+obsahovat data. Mají-li hodnoty již
+v sobě uvozovky, pak budou
+zdvojeny.
+
+U formátů json, html, csv,
+xml se v hlavičce
+nevyskytovaly vyplněné
+hodnoty idFrom, idTo
+Vyhlášena verze 1.0.
+5.3.1
+až
+5.3.1.7
+Uvedeny špatné formáty
+5.2.2
+dat pro Rok výpisu a ID
+Struktura příklad:
+5.2.4
+https://ww.fio.cz
+5.3.1.2
+Úprava času
+5.3.1.3
+
+Příklady v API a v dokumentaci
+opraveny.
+Doplněn chybějící popis znakové
+sady do specifikace k jednotlivým
+formátům.
+rok – formát: rrrr
+id – číslo výpisu
+Oprava na https://www.fio.cz
+Doplněny časové zóny
+Doplněny čísla výpisu v příkladu
+pozice 106 – 108
+Upřesnění významů popisu.
+
+Špatná délka IBANu
+
+Doplněny typy pohybů.
+Opraveno na korektní délku 34
+znaků.
+Vytvořeny podporované formáty
+podávaní příkazů, ABO příkaz a XML
+příkaz.
+
+Oprava popisku errorCode
+Verze 17. 5. 2024
+
+1.2.2
+
+13.6.2013
+
+6.1
+
+Doplněny parametry uploadu
+
+1.2.3
+
+14.6.2013
+
+6.1
+
+Doplněno volání o multipart/formdata
+
+5.1
+
+Nový formát dat: PDF (výpisy)
+
+1.2.4
+
+24.6.2013
+
+Doplněny informace o rozdílu mezi
+Idpohyb a Idpokyn
+Importovaná data musejí být
+autorizovány
+
+5.2.6
+5.3.1.8
+
+1.2.5
+
+10.7.2013
+
+6.4
+
+Přidáno bezpečnostní upozornění
+
+1.2.6
+
+2.10.2013
+
+6.1
+
+Přidány příklady použití cURL
+
+1.2.7
+
+16.11.2013
+
+8
+
+Přidány známé chybové stavy
+
+1.2.8
+
+14.1.2014
+
+5.2.6
+
+Přidán další příklad rozdílu mezi
+pohybem a pokynem
+
+1.2.9
+
+20.4.2014
+
+6.1
+
+Opraven příklad curl pro Windows
+
+1.3.0
+
+29.5.2014
+
+0
+
+Opraveny chybné názvy zemí
+
+1.3.1
+
+22.7.2014
+
+2
+
+Přidán popis typů (práv) tokenu
+
+1.3.2
+
+10.12.2014
+
+6.3.1
+6.3.2
+6.3.3
+
+Opraveno v elementu „date“ stav
+z nepovinné (O) na povinné (M)
+
+1.3.3
+
+14.1.2015
+
+vše
+
+Grafická korekce dokumentu
+
+1.3.4
+
+15.1.2015
+
+2
+
+1.3.5
+
+20.2.2015
+
+6.3.2
+6.3.3
+
+1.3.6
+
+24.2.2015
+
+6.3.
+
+1.3.7
+
+7.4.2015
+
+5.3.6.
+
+1.3.8
+
+6.5.2015
+
+5.3.1.
+5.3.5.
+6.1
+
+1.3.9
+
+Špatná délka znaků
+v údajích o příjemci (50x)
+
+Špatně definovaný atribut
+ve struktuře JSON
+„accounId“ v dokumentaci
+Špatný formát dat
+dd-mm-rrrr+GMT
+Certifikát certifikační
+autority Root 1
+
+26.5.2015
+8.3.
+
+Doplňující informace o autorizaci
+tokenu i více osobami
+Element benefName, benefStreet a
+benefCity přijme pouze 35 znaku.
+Doplněna informace o pořadí
+tuzemských, euro a zahraničních
+plateb
+Nahrazen správným „accountId“
+Data opraveny na správný formát
+rrrr-mm-dd+GMT
+Nový certifikát certifikační autority
+Root 3
+Nová známá chyba SSL certificate
+57roblém: unable to get local issuer
+certificate
+
+1.4.0
+
+21.7.2015
+
+8.1.
+
+Viz část 7.1 Parametry pro
+upload dat.
+
+Viz část 6.1 Parametry pro upload
+dat.
+
+1.4.1
+
+7. 9. 2015
+
+4
+
+Parametr benefName
+
+Definován nový datový typ “e“
+
+1.4.2
+
+6.4.1
+6.4.2
+
+Nový typ formátu pro import dat.
+Pain.001 a pain.008
+
+5.3.8
+5.3.9
+
+Nový typ formátu pro stažení výpisů
+camt.053
+
+11.11.2015
+
+1.4.3
+
+25.11.2015
+
+6.3.1
+6.3.2
+
+1.4.4
+
+17.12.2015
+
+6.1
+
+www.fio.cz
+
+Povinný parametr
+paymentType (M)
+
+Nepovinný parametr paymentType
+(O)
+Doplněn typ dat pro import pain.
+
+Verze 17. 5. 2024
+
+1.4.5
+
+14.3.2016
+
+6.1.
+
+Již starý typ certifikátu Root
+3
+
+Upraven odkaz na nový typ
+certifikátu Root 5
+3.2. Platba do ČR a SR změněna na
+Platba do ČR
+6.3.1 Platba do ČR a SR změněna
+na Platba do ČR, v elementu
+currency odstraněna věta Pro platbu
+do SR použít EUR
+6.3.2 U elementu bic změněn stav
+z M na O
+Příkazy ve formátu ABO lze pouze
+odesílat do ČR bank v CZK nebo
+v jiných měnách pouze v rámci Fio
+banky (2010). Příkazy do
+slovenských bank nejsou tímto
+způsobem již možné.
+
+1.4.6
+
+27.5.2016
+
+3.2
+6.3.1
+6.3.2
+
+Již staré typy plateb do ČR
+a SR
+
+1.4.7
+
+27.5.2016
+
+6.2.
+
+ABO
+
+1.4.8
+
+27.5.2016
+
+6.1
+
+Špatný příklad použití cURL
+
+1.4.9
+
+31.5.2016
+
+8
+
+1.5.0
+
+31.5.2016
+
+6.3.2
+
+1.5.1
+
+7.6.2016
+
+6.3
+
+1.5.2
+
+16.12.2016
+
+5.3.1
+
+1.6.0
+
+24.2.2017
+
+3.1
+5.2.5
+5.3.2
+
+1.6.1
+
+30.3.2017
+
+5.2.5
+
+Chybná struktura dotazu,
+obsahovala řetězec pos
+
+Opraveno na merchant.
+
+1.6.2
+
+3. 5. 2017
+
+6.3.1
+
+XML příkaz platba do ČR
+
+Změněno na XML Příkaz platba
+v rámci ČR
+
+1.6.3
+
+9.11.2017
+
+5.3.1.1
+
+Fio XML
+
+1.6.4
+
+14.12.2017
+
+6.3.1
+
+Zrychlená platba – payment
+type 431004
+
+Vymazána z dokumentace
+
+1.6.5
+
+17. 4. 2018
+
+6.3.1
+6.3.2
+6.3.3
+6.4.1
+6.4.2
+
+Změna znaku “ ve
+vzorových příkladech
+
+Nahrazeno znakem „
+
+1.6.6
+
+31. 10. 2018
+
+5.2.5
+
+Chybná struktura dotazu,
+chybějící část rest
+
+Struktura dotazu opravena
+
+1.6.7
+
+31. 10. 2018
+
+6.4.1
+
+1.6.8
+
+10. 1. 2019
+
+5.3.2.2
+
+www.fio.cz
+
+Příklad byl opraven.
+Nové chybové stavy.
+
+Chybné označení
+povinného parametru
+benefCountry M
+
+benefCountry O
+Link na XSD
+
+Chybný popis pole
+Upřesnění.
+
+Příklad opraven.
+Nový dataset Karetní transakce
+z POS terminálů nebo Platební brány
+obchodníka
+
+Přidán odkaz na xsd s číselníky
+
+Přidáno upozornění o polích
+<BIC></BIC> a
+<BICOrBEI></BICOrBEI>
+Chybný typ formátu u
+atributu autorizationNumber
+
+Opraveno na 10x
+
+Verze 17. 5. 2024
+
+1.6.9
+
+24. 1. 2019
+
+5.2.6
+
+1.6.10
+
+26. 6. 2019
+
+5.3.1.6
+
+1.6.11
+
+7. 11. 2019
+
+4.
+
+1.6.12
+
+7. 11. 2019
+
+6.3.1
+
+1.6.13
+
+8. 11. 2019
+
+5.3.1.1
+
+1.6.14
+
+8. 11. 2019
+
+5.3.1.2
+
+1.6.15
+
+8. 11. 2019
+
+5.3.1.4
+
+Nový příkaz pro zjištění čísla
+posledního vytvořeného oficiálního
+výpisu
+Rozšířeny informace v tabulce
+„Struktura TransactionList“ o „ID
+sloupce“
+Přidán datový typ i
+Chybný typ formátu u
+atributu comment (255x) a
+messageForRecipient
+(140x)
+Chybný typ formátu u
+Názvu protiúčtu (255x)
+Název banky (255x)
+Uživ. Identifikace (255x)
+Zpráva pro příjemce (140x)
+Typ (255x)
+Provedl (50x)
+Upřesnění (255x)
+Komentář (255x)
+Chybný typ formátu u
+atributu NAME (32x)
+Chybný typ formátu u
+Názvu protiúčtu (255x)
+Název banky (255x)
+Uživ. Identifikace (255x)
+Zpráva pro příjemce (140x)
+Typ (255x)
+Provedl (50x)
+Komentář (255x)
+Chybný typ formátu u
+Názvu protiúčtu (255x)
+Název banky (255x)
+Uživ. Identifikace (255x)
+Zpráva pro příjemce (140x)
+Typ (255x)
+Provedl (50x)
+Komentář (255x)
+
+Opraveno na 255i a 140i
+
+Opraveno na 255i
+Opraveno na 255i
+Opraveno na 255i
+Opraveno na 140i
+Opraveno na 255i
+Opraveno na 50i
+Opraveno na 255e
+Opraveno na 255i
+Opraveno na 32i
+Opraveno na 255i
+Opraveno na 255i
+Opraveno na 255i
+Opraveno na 140i
+Opraveno na 255i
+Opraveno na 50i
+Opraveno na 255i
+Opraveno na 255i
+Opraveno na 255i
+Opraveno na 255i
+Opraveno na 140i
+Opraveno na 255i
+Opraveno na 50i
+Opraveno na 255i
+
+1.6.16
+
+8. 11. 2019
+
+5.3.1.5.
+
+1.6.17
+
+18. 11. 2019
+
+5.3.1.1
+5.3.1.4
+5.3.1.5
+
+1.6.18
+
+18. 11. 2019
+
+6.1
+
+1.6.19
+
+15. 12. 2019
+
+5.2.6
+
+Chyba v struktuře příkazu
+
+Statemen opraven na statement
+
+1.6.20
+
+03. 1. 2020
+
+5.1.
+
+Přidány nové typy plateb
+
+Okamžité platby
+
+1.6.21
+
+13. 2. 2020
+
+5.3.1.9
+
+Doplněno upozornění na změnu
+oddělovačů u VS, SS a KS
+
+1.6.22
+
+17. 4. 2020
+
+8.6
+
+Přidán nový chybový stav status
+code 413
+
+1.6.23
+
+22. 4. 2020
+
+5.3.1.8
+
+www.fio.cz
+
+Chybný typ fromátu u
+Upřesnění
+
+Opraveno na 255i
+U parametru status v odpovědi na
+dávku přidány výsledky jednotlivých
+stavů
+
+Nové umístnění dokumentů
+na stránce sbaonline.sk
+
+Upravení odkazů na nejnovější
+umístění dokumentů
+Verze 17. 5. 2024
+
+1.6.24
+
+22. 4. 2020
+
+6.3.2
+6.3.3
+
+Špatný formát parametru
+comment
+
+Změněno z 255x na 140e
+
+1.6.25
+
+22. 4. 2020
+
+6.3.3
+
+Špatný formát parametru
+comment
+
+Změněno z 12n na 140e
+
+1.6.26
+
+5. 8. 2020
+
+6.3.1
+
+1.6.27
+
+11. 8. 2020
+
+5.3.1.8
+5.3.1.9
+
+Nové umístnění dokumentů
+na stránkách sbaonline.sk a
+cbaonline.cz
+
+Upravení odkazů na nejnovější
+umístění dokumentů
+
+1.6.28
+
+7. 10. 2020
+
+5.3.1.1
+5.3.1.6
+
+Přidán nový atribut
+
+Reference plátce
+
+1.7
+
+9. 4. 2021
+
+8.5
+
+1.7.1
+
+13. 7. 2021
+
+5.3.1.2
+5.3.1.5
+5.3.1.6
+5.3.1.8
+5.3.1.9
+6.1
+6.4.1
+6.4.2
+
+Nefunkční odkazy na
+externí subjekty
+
+Odkazy odstraněny z dokumentace
+
+1.7.2
+
+20. 7. 2021
+
+6.3.1
+
+Chybný typ formátu u
+bankCode (18d)
+
+Opraveno na 4!n
+
+1.7.3.
+
+2. 2. 2022
+
+5.3.2
+
+Doplnění elementu VS
+
+Nová položka
+
+1.7.4.
+
+16.8.2022
+
+6.3.1
+6.3.2
+6.3.3
+6.4.1
+6.4.2
+
+Oprava chybného typu
+uvozovek v záhlaví příkladů
+
+Uvozovky " znak ASCII 34
+
+1.7.5
+
+17.2.2023
+
+6.3.4
+
+Doplněno označení
+odkazovaného odstavce
+
+Doplněno číselné označení 6.3.4
+
+20. 3. 2023
+
+5.3.2.1
+5.3.2.2
+
+Přidány nové atributy
+
+flexibleCommission
+Poplatek vydavatele karty
+
+1.7.7
+
+26.07.2023
+
+2
+3.1
+8.7
+
+Doplněné informace
+Návod k získání dat starších 90 dnů
+Informace k chybě 422
+
+1.8
+
+17.5.2024
+
+5.1
+5.2
+6
+
+Přidány informace o
+omezení přístupu k datům
+za období starší než 90 dní.
+Doplnění nových typů
+platby
+Úprava původní struktury
+dotazů:
+„https://www.fio.cz/ib_api/“
+
+1.7.6
+
+www.fio.cz
+
+Doplněna informace o možnosti
+cizoměnových převodů v rámci Fia.
+
+Aktualizace postupu Firefox a
+chrome
+
+Doplněny typy pohybů 44 a 45
+Nová struktura:
+„https://fioapi.fio.cz/v1/“
+
+Verze 17. 5. 2024
+
+
