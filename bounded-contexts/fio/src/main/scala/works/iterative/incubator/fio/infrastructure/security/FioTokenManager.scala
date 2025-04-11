@@ -8,6 +8,7 @@ import javax.crypto.Cipher
 import javax.crypto.spec.{IvParameterSpec, SecretKeySpec}
 import java.time.Instant
 import scala.collection.concurrent.TrieMap
+import java.util.concurrent.TimeUnit
 
 /** Interface for Fio token management service
   *
@@ -89,42 +90,52 @@ class FioTokenManagerLive(
     override def getToken(accountId: Long): Task[Option[String]] =
         // First check the cache
         ZIO.succeed(tokenCache.get(accountId)).flatMap {
-            case Some(entry) if !isExpired(entry) =>
-                // Cache hit and not expired
-                for
-                    _ <- auditService.logEvent(TokenAuditEvent(
-                        timestamp = Instant.now(),
-                        eventType = TokenAuditEventType.CacheHit,
-                        accountId = accountId,
-                        message = "Token retrieved from cache"
-                    ))
-                    _ <- ZIO.logDebug(s"Cache hit for token access: accountId=$accountId")
-                yield Some(entry.token)
+            case Some(entry) =>
+                isExpired(entry).flatMap { expired =>
+                    if !expired then
+                        // Cache hit and not expired
+                        for
+                            _ <- auditService.logEvent(TokenAuditEvent(
+                                timestamp = Instant.now(),
+                                eventType = TokenAuditEventType.CacheHit,
+                                accountId = accountId,
+                                message = "Token retrieved from cache"
+                            ))
+                            _ <- ZIO.logDebug(s"Cache hit for token access: accountId=$accountId")
+                        yield Some(entry.token)
+                    else
+                        // Cache expired, fetch from repository
+                        fetchTokenFromRepository(accountId)
+                }
 
-            case _ =>
-                // Cache miss or expired, fetch from repository
-                for
-                    accountOpt <- repository.getById(accountId)
-                    token <- ZIO.foreach(accountOpt) { account =>
-                        // Decrypt the token
-                        val decryptedToken = decrypt(account.token, securityConfig.encryptionKey)
-                        // Update cache
-                        updateCache(account.id, decryptedToken)
-                        // Update source account cache
-                        val _ = sourceAccountCache.put(account.sourceAccountId, account.id)
-                        // Log the access
-                        auditService.logEvent(TokenAuditEvent(
-                            timestamp = Instant.now(),
-                            eventType = TokenAuditEventType.Access,
-                            accountId = account.id,
-                            sourceAccountId = Some(account.sourceAccountId),
-                            message = "Token retrieved from repository"
-                        )) *>
-                            ZIO.logInfo(s"Token retrieved from repository: accountId=$accountId")
-                                .as(decryptedToken)
-                    }
-                yield token
+            case None =>
+                // Cache miss, fetch from repository
+                fetchTokenFromRepository(accountId)
         }
+
+    // Helper method to reduce duplication
+    private def fetchTokenFromRepository(accountId: Long): Task[Option[String]] =
+        for
+            accountOpt <- repository.getById(accountId)
+            token <- ZIO.foreach(accountOpt) { account =>
+                // Decrypt the token
+                val decryptedToken = decrypt(account.token, securityConfig.encryptionKey)
+                // Update cache
+                updateCache(account.id, decryptedToken) *>
+                    // Update source account cache
+                    ZIO.succeed(sourceAccountCache.put(account.sourceAccountId, account.id)) *>
+                    // Log the access
+                    auditService.logEvent(TokenAuditEvent(
+                        timestamp = Instant.now(),
+                        eventType = TokenAuditEventType.Access,
+                        accountId = account.id,
+                        sourceAccountId = Some(account.sourceAccountId),
+                        message = "Token retrieved from repository"
+                    )) *>
+                    ZIO.logInfo(s"Token retrieved from repository: accountId=$accountId")
+                        .as(decryptedToken)
+            }
+        yield token
 
     /** Get a token for a source account
       */
@@ -163,7 +174,7 @@ class FioTokenManagerLive(
                 // Save to repository
                 repository.update(updatedAccount) *>
                     // Update cache with decrypted token
-                    ZIO.succeed(updateCache(accountId, token)) *>
+                    updateCache(accountId, token) *>
                     // Log the update
                     auditService.logEvent(TokenAuditEvent(
                         timestamp = Instant.now(),
@@ -208,13 +219,17 @@ class FioTokenManagerLive(
         yield ()
 
     // Helper method to update the cache
-    private def updateCache(accountId: Long, token: String): Unit =
-        val _ =
-            tokenCache.put(accountId, TokenCacheEntry(token, java.lang.System.currentTimeMillis()))
+    private def updateCache(accountId: Long, token: String): Task[Unit] =
+        for
+            currentTime <- Clock.currentTime(TimeUnit.MILLISECONDS)
+            _ <- ZIO.succeed(tokenCache.put(accountId, TokenCacheEntry(token, currentTime)))
+        yield ()
 
     // Helper method to check if a cache entry is expired
-    private def isExpired(entry: TokenCacheEntry): Boolean =
-        java.lang.System.currentTimeMillis() - entry.timestamp > cacheExpirationMs
+    private def isExpired(entry: TokenCacheEntry): Task[Boolean] =
+        for
+            currentTime <- Clock.currentTime(TimeUnit.MILLISECONDS)
+        yield currentTime - entry.timestamp > cacheExpirationMs
 end FioTokenManagerLive
 
 object FioTokenManagerLive:
@@ -272,7 +287,7 @@ object FioTokenManagerLive:
       * @return
       *   The encrypted value
       */
-    private def encrypt(value: String, key: String): String =
+    def encrypt(value: String, key: String): String =
         try
             // Use the first 16 bytes of the key as IV for simplicity
             // In production, consider using a proper IV generation and storage strategy
@@ -299,7 +314,7 @@ object FioTokenManagerLive:
       * @return
       *   The decrypted value
       */
-    private def decrypt(encryptedValue: String, key: String): String =
+    def decrypt(encryptedValue: String, key: String): String =
         try
             // Use the first 16 bytes of the key as IV for simplicity
             val keyBytes = key.getBytes("UTF-8").take(32)
