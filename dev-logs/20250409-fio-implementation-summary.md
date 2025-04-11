@@ -146,7 +146,7 @@ The current implementation uses a single token for all Fio Bank API calls, but t
   - Add validation for token format and security checks
 
 - [x] Implement FioAccountRepository:
-  - Create PostgreSQLFioAccountRepository implementation 
+  - Create PostgreSQLFioAccountRepository implementation
   - Create SQL migration script for fio_account table schema:
     ```sql
     CREATE TABLE fio_account (
@@ -172,7 +172,7 @@ The current implementation uses a single token for all Fio Bank API calls, but t
   - Update help message and examples
   - Provide backward compatibility with FIO_TOKEN for simple testing
 
-- [ ] Add token management and security:
+- [x] Add token management and security:
   - Create a secure service for storing and retrieving tokens
   - Add caching mechanism for frequent lookups
   - Implement proper encryption for token storage
