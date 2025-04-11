@@ -181,9 +181,6 @@ class SourceAccountModule(appShell: ScalatagsAppShell)
                                         name = form.values.get("name").flatMap(_.headOption).getOrElse(""),
                                         currency =
                                             form.values.get("currency").flatMap(_.headOption).getOrElse(""),
-                                        ynabAccountId = form.values.get("ynabAccountId").flatMap(
-                                            _.headOption
-                                        ).filter(_.nonEmpty),
                                         active = form.values.get("active").exists(_.contains("true"))
                                     )
                                     service.saveSourceAccount(updatedAccount).as(id)
@@ -199,9 +196,6 @@ class SourceAccountModule(appShell: ScalatagsAppShell)
                                         name = form.values.get("name").flatMap(_.headOption).getOrElse(""),
                                         currency =
                                             form.values.get("currency").flatMap(_.headOption).getOrElse(""),
-                                        ynabAccountId = form.values.get("ynabAccountId").flatMap(
-                                            _.headOption
-                                        ).filter(_.nonEmpty),
                                         active = form.values.get("active").exists(_.contains("true"))
                                     )
                                     service.createSourceAccount(createAccount)

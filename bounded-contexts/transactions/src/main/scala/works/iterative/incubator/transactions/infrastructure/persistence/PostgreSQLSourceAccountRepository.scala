@@ -67,7 +67,6 @@ class PostgreSQLSourceAccountRepository(xa: Transactor) extends SourceAccountRep
                         bankId = value.bankId,
                         name = value.name,
                         currency = value.currency,
-                        ynabAccountId = value.ynabAccountId,
                         active = value.active
                     )
                 )
@@ -130,7 +129,6 @@ object PostgreSQLSourceAccountRepository:
         bankId: String,
         name: String,
         currency: String,
-        ynabAccountId: Option[String] = None,
         active: Boolean = true,
         lastSyncTime: Option[Instant] = None
     ) derives DbCodec:
@@ -153,7 +151,6 @@ object PostgreSQLSourceAccountRepository:
         bankId: String,
         name: String,
         currency: String,
-        ynabAccountId: Option[String] = None,
         active: Boolean = true,
         lastSyncTime: Option[Instant] = None
     ) derives DbCodec

@@ -88,11 +88,7 @@ class SourceAccountViewsImpl extends SourceAccountViews with ScalatagsSupport {
       ScalatagsTailwindTable.Column[SourceAccount](
         header = "YNAB Account",
         render = account =>
-          account.ynabAccountId.map(id =>
-            span(id)
-          ).getOrElse(
-            span(cls := "text-gray-400 italic")("Not linked")
-          )
+          span(cls := "text-gray-400 italic")("See YNAB Mappings")
       ),
 
       // Status column
@@ -306,20 +302,11 @@ class SourceAccountViewsImpl extends SourceAccountViews with ScalatagsSupport {
           )
         ),
 
-        // YNAB Account ID
+        // Note that YNAB mapping is now done separately
         div(cls := "space-y-2")(
-          label(
-            cls := "block text-sm font-medium text-gray-700",
-            `for` := "ynabAccountId"
-          )("YNAB Account ID"),
-          input(
-            cls := "block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3",
-            `type` := "text",
-            id := "ynabAccountId",
-            name := "ynabAccountId",
-            value := account.flatMap(_.ynabAccountId).getOrElse("")
-          ),
-          p(cls := "text-xs text-gray-500")("Leave empty if not linked to YNAB")
+          p(cls := "text-sm text-blue-600")(
+            "YNAB Account mapping can be configured in the YNAB settings section"
+          )
         ),
 
         // Active status
@@ -421,11 +408,12 @@ class SourceAccountViewsImpl extends SourceAccountViews with ScalatagsSupport {
               p(cls := "text-lg")(account.currency)
             ),
             div(
-              p(cls := "font-medium text-gray-500")("YNAB Account ID"),
+              p(cls := "font-medium text-gray-500")("YNAB Account"),
               p(cls := "text-lg")(
-                account.ynabAccountId.getOrElse("") match
-                  case "" => span(cls := "text-gray-400 italic")("Not linked")
-                  case id => span(id)
+                a(
+                  href := "/ynab/account-mappings",
+                  cls := "text-blue-600 hover:underline"
+                )("Configure in YNAB settings")
               )
             ),
             div(

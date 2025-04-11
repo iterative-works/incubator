@@ -198,7 +198,6 @@ object FioCliMain extends ZIOAppDefault:
                             bankId = "2010",
                             currency = "CZK",
                             active = true,
-                            ynabAccountId = None,
                             lastSyncTime = None
                         )))
 
@@ -210,7 +209,6 @@ object FioCliMain extends ZIOAppDefault:
                             bankId = "2010",
                             currency = "CZK",
                             active = true,
-                            ynabAccountId = None,
                             lastSyncTime = None
                         )))
 

@@ -5,8 +5,8 @@ import works.iterative.core.service.Create
 
 /** Represents a bank account from which transactions are imported
   *
-  * This entity serves as a reference/lookup entity for mapping between bank accounts and YNAB
-  * accounts, as well as storing configuration for accessing bank APIs.
+  * This entity serves as a reference/lookup entity for bank accounts
+  * as well as storing configuration for accessing bank APIs.
   *
   * @param id
   *   Unique identifier for the source account
@@ -18,8 +18,6 @@ import works.iterative.core.service.Create
   *   User-defined name or alias for this account
   * @param currency
   *   ISO 4217 currency code (e.g., "CZK", "EUR", "USD")
-  * @param ynabAccountId
-  *   Optional ID of the corresponding account in YNAB
   * @param active
   *   Whether this account is active for importing transactions
   * @param lastSyncTime
@@ -33,7 +31,6 @@ case class SourceAccount(
     bankId: String,
     name: String,
     currency: String,
-    ynabAccountId: Option[String] = None,
     active: Boolean = true,
     lastSyncTime: Option[Instant] = None
 )
@@ -51,8 +48,6 @@ case class SourceAccount(
   *   User-defined name or alias for this account
   * @param currency
   *   ISO 4217 currency code (e.g., "CZK", "EUR", "USD")
-  * @param ynabAccountId
-  *   Optional ID of the corresponding account in YNAB
   * @param active
   *   Whether this account is active for importing transactions
   *
@@ -63,6 +58,5 @@ case class CreateSourceAccount(
     bankId: String,
     name: String,
     currency: String,
-    ynabAccountId: Option[String] = None,
     active: Boolean = true
 ) extends Create[SourceAccount]
