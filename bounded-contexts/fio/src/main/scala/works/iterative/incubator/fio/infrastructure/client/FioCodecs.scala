@@ -4,9 +4,9 @@ import zio.json.*
 import works.iterative.incubator.fio.domain.model.*
 
 /** JSON codecs for Fio Bank API responses
- *
- * Classification: Infrastructure Client Support
- */
+  *
+  * Classification: Infrastructure Client Support
+  */
 object FioCodecs:
     // Generic decoder for FioTransactionValue
     given stringValueDecoder: JsonDecoder[FioTransactionValue[String]] =

@@ -7,8 +7,8 @@ We usually use metals for development. It is useful to run sbt server separately
 - **Compile**: `sbtn compile`
 - **Run application**: `sbtn reStart`
 - **Run tests**: `sbtn test`
-- **Run specific test**: `sbtn "ynabImporterInfrastructureIT/testOnly works.iterative.incubator.transactions.infrastructure.PostgreSQLTransactionRepositorySpec"`
-- **Run with specific test**: `sbtn "ynabImporterInfrastructureIT/testOnly *PostgreSQLTransactionRepositorySpec -- -t 'should save and retrieve a transaction'"`
+- **Run specific test**: `sbtn "transactions/testOnly works.iterative.incubator.transactions.infrastructure.PostgreSQLTransactionRepositorySpec"`
+- **Run with specific test**: `sbtn "ynab-it/testOnly *PostgreSQLTransactionRepositorySpec -- -t 'should save and retrieve a transaction'"`
 - **Format code**: `sbtn scalafmtAll`
 
 ### Integration Testing

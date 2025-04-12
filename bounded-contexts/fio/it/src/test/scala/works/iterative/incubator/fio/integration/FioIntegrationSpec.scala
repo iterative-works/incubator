@@ -310,6 +310,16 @@ object FioIntegrationSpec extends ZIOSpecDefault:
                 client <- ZIO.service[FioClient]
                 token <- ZIO.fromOption(testToken)
                     .orElseFail(new RuntimeException("No FIO_TOKEN set"))
+                // Set a bookmark to 90 days ago to avoid 422 error for historical data
+                dateBookmark = LocalDate.now.minusDays(30)
+                _ <- client.setLastDate(token, dateBookmark)
+                    .catchAll(e =>
+                        Console.printLine(
+                            s"Warning: Failed to set bookmark: ${e.getMessage}"
+                        ) *> ZIO.unit
+                    )
+                _ <- Console.printLine(s"Set bookmark to ${dateBookmark}")
+                // Now fetch new transactions after the bookmark
                 response <- client.fetchNewTransactions(token)
                 _ <- Console.printLine(s"Account IBAN: ${response.accountStatement.info.iban}")
                 _ <- Console.printLine(
@@ -319,7 +329,23 @@ object FioIntegrationSpec extends ZIOSpecDefault:
         },
         test("Fio import service should import new transactions using last endpoint") {
             (for
+                client <- ZIO.service[FioClient]
                 service <- ZIO.service[FioImportService]
+                tokenManager <- ZIO.service[FioTokenManager]
+                // Get token and set bookmark
+                tokenOpt <- tokenManager.getToken(1L) // Using the test account ID
+                _ <- ZIO.foreach(tokenOpt) { token =>
+                    // Set a bookmark to 90 days ago to avoid 422 error
+                    val dateBookmark = LocalDate.now.minusDays(30)
+                    client.setLastDate(token, dateBookmark)
+                        .catchAll(e =>
+                            Console.printLine(
+                                s"Warning: Failed to set bookmark: ${e.getMessage}"
+                            ) *> ZIO.unit
+                        )
+                        *> Console.printLine(s"Set bookmark to ${dateBookmark}")
+                }
+                // Now import new transactions
                 count <- service.importNewTransactionsForAccount(testAccountId)
                 _ <- Console.printLine(
                     s"Imported $count new transactions for account $testAccountId"
@@ -333,7 +359,7 @@ object FioIntegrationSpec extends ZIOSpecDefault:
     ).provideLayer(allLayers) @@ TestAspect.ifEnvSet(
         "FIO_TOKEN"
     ) @@ TestAspect.sequential @@ TestAspect.around(
-        ZIO.sleep(30.second),
-        ZIO.unit
+        ZIO.unit,
+        ZIO.sleep(30.second)
     ) @@ TestAspect.withLiveEnvironment
 end FioIntegrationSpec

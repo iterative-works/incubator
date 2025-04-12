@@ -56,6 +56,9 @@ object FioClientSpec extends ZIOSpecDefault:
         override def fetchNewTransactions(token: String): Task[FioResponse] =
             ZIO.fromEither(responseJson.fromJson[FioResponse])
                 .mapError(err => new RuntimeException(s"Failed to parse test JSON: $err"))
+                
+        override def setLastDate(token: String, date: LocalDate): Task[Unit] =
+            ZIO.succeed(()) // Just succeed without doing anything in the mock
     end MockFioClient
 
     class FailingMockFioClient extends FioClient:
@@ -63,6 +66,9 @@ object FioClientSpec extends ZIOSpecDefault:
             ZIO.fail(FioAuthenticationError("Invalid Fio API token"))
 
         override def fetchNewTransactions(token: String): Task[FioResponse] =
+            ZIO.fail(FioAuthenticationError("Invalid Fio API token"))
+            
+        override def setLastDate(token: String, date: LocalDate): Task[Unit] =
             ZIO.fail(FioAuthenticationError("Invalid Fio API token"))
     end FailingMockFioClient
 

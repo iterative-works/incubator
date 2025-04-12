@@ -8,8 +8,8 @@ case class FioTransactionValue[T](value: T, name: String, id: Int)
 
 /** The main transaction object representing a financial transaction from Fio Bank API
   *
-  * This is a direct representation of the transaction as it comes from the Fio Bank API.
-  * It contains all the fields that Fio Bank provides for a transaction.
+  * This is a direct representation of the transaction as it comes from the Fio Bank API. It
+  * contains all the fields that Fio Bank provides for a transaction.
   *
   * Classification: Domain Entity (External API Model)
   */
@@ -60,7 +60,7 @@ case class FioStatementInfo(
     idList: Option[String],
     idFrom: Long,
     idTo: Long,
-    idLastDownload: Option[String]
+    idLastDownload: Option[String] // Can be either a string or number in the API response
 )
 
 /** Account statement from Fio Bank API

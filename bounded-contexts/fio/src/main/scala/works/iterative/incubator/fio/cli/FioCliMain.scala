@@ -4,7 +4,7 @@ import zio.*
 import java.time.LocalDate
 import scala.util.Try
 import works.iterative.incubator.fio.domain.model.*
-import works.iterative.incubator.fio.application.service.FioImportService
+import works.iterative.incubator.fio.application.service.{FioImportService, FioAccountService}
 import works.iterative.incubator.fio.infrastructure.client.FioClient
 import works.iterative.incubator.fio.infrastructure.config.FioConfig
 import works.iterative.incubator.fio.infrastructure.service.FioTransactionImportService
@@ -48,7 +48,7 @@ object FioCliMain extends ZIOAppDefault:
     end Command
 
     // Command handler
-    def executeCommand(command: Command): RIO[FioImportService & FioAccountRepository, Unit] =
+    def executeCommand(command: Command): RIO[FioImportService & FioAccountService, Unit] =
         command match
             case Command.ImportByDate(from, to, accountId) =>
                 for
@@ -77,8 +77,8 @@ object FioCliMain extends ZIOAppDefault:
             case Command.ListAccounts =>
                 for
                     _ <- Console.printLine("Listing Fio source accounts...")
-                    accountRepo <- ZIO.service[FioAccountRepository]
-                    accounts <- accountRepo.getAll()
+                    accountService <- ZIO.service[FioAccountService]
+                    accounts <- accountService.getAccounts()
                     _ <- Console.printLine(s"Found ${accounts.size} Fio accounts:")
                     _ <- ZIO.foreach(accounts)(account => 
                         Console.printLine(
@@ -92,16 +92,16 @@ object FioCliMain extends ZIOAppDefault:
             case Command.CreateAccount(sourceAccountId, token) =>
                 for
                     _ <- Console.printLine(s"Creating Fio account for source account ID: $sourceAccountId...")
-                    accountRepo <- ZIO.service[FioAccountRepository]
-                    id <- accountRepo.create(CreateFioAccount(sourceAccountId, token))
-                    _ <- Console.printLine(s"Created Fio account with ID: $id")
+                    accountService <- ZIO.service[FioAccountService]
+                    id <- accountService.createAccount(sourceAccountId, token)
+                    _ <- Console.printLine(s"Created Fio account with ID: $id (automatically set bookmark to 60 days ago)")
                 yield ()
 
             case Command.Help =>
                 ZIO.succeed(printHelp())
 
     // Main application logic
-    private def cliApp(args: Array[String]): ZIO[FioImportService & FioAccountRepository, Throwable, ExitCode] =
+    private def cliApp(args: Array[String]): ZIO[FioImportService & FioAccountService, Throwable, ExitCode] =
         for
             command <- parseCommand(args)
             _ <- executeCommand(command)
@@ -175,7 +175,7 @@ object FioCliMain extends ZIOAppDefault:
         )
 
     // Application layers
-    private def createRuntime: ZIO[Any, Nothing, ZLayer[Scope, Throwable, FioImportService & FioAccountRepository]] =
+    private def createRuntime: ZIO[Any, Nothing, ZLayer[Scope, Throwable, FioImportService & FioAccountService]] =
         // Use environment variables for configuration
         val fioToken = sys.env.get("FIO_TOKEN")
         val usePostgres = sys.env.getOrElse("USE_POSTGRES", "false").toBoolean
@@ -224,15 +224,17 @@ object FioCliMain extends ZIOAppDefault:
                     def create(value: CreateSourceAccount): UIO[Long] =
                         ZIO.succeed(1L)
 
-            ZLayer.make[FioImportService & FioAccountRepository](
+            ZLayer.make[FioImportService & FioAccountService](
                 FioClient.liveWithConfig(fioConfig),
                 ZLayer.succeed(new InMemoryTransactionRepository(List.empty)),
                 ZLayer.succeed(repo),
                 InMemoryFioImportStateRepository.layer,
                 InMemoryFioAccountRepository.layer,
                 FioTokenAuditServiceLive.layer,
+                ZLayer.succeed(securityConfig),
                 FioTokenManagerLive.layerWithConfig(securityConfig),
-                FioTransactionImportService.completeLayer
+                FioTransactionImportService.completeLayer,
+                FioAccountService.layer
             )
         end inMemoryRuntime
 
@@ -243,7 +245,7 @@ object FioCliMain extends ZIOAppDefault:
             password = pgPassword
         )
 
-        val postgresRuntime = ZLayer.makeSome[Scope, FioImportService & FioAccountRepository](
+        val postgresRuntime = ZLayer.makeSome[Scope, FioImportService & FioAccountService](
             PostgreSQLDataSource.managedLayerWithConfig(postgresConfig),
             PostgreSQLTransactor.managedLayer,
             PostgreSQLSourceAccountRepository.layer,
@@ -252,8 +254,10 @@ object FioCliMain extends ZIOAppDefault:
             PostgreSQLTransactionRepository.layer,
             FioClient.liveWithConfig(fioConfig),
             FioTokenAuditServiceLive.layer,
+            ZLayer.succeed(securityConfig),
             FioTokenManagerLive.layerWithConfig(securityConfig),
-            FioTransactionImportService.completeLayer
+            FioTransactionImportService.completeLayer,
+            FioAccountService.layer
         )
 
         // Choose runtime based on configuration

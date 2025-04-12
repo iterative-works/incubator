@@ -44,6 +44,20 @@ trait FioClient:
       *   Response containing new transaction data
       */
     def fetchNewTransactions(token: String): Task[FioResponse]
+    
+    /** Set the bookmark (zarážka) to a specific date
+      *
+      * This allows controlling the starting point for the /last endpoint
+      * to avoid fetching historical data that might require special authorization.
+      *
+      * @param token
+      *   API token for Fio Bank
+      * @param date
+      *   Date to set as the bookmark
+      * @return
+      *   Unit indicating success
+      */
+    def setLastDate(token: String, date: LocalDate): Task[Unit]
 end FioClient
 
 /** Live implementation of FioClient using sttp
@@ -92,6 +106,26 @@ case class FioClientLive(
         yield result
         end for
     end fetchNewTransactions
+    
+    override def setLastDate(token: String, date: LocalDate): Task[Unit] =
+        val url = uri"$baseUrl/set-last-date/$token/${date.format(dateFormat)}/"
+        
+        for
+            _ <- ZIO.logDebug(s"Setting last date bookmark to ${date}: ${url}")
+            _ <- validateToken(token)
+            response <- basicRequest
+                .get(url)
+                .response(asStringAlways)
+                .send(backend)
+            _ <- ZIO.logDebug(s"Received response with status code: ${response.code}")
+            _ <- response.code match
+                case StatusCode.Ok => ZIO.unit
+                case _ => ZIO.fail(FioNetworkError(new RuntimeException(
+                    s"Failed to set bookmark: ${response.code} - ${response.body}"
+                )))
+        yield ()
+        end for
+    end setLastDate
 
     /** Validate token format and security
       */
