@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS ynab_account_mappings (
 -- Create index on ynab_account_id
 CREATE INDEX IF NOT EXISTS ynab_account_mappings_ynab_account_id_idx ON ynab_account_mappings (ynab_account_id);
 
--- Migrate existing data from source_accounts table
+-- Migrate existing data from source_account table
 INSERT INTO ynab_account_mappings (source_account_id, ynab_account_id, active)
 SELECT id, ynab_account_id, active
-FROM source_accounts
+FROM source_account
 WHERE ynab_account_id IS NOT NULL;
