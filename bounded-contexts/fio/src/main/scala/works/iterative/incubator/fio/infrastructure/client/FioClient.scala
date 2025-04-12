@@ -4,7 +4,7 @@ import zio.*
 import zio.json.*
 import sttp.client4.*
 import sttp.client4.httpclient.zio.HttpClientZioBackend
-import sttp.model.{Uri, StatusCode}
+import sttp.model.StatusCode
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import works.iterative.incubator.fio.domain.model.*
@@ -33,16 +33,17 @@ trait FioClient:
       */
     def fetchTransactions(token: String, from: LocalDate, to: LocalDate): Task[FioResponse]
 
-    /** Fetch new transactions since a specific transaction ID
+    /** Fetch new transactions since the last fetch for this token
+      *
+      * This uses the /rest/last endpoint which returns all transactions that have not been fetched
+      * yet with this token
       *
       * @param token
       *   API token for Fio Bank
-      * @param lastId
-      *   Last transaction ID that was processed
       * @return
       *   Response containing new transaction data
       */
-    def fetchNewTransactions(token: String, lastId: Long): Task[FioResponse]
+    def fetchNewTransactions(token: String): Task[FioResponse]
 end FioClient
 
 /** Live implementation of FioClient using sttp
@@ -51,7 +52,7 @@ end FioClient
   */
 case class FioClientLive(
     backend: Backend[Task],
-    baseUrl: String = "https://www.fio.cz/ib_api/rest"
+    baseUrl: String = "https://fioapi.fio.cz/v1/rest"
 ) extends FioClient:
     private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -60,13 +61,11 @@ case class FioClientLive(
         from: LocalDate,
         to: LocalDate
     ): Task[FioResponse] =
-        val url = Uri.parse(
-            s"$baseUrl/periods/$token/${from.format(dateFormat)}/${to.format(dateFormat)}/transactions.json"
-        )
-            .getOrElse(throw new IllegalArgumentException("Invalid URL"))
+        val url =
+            uri"$baseUrl/periods/$token/${from.format(dateFormat)}/${to.format(dateFormat)}/transactions.json"
 
         for
-            _ <- ZIO.logDebug(s"Fetching transactions from $from to $to")
+            _ <- ZIO.logDebug(s"Fetching transactions from $from to $to: ${url}")
             _ <- validateToken(token)
             response <- basicRequest
                 .get(url)
@@ -78,12 +77,11 @@ case class FioClientLive(
         end for
     end fetchTransactions
 
-    override def fetchNewTransactions(token: String, lastId: Long): Task[FioResponse] =
-        val url = Uri.parse(s"$baseUrl/by-id/$token/$lastId/transactions.json")
-            .getOrElse(throw new IllegalArgumentException("Invalid URL"))
+    override def fetchNewTransactions(token: String): Task[FioResponse] =
+        val url = uri"$baseUrl/last/$token/transactions.json"
 
         for
-            _ <- ZIO.logDebug(s"Fetching transactions since ID $lastId")
+            _ <- ZIO.logDebug(s"Fetching new transactions using /last endpoint: ${url}")
             _ <- validateToken(token)
             response <- basicRequest
                 .get(url)

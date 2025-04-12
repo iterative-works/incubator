@@ -16,6 +16,8 @@ import works.iterative.incubator.fio.infrastructure.service.FioTransactionImport
 import works.iterative.incubator.fio.infrastructure.client.FioClient
 import works.iterative.incubator.transactions.infrastructure.service.DefaultTransactionManagerService
 import works.iterative.incubator.transactions.infrastructure.service.DefaultTransactionProcessor
+import works.iterative.incubator.fio.infrastructure.security.FioTokenManagerLive
+import works.iterative.incubator.fio.infrastructure.persistence.PostgreSQLFioAccountRepository
 
 object Main extends ZIOAppDefault:
 
@@ -75,7 +77,9 @@ object Main extends ZIOAppDefault:
             DefaultTransactionManagerService.layer,
             // Fio import service
             FioTransactionImportService.minimalLayer,
-            FioClient.live
+            FioClient.live,
+            FioTokenManagerLive.fullLayer,
+            PostgreSQLFioAccountRepository.layer
         )
     end run
 end Main

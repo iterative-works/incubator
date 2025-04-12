@@ -6,6 +6,7 @@ import java.time.Instant
 import works.iterative.incubator.fio.application.service.FioImportService
 import works.iterative.incubator.fio.infrastructure.client.FioClient
 import works.iterative.incubator.fio.infrastructure.config.FioConfig
+import works.iterative.incubator.fio.infrastructure.security.FioTokenManager
 import works.iterative.incubator.fio.domain.model.*
 import works.iterative.incubator.transactions.domain.repository.{
     TransactionRepository,
@@ -31,6 +32,7 @@ class FioTransactionImportService(
     sourceAccountRepository: SourceAccountRepository,
     fioAccountRepository: Option[FioAccountRepository] = None,
     importStateRepository: Option[FioImportStateRepository] = None,
+    tokenManager: Option[FioTokenManager] = None,
     config: Option[FioConfig] = None
 ) extends FioImportService, TransactionImportService:
 
@@ -55,12 +57,16 @@ class FioTransactionImportService(
 
                     // Import transactions for each account
                     results <- ZIO.foreach(accounts) { account =>
-                        importTransactionsWithToken(
-                            account.token,
-                            from,
-                            to,
-                            account.sourceAccountId
-                        )
+                        for
+                            // Get decrypted token using token manager if available
+                            tokenStr <- getTokenForAccount(account.id, Some(account.token))
+                            count <- importTransactionsWithToken(
+                                tokenStr,
+                                from,
+                                to,
+                                account.sourceAccountId
+                            )
+                        yield count
                     }
                 yield results.sum
 
@@ -118,12 +124,14 @@ class FioTransactionImportService(
 
                     // Import new transactions for each account
                     results <- ZIO.foreach(accounts) { account =>
-                        val lastId = account.lastFetchedId.getOrElse(0L)
-                        importNewTransactionsWithToken(
-                            account.token,
-                            lastId,
-                            account.sourceAccountId
-                        )
+                        for
+                            // Get decrypted token using token manager if available
+                            tokenStr <- getTokenForAccount(account.id, Some(account.token))
+                            count <- importNewTransactionsWithToken(
+                                tokenStr,
+                                account.sourceAccountId
+                            )
+                        yield count
                     }
                 yield results.sum
 
@@ -140,15 +148,12 @@ class FioTransactionImportService(
                             ZIO.fail(new RuntimeException(s"Invalid source account ID: $id"))
                         case None => ZIO.succeed(sourceAccounts)
 
-                    // Get default token
-                    token <- getDefaultToken()
-
-                    // For each source account, get the last transaction ID
-                    // and import new transactions
+                    // For each source account, get the token and import new transactions
                     results <- ZIO.foreach(filteredAccounts) { sourceId =>
-                        getLastTransactionId(sourceId).flatMap { lastId =>
-                            importNewTransactionsWithToken(token, lastId.getOrElse(0L), sourceId)
-                        }
+                        for
+                            token <- getTokenForSourceAccount(sourceId)
+                            count <- importNewTransactionsWithToken(token, sourceId)
+                        yield count
                     }
                 yield results.sum
 
@@ -158,16 +163,15 @@ class FioTransactionImportService(
 
     override def importNewTransactionsWithToken(
         token: String,
-        lastId: Long,
         sourceAccountId: Long
     ): Task[Int] =
         for
             // Clear the cache at the beginning of each import batch
             _ <- sourceAccountCache.set(Map.empty)
             _ <- ZIO.logInfo(
-                s"Importing new transactions since ID $lastId for source account $sourceAccountId"
+                s"Importing new transactions for source account $sourceAccountId using last endpoint"
             )
-            response <- fioClient.fetchNewTransactions(token, lastId)
+            response <- fioClient.fetchNewTransactions(token)
             transactions <- mapFioTransactionsToModel(response, Some(sourceAccountId))
             _ <- ZIO.foreachDiscard(transactions) { transaction =>
                 // Only save the immutable transaction
@@ -210,14 +214,13 @@ class FioTransactionImportService(
       */
     override def importNewTransactions(lastId: Option[Long]): Task[Int] =
         for
-            token <- getDefaultToken()
-            id <- ZIO.fromOption(lastId).orElse(ZIO.succeed(0L))
             sourceAccounts <- getFioSourceAccounts()
             sourceId <- if sourceAccounts.isEmpty then
                 ZIO.fail(new RuntimeException("No source accounts configured"))
             else
                 ZIO.succeed(sourceAccounts.head)
-            count <- importNewTransactionsWithToken(token, id, sourceId)
+            token <- getTokenForSourceAccount(sourceId)
+            count <- importNewTransactionsWithToken(token, sourceId)
         yield count
 
     /** Import transactions for a specific account ID
@@ -237,15 +240,65 @@ class FioTransactionImportService(
         accountId: Long
     ): Task[Int] =
         importFioTransactions(from, to, Some(accountId))
-        
+
     /** Implementation of TransactionImportService.importTransactions
-      * 
-      * @param from Start date for the import
-      * @param to End date for the import
-      * @return Number of transactions imported
+      *
+      * @param from
+      *   Start date for the import
+      * @param to
+      *   End date for the import
+      * @return
+      *   Number of transactions imported
       */
     override def importTransactions(from: LocalDate, to: LocalDate): Task[Int] =
         importFioTransactions(from, to, None)
+
+    /** Get the token for a specific account, using the token manager if available
+      *
+      * @param accountId
+      *   The Fio account ID
+      * @param fallbackToken
+      *   Fallback encrypted token to use if token manager is not available
+      * @return
+      *   Decrypted token string
+      */
+    private def getTokenForAccount(accountId: Long, fallbackToken: Option[String] = None): Task[String] =
+        tokenManager match
+            case Some(manager) =>
+                manager.getToken(accountId).flatMap {
+                    case Some(token) => ZIO.succeed(token)
+                    case None => fallbackToken match
+                        case Some(token) => ZIO.succeed(token)
+                        case None => ZIO.fail(new RuntimeException(s"No token found for account $accountId"))
+                }
+            case None =>
+                fallbackToken match
+                    case Some(token) => ZIO.succeed(token)
+                    case None => ZIO.fail(new RuntimeException(s"No token found for account $accountId"))
+                    
+    /** Get the token for a specific source account, using the token manager if available
+      *
+      * @param sourceAccountId
+      *   The source account ID
+      * @return
+      *   Decrypted token string
+      */
+    private def getTokenForSourceAccount(sourceAccountId: Long): Task[String] =
+        tokenManager match
+            case Some(manager) =>
+                manager.getTokenBySourceAccountId(sourceAccountId).flatMap {
+                    case Some(token) => ZIO.succeed(token)
+                    case None => getDefaultToken()
+                }
+            case None =>
+                // If no token manager is available, try to get the account from repository
+                fioAccountRepository match
+                    case Some(repo) =>
+                        repo.getBySourceAccountId(sourceAccountId).flatMap {
+                            case Some(account) => ZIO.succeed(account.token)
+                            case None => getDefaultToken()
+                        }
+                    case None => getDefaultToken()
 
     /** Get the default token from config if available
       *
@@ -423,27 +476,43 @@ class FioTransactionImportService(
                 }
         }.unit
     end updateFioAccountLastFetched
-
-    /** Gets the last transaction ID for a source account
-      */
-    private def getLastTransactionId(sourceAccountId: Long): Task[Option[Long]] =
-        // First check the FioAccountRepository if available
-        fioAccountRepository match
-            case Some(repo) =>
-                repo.getBySourceAccountId(sourceAccountId).map(_.flatMap(_.lastFetchedId))
-
-            // Fall back to import state repository
-            case None =>
-                importStateRepository match
-                    case Some(repo) =>
-                        repo.getImportState(sourceAccountId).map(_.flatMap(_.lastTransactionId))
-                    case None =>
-                        ZIO.succeed(None)
 end FioTransactionImportService
 
 object FioTransactionImportService:
-    // Layer with all repositories
+    // Layer with all repositories and token manager
     val completeLayer: ZLayer[
+        FioClient &
+            TransactionRepository &
+            SourceAccountRepository &
+            FioAccountRepository &
+            FioImportStateRepository &
+            FioTokenManager,
+        Config.Error,
+        TransactionImportService & FioImportService
+    ] =
+        ZLayer {
+            for
+                client <- ZIO.service[FioClient]
+                txRepo <- ZIO.service[TransactionRepository]
+                sourceRepo <- ZIO.service[SourceAccountRepository]
+                fioAccountRepo <- ZIO.service[FioAccountRepository]
+                importStateRepo <- ZIO.service[FioImportStateRepository]
+                tokenManager <- ZIO.service[FioTokenManager]
+                config <- ZIO.config[FioConfig]
+                service = new FioTransactionImportService(
+                    client,
+                    txRepo,
+                    sourceRepo,
+                    Some(fioAccountRepo),
+                    Some(importStateRepo),
+                    Some(tokenManager),
+                    Some(config)
+                )
+            yield service
+        }
+
+    // Complete layer without token manager (for backward compatibility)
+    val completeLayerNoTokenManager: ZLayer[
         FioClient &
             TransactionRepository &
             SourceAccountRepository &
@@ -466,13 +535,43 @@ object FioTransactionImportService:
                     sourceRepo,
                     Some(fioAccountRepo),
                     Some(importStateRepo),
+                    None,
                     Some(config)
                 )
             yield service
         }
 
-    // Layer with only FioAccountRepository (no import state)
+    // Layer with token manager and account repository
     val accountLayer: ZLayer[
+        FioClient &
+            TransactionRepository &
+            SourceAccountRepository &
+            FioAccountRepository &
+            FioTokenManager,
+        Nothing,
+        TransactionImportService & FioImportService
+    ] =
+        ZLayer {
+            for
+                client <- ZIO.service[FioClient]
+                txRepo <- ZIO.service[TransactionRepository]
+                sourceRepo <- ZIO.service[SourceAccountRepository]
+                fioAccountRepo <- ZIO.service[FioAccountRepository]
+                tokenManager <- ZIO.service[FioTokenManager]
+                service = new FioTransactionImportService(
+                    client,
+                    txRepo,
+                    sourceRepo,
+                    Some(fioAccountRepo),
+                    None,
+                    Some(tokenManager),
+                    None
+                )
+            yield service
+        }
+
+    // Layer with account repository (no token manager)
+    val accountLayerNoTokenManager: ZLayer[
         FioClient &
             TransactionRepository &
             SourceAccountRepository &
@@ -492,13 +591,44 @@ object FioTransactionImportService:
                     sourceRepo,
                     Some(fioAccountRepo),
                     None,
+                    None,
                     None
                 )
             yield service
         }
 
-    // Layer with import state repository
+    // Layer with import state repository and token manager
     val legacyLayer: ZLayer[
+        FioClient &
+            TransactionRepository &
+            SourceAccountRepository &
+            FioImportStateRepository &
+            FioTokenManager,
+        Config.Error,
+        TransactionImportService & FioImportService
+    ] =
+        ZLayer {
+            for
+                client <- ZIO.service[FioClient]
+                txRepo <- ZIO.service[TransactionRepository]
+                sourceRepo <- ZIO.service[SourceAccountRepository]
+                importStateRepo <- ZIO.service[FioImportStateRepository]
+                tokenManager <- ZIO.service[FioTokenManager]
+                config <- ZIO.config[FioConfig]
+                service = new FioTransactionImportService(
+                    client,
+                    txRepo,
+                    sourceRepo,
+                    None,
+                    Some(importStateRepo),
+                    Some(tokenManager),
+                    Some(config)
+                )
+            yield service
+        }
+
+    // Legacy layer without token manager
+    val legacyLayerNoTokenManager: ZLayer[
         FioClient &
             TransactionRepository &
             SourceAccountRepository &
@@ -519,13 +649,42 @@ object FioTransactionImportService:
                     sourceRepo,
                     None,
                     Some(importStateRepo),
+                    None,
                     Some(config)
                 )
             yield service
         }
 
-    // Minimal layer for backward compatibility
+    // Minimal layer with token manager
     val minimalLayer: ZLayer[
+        FioClient &
+            TransactionRepository &
+            SourceAccountRepository &
+            FioTokenManager,
+        Config.Error,
+        TransactionImportService & FioImportService
+    ] =
+        ZLayer {
+            for
+                client <- ZIO.service[FioClient]
+                txRepo <- ZIO.service[TransactionRepository]
+                sourceRepo <- ZIO.service[SourceAccountRepository]
+                tokenManager <- ZIO.service[FioTokenManager]
+                config <- ZIO.config[FioConfig]
+                service = new FioTransactionImportService(
+                    client,
+                    txRepo,
+                    sourceRepo,
+                    None,
+                    None,
+                    Some(tokenManager),
+                    Some(config)
+                )
+            yield service
+        }
+        
+    // Minimal layer without token manager (for backward compatibility)
+    val minimalLayerNoTokenManager: ZLayer[
         FioClient &
             TransactionRepository &
             SourceAccountRepository,
@@ -542,6 +701,7 @@ object FioTransactionImportService:
                     client,
                     txRepo,
                     sourceRepo,
+                    None,
                     None,
                     None,
                     Some(config)

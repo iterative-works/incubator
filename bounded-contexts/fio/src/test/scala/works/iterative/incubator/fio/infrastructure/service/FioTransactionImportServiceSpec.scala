@@ -8,6 +8,7 @@ import java.time.LocalDate
 import works.iterative.incubator.fio.domain.model.*
 import works.iterative.incubator.fio.infrastructure.client.{FioClient, FioCodecs}
 import works.iterative.incubator.fio.infrastructure.config.FioConfig
+import works.iterative.incubator.fio.infrastructure.security.FioTokenManager
 import works.iterative.incubator.transactions.domain.model.*
 import works.iterative.incubator.transactions.domain.repository.*
 import works.iterative.incubator.transactions.domain.query.*
@@ -64,6 +65,24 @@ object FioTransactionImportServiceSpec extends ZIOSpecDefault:
         override def create(value: CreateSourceAccount): UIO[Long] = ZIO.succeed(1L)
     end MockSourceAccountRepository
 
+    // Mock token manager for testing
+    class MockTokenManager extends FioTokenManager:
+        override def getToken(accountId: Long): Task[Option[String]] =
+            ZIO.some("test-token")
+
+        override def getTokenBySourceAccountId(sourceAccountId: Long): Task[Option[String]] =
+            ZIO.some("test-token")
+
+        override def storeToken(accountId: Long, token: String): Task[Unit] =
+            ZIO.unit
+
+        override def invalidateCache(accountId: Long): Task[Unit] =
+            ZIO.unit
+
+        override def clearCache: Task[Unit] =
+            ZIO.unit
+    end MockTokenManager
+
     // Mock Fio client for testing
     class MockFioClient extends FioClient:
         override def fetchTransactions(
@@ -73,7 +92,7 @@ object FioTransactionImportServiceSpec extends ZIOSpecDefault:
         ): Task[FioResponse] =
             loadExampleResponse()
 
-        override def fetchNewTransactions(token: String, lastId: Long): Task[FioResponse] =
+        override def fetchNewTransactions(token: String): Task[FioResponse] =
             loadExampleResponse()
 
         private def loadExampleResponse(): Task[FioResponse] =
@@ -91,13 +110,15 @@ object FioTransactionImportServiceSpec extends ZIOSpecDefault:
                 mockTxRepo <- ZIO.succeed(new MockTransactionRepository())
                 mockSourceRepo <- ZIO.succeed(new MockSourceAccountRepository())
                 mockClient <- ZIO.succeed(new MockFioClient())
+                mockTokenManager <- ZIO.succeed(new MockTokenManager())
                 config = FioConfig(defaultToken = Some("test-token"))
-                service = new FioTransactionImportService(
+                service = FioTransactionImportService(
                     mockClient,
                     mockTxRepo,
                     mockSourceRepo,
                     None,
                     None,
+                    Some(mockTokenManager),
                     Some(config)
                 )
                 count <- service.importFioTransactions(
@@ -111,18 +132,20 @@ object FioTransactionImportServiceSpec extends ZIOSpecDefault:
                 assert(transactions.map(_.amount))(Assertion.contains(BigDecimal(-3000.0))) &&
                 assert(transactions.map(_.currency).toSet)(Assertion.equalTo(Set("CZK")))
         },
-        test("importNewTransactions should correctly import using transaction ID") {
+        test("importNewTransactions should correctly import using last endpoint") {
             for
                 mockTxRepo <- ZIO.succeed(new MockTransactionRepository())
                 mockSourceRepo <- ZIO.succeed(new MockSourceAccountRepository())
                 mockClient <- ZIO.succeed(new MockFioClient())
+                mockTokenManager <- ZIO.succeed(new MockTokenManager())
                 config = FioConfig(defaultToken = Some("test-token"))
-                service = new FioTransactionImportService(
+                service = FioTransactionImportService(
                     mockClient,
                     mockTxRepo,
                     mockSourceRepo,
                     None,
                     None,
+                    Some(mockTokenManager),
                     Some(config)
                 )
                 count <- service.importNewTransactions(Some(0L))
@@ -145,13 +168,15 @@ object FioTransactionImportServiceSpec extends ZIOSpecDefault:
                 mockTxRepo <- ZIO.succeed(new MockTransactionRepository())
                 mockSourceRepo <- ZIO.succeed(new MockSourceAccountRepository())
                 mockClient <- ZIO.succeed(new MockFioClient())
+                mockTokenManager <- ZIO.succeed(new MockTokenManager())
                 config = FioConfig(defaultToken = Some("test-token"))
-                service = new FioTransactionImportService(
+                service = FioTransactionImportService(
                     mockClient,
                     mockTxRepo,
                     mockSourceRepo,
                     None,
                     None,
+                    Some(mockTokenManager),
                     Some(config)
                 )
                 accounts <- service.getFioSourceAccounts()
@@ -162,13 +187,15 @@ object FioTransactionImportServiceSpec extends ZIOSpecDefault:
                 mockTxRepo <- ZIO.succeed(new MockTransactionRepository())
                 mockSourceRepo <- ZIO.succeed(new MockSourceAccountRepository())
                 mockClient <- ZIO.succeed(new MockFioClient())
+                mockTokenManager <- ZIO.succeed(new MockTokenManager())
                 config = FioConfig(defaultToken = Some("test-token"))
-                service = new FioTransactionImportService(
+                service = FioTransactionImportService(
                     mockClient,
                     mockTxRepo,
                     mockSourceRepo,
                     None,
                     None,
+                    Some(mockTokenManager),
                     Some(config)
                 )
                 count <- service.importFioTransactions(

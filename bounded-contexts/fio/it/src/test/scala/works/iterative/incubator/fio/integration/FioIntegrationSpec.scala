@@ -15,6 +15,7 @@ import works.iterative.incubator.transactions.domain.repository.{
 }
 import works.iterative.incubator.transactions.domain.query.{SourceAccountQuery, TransactionQuery}
 import java.time.{LocalDate, Instant}
+import zio.logging.*
 
 /** Integration tests for the Fio Bank API integration.
   *
@@ -31,6 +32,8 @@ object FioIntegrationSpec extends ZIOSpecDefault:
     // Read config from environment
     private val testToken = sys.env.get("FIO_TOKEN")
     private val testAccountId = sys.env.getOrElse("FIO_TEST_ACCOUNT_ID", "1").toLong
+
+    val loggerLayer = Runtime.removeDefaultLoggers >>> consoleLogger()
 
     // Security configuration
     private val securityConfig = FioSecurityConfig(
@@ -222,13 +225,14 @@ object FioIntegrationSpec extends ZIOSpecDefault:
     private val allLayers = ZLayer.make[
         FioClient & FioImportService & FioTokenManager & FioTokenAuditService & FioAccountRepository
     ](
+        Runtime.removeDefaultLoggers >>> loggerLayer,
         clientLayer,
         inMemoryTransactionRepository,
         inMemorySourceAccountRepository,
         inMemoryFioAccountRepository,
         tokenAuditLayer,
         tokenManagerLayer,
-        FioTransactionImportService.accountLayer
+        FioTransactionImportService.accountLayer // Use layer with token manager
     )
 
     // Helper method to get date range for testing
@@ -300,8 +304,36 @@ object FioIntegrationSpec extends ZIOSpecDefault:
                     Console.printLine(s"Retrieved token of length ${token.length}")
                 }
             yield assertTrue(tokenOpt.isDefined && tokenOpt.get.length > 16))
+        },
+        test("Fio client should fetch new transactions using last endpoint") {
+            for
+                client <- ZIO.service[FioClient]
+                token <- ZIO.fromOption(testToken)
+                    .orElseFail(new RuntimeException("No FIO_TOKEN set"))
+                response <- client.fetchNewTransactions(token)
+                _ <- Console.printLine(s"Account IBAN: ${response.accountStatement.info.iban}")
+                _ <- Console.printLine(
+                    s"Found ${response.accountStatement.transactionList.transaction.size} new transactions"
+                )
+            yield assertTrue(response.accountStatement.info.iban.nonEmpty)
+        },
+        test("Fio import service should import new transactions using last endpoint") {
+            (for
+                service <- ZIO.service[FioImportService]
+                count <- service.importNewTransactionsForAccount(testAccountId)
+                _ <- Console.printLine(
+                    s"Imported $count new transactions for account $testAccountId"
+                )
+            yield assertTrue(count >= 0)) // May be 0 if no new transactions
+                .catchAll { error =>
+                    Console.printLine(s"Test failed with error: ${error.getMessage}") *>
+                        ZIO.fail(error)
+                }
         }
-    ).provideLayer(allLayers) @@ TestAspect.withLiveEnvironment @@ TestAspect.ifEnvSet(
+    ).provideLayer(allLayers) @@ TestAspect.ifEnvSet(
         "FIO_TOKEN"
-    )
+    ) @@ TestAspect.sequential @@ TestAspect.around(
+        ZIO.sleep(30.second),
+        ZIO.unit
+    ) @@ TestAspect.withLiveEnvironment
 end FioIntegrationSpec

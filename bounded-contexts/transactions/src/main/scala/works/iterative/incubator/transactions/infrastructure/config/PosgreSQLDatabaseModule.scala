@@ -8,8 +8,8 @@ import works.iterative.incubator.transactions.infrastructure.FlywayConfig
 
 /** Combines all database-related components into a single module
   *
-  * This module orchestrates the creation of all database-related components,
-  * including repositories, datasource, and migration management.
+  * This module orchestrates the creation of all database-related components, including
+  * repositories, datasource, and migration management.
   *
   * Classification: Infrastructure Configuration
   */
@@ -17,7 +17,8 @@ object PosgreSQLDatabaseModule:
     /** Repository type that includes all our repository interfaces
       */
     type Repositories =
-        TransactionRepository & SourceAccountRepository & TransactionProcessingStateRepository
+        PostgreSQLDataSource & PostgreSQLTransactor & TransactionRepository &
+            SourceAccountRepository & TransactionProcessingStateRepository
 
     /** Creates a ZLayer with all repositories
       */
@@ -25,9 +26,9 @@ object PosgreSQLDatabaseModule:
         // Create the shared data source
         val dataSourceLayer = PostgreSQLDataSource.managedLayer
         // Create the transactor from the data source
-        val transactorLayer = dataSourceLayer >>> PostgreSQLTransactor.managedLayer
+        val transactorLayer = dataSourceLayer >+> PostgreSQLTransactor.managedLayer
         // Create all repositories using the shared transactor
-        val repoLayers = transactorLayer >>> (
+        val repoLayers = transactorLayer >+> (
             PostgreSQLTransactionRepository.layer ++
                 PostgreSQLSourceAccountRepository.layer ++
                 PostgreSQLTransactionProcessingStateRepository.layer

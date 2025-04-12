@@ -93,10 +93,11 @@ trait FioImportService:
 
     /** Import new transactions from Fio Bank API with specific token
       *
+      * This method uses Fio Bank's "last" endpoint which returns all transactions that have not
+      * been fetched yet using this token.
+      *
       * @param token
       *   API token for Fio Bank
-      * @param lastId
-      *   Last transaction ID that was processed
       * @param sourceAccountId
       *   Source account ID to associate with imported transactions
       * @return
@@ -104,7 +105,6 @@ trait FioImportService:
       */
     def importNewTransactionsWithToken(
         token: String,
-        lastId: Long,
         sourceAccountId: Long
     ): Task[Int]
 

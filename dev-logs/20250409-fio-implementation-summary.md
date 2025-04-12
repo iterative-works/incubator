@@ -200,12 +200,12 @@ The current implementation uses a single token for all Fio Bank API calls, but t
 
 ### 3. Integration Testing (High Priority)
 
-- [ ] Create integration test structure:
+- [x] Create integration test structure:
   - Create `/bounded-contexts/fio/it/src/test/scala/works/iterative/incubator/fio/FioIntegrationSpec.scala`
   - Add conditional execution based on environment variables
   - Test full import workflow with real API connection
 
-- [ ] Create Docker-based test environment (optional):
+- [-] Create Docker-based test environment (optional):
   - Similar to PostgreSQL TestContainers setup
   - Include mock Fio API server for reliable testing
 

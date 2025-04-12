@@ -8,6 +8,7 @@ import works.iterative.incubator.fio.application.service.FioImportService
 import works.iterative.incubator.fio.infrastructure.client.FioClient
 import works.iterative.incubator.fio.infrastructure.config.FioConfig
 import works.iterative.incubator.fio.infrastructure.service.FioTransactionImportService
+import works.iterative.incubator.fio.infrastructure.security.{FioTokenManager, FioTokenManagerLive, FioTokenAuditServiceLive, FioSecurityConfig}
 import works.iterative.incubator.fio.infrastructure.persistence.{
     InMemoryFioImportStateRepository,
     PostgreSQLFioImportStateRepository,
@@ -184,6 +185,10 @@ object FioCliMain extends ZIOAppDefault:
 
         // Shared components
         val fioConfig = FioConfig(defaultToken = fioToken)
+        val securityConfig = FioSecurityConfig(
+            encryptionKey = "test-encryption-key-for-development",
+            cacheExpirationMinutes = 30
+        )
 
         // Runtime with in-memory repositories (for testing)
         val inMemoryRuntime =
@@ -225,6 +230,8 @@ object FioCliMain extends ZIOAppDefault:
                 ZLayer.succeed(repo),
                 InMemoryFioImportStateRepository.layer,
                 InMemoryFioAccountRepository.layer,
+                FioTokenAuditServiceLive.layer,
+                FioTokenManagerLive.layerWithConfig(securityConfig),
                 FioTransactionImportService.completeLayer
             )
         end inMemoryRuntime
@@ -244,6 +251,8 @@ object FioCliMain extends ZIOAppDefault:
             PostgreSQLFioAccountRepository.layer,
             PostgreSQLTransactionRepository.layer,
             FioClient.liveWithConfig(fioConfig),
+            FioTokenAuditServiceLive.layer,
+            FioTokenManagerLive.layerWithConfig(securityConfig),
             FioTransactionImportService.completeLayer
         )
 

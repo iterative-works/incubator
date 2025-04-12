@@ -8,7 +8,7 @@ import zio.Config
   */
 case class FioConfig(
     defaultToken: Option[String] = None, // Optional default token for backwards compatibility
-    apiUrl: String = "https://www.fio.cz/ib_api/rest"
+    apiUrl: String = "https://fioapi.fio.cz/v1/rest"
 )
 
 object FioConfig:

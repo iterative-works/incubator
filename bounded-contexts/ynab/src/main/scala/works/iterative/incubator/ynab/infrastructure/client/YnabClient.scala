@@ -120,7 +120,7 @@ case class YnabClientLive(config: YnabConfig, backend: Backend[Task]) extends Yn
     override def verifyToken(): Task[Boolean] =
         for
             response <- authenticatedRequest
-                .get(buildUri("/user"))
+                .get(buildUri("user"))
                 .response(asStringAlways)
                 .send(backend)
         yield response.code == StatusCode.Ok
@@ -130,7 +130,7 @@ case class YnabClientLive(config: YnabConfig, backend: Backend[Task]) extends Yn
     override def getBudgets(): Task[Seq[YnabBudget]] =
         for
             response <- authenticatedRequest
-                .get(buildUri("/budgets"))
+                .get(buildUri("budgets"))
                 .response(asStringAlways)
                 .send(backend)
             result <- handleResponse[BudgetsResponse](response)
@@ -141,7 +141,7 @@ case class YnabClientLive(config: YnabConfig, backend: Backend[Task]) extends Yn
     override def getAccounts(budgetId: String): Task[Seq[YnabAccount]] =
         for
             response <- authenticatedRequest
-                .get(buildUri(s"/budgets/$budgetId/accounts"))
+                .get(buildUri("budgets", budgetId, "accounts"))
                 .response(asStringAlways)
                 .send(backend)
             result <- handleResponse[AccountsResponse](response)
@@ -154,7 +154,7 @@ case class YnabClientLive(config: YnabConfig, backend: Backend[Task]) extends Yn
     override def getCategoryGroups(budgetId: String): Task[Seq[YnabCategoryGroup]] =
         for
             response <- authenticatedRequest
-                .get(buildUri(s"/budgets/$budgetId/categories"))
+                .get(buildUri("budgets", budgetId, "categories"))
                 .response(asStringAlways)
                 .send(backend)
             result <- handleResponse[CategoriesResponse](response)
@@ -174,7 +174,7 @@ case class YnabClientLive(config: YnabConfig, backend: Backend[Task]) extends Yn
     override def getCategories(budgetId: String): Task[Seq[YnabCategory]] =
         for
             response <- authenticatedRequest
-                .get(buildUri(s"/budgets/$budgetId/categories"))
+                .get(buildUri("budgets", budgetId, "categories"))
                 .response(asStringAlways)
                 .send(backend)
             result <- handleResponse[CategoriesResponse](response)
@@ -210,7 +210,7 @@ case class YnabClientLive(config: YnabConfig, backend: Backend[Task]) extends Yn
         for
             _ <- Console.printLine(s"Sending transaction: ${transactionData.toJson}").orDie
             response <- authenticatedRequest
-                .post(buildUri(s"/budgets/$budgetId/transactions"))
+                .post(buildUri("budgets", budgetId, "transactions"))
                 .body(transactionData.toJson)
                 .header("Content-Type", "application/json")
                 .response(asStringAlways)
@@ -250,7 +250,7 @@ case class YnabClientLive(config: YnabConfig, backend: Backend[Task]) extends Yn
 
         for
             response <- authenticatedRequest
-                .post(buildUri(s"/budgets/$budgetId/transactions/bulk"))
+                .post(buildUri("budgets", budgetId, "transactions", "bulk"))
                 .body(transactionsData.toJson)
                 .response(asStringAlways)
                 .send(backend)
@@ -261,9 +261,16 @@ case class YnabClientLive(config: YnabConfig, backend: Backend[Task]) extends Yn
         end for
     end createTransactions
 
-    private def buildUri(path: String): Uri =
-        Uri.parse(s"$baseUrl$path")
-            .getOrElse(throw new IllegalArgumentException(s"Invalid URL: $baseUrl$path"))
+    /**
+     * Build a properly encoded URI by composing the base URL with path segments
+     *
+     * @param segments Path segments that will be properly URL-encoded
+     * @return A properly constructed and encoded URI
+     */
+    private def buildUri(segments: String*): Uri =
+        val baseUri = Uri.parse(baseUrl).getOrElse(throw new IllegalArgumentException(s"Invalid base URL: $baseUrl"))
+        // Add each segment to the base URI, ensuring proper URL encoding
+        baseUri.addPath(segments.toList)
 end YnabClientLive
 
 object YnabClient:
