@@ -1,69 +1,62 @@
 package works.iterative.incubator.transactions.infrastructure.config
 
 import zio.*
-import works.iterative.incubator.transactions.domain.repository.*
-import works.iterative.incubator.transactions.infrastructure.persistence.*
 import works.iterative.incubator.transactions.infrastructure.FlywayMigrationService
 import works.iterative.incubator.transactions.infrastructure.FlywayConfig
 
-/** Combines all database-related components into a single module
+/** Base trait for PostgreSQL database modules that provides common infrastructure
   *
-  * This module orchestrates the creation of all database-related components, including
-  * repositories, datasource, and migration management.
+  * This trait orchestrates the creation of database infrastructure components like datasource,
+  * transactor, and migration management. It's the foundation layer for database modules.
   *
   * Classification: Infrastructure Configuration
   */
-object PosgreSQLDatabaseModule:
-    /** Repository type that includes all our repository interfaces
+object PostgreSQLDatabaseSupport:
+    /** Base database infrastructure type including data source and transactor
       */
-    type Repositories =
-        PostgreSQLDataSource & PostgreSQLTransactor & TransactionRepository &
-            SourceAccountRepository & TransactionProcessingStateRepository
+    type BaseDatabaseInfrastructure = PostgreSQLDataSource & PostgreSQLTransactor
 
-    /** Creates a ZLayer with all repositories
+    /** Creates a ZLayer with the base database infrastructure (DataSource & Transactor)
       */
-    val layer: ZLayer[Scope, Throwable, Repositories] =
+    val layer: ZLayer[Scope, Throwable, BaseDatabaseInfrastructure] =
         // Create the shared data source
         val dataSourceLayer = PostgreSQLDataSource.managedLayer
         // Create the transactor from the data source
         val transactorLayer = dataSourceLayer >+> PostgreSQLTransactor.managedLayer
-        // Create all repositories using the shared transactor
-        val repoLayers = transactorLayer >+> (
-            PostgreSQLTransactionRepository.layer ++
-                PostgreSQLSourceAccountRepository.layer ++
-                PostgreSQLTransactionProcessingStateRepository.layer
-        )
 
         // Return the combined layer
-        repoLayers
+        transactorLayer
     end layer
 
     /** Helper method to create FlywayConfig with optional additional locations
       */
-    private def createFlywayConfig(additionalLocations: List[String] = List.empty): FlywayConfig =
+    protected def createFlywayConfig(additionalLocations: List[String] = List.empty): FlywayConfig =
         if additionalLocations.nonEmpty then
             FlywayConfig(locations = FlywayConfig.DefaultLocation :: additionalLocations)
         else
             FlywayConfig.default
 
-    /** Creates a ZLayer with all repositories and runs migrations first
+    /** Creates a ZLayer with the base database infrastructure and runs migrations first This layer
+      * forwards both the database infrastructure and migration service
       *
       * @param additionalLocations
       *   Additional classpath locations to scan for migrations
       */
     def layerWithMigrations(
         additionalLocations: List[String] = List.empty
-    ): ZLayer[Scope, Throwable, Repositories] =
-        // Create the shared data source
-        val dataSourceLayer = PostgreSQLDataSource.managedLayer
-
+    ): ZLayer[Scope, Throwable, BaseDatabaseInfrastructure & FlywayMigrationService] =
         // Create flyway config using the helper method
         val flywayConfig = createFlywayConfig(additionalLocations)
 
-        // Create the flyway migration service with config
+        // Create the underlying layers
+        val dataSourceLayer = PostgreSQLDataSource.managedLayer
+        val transactorLayer = dataSourceLayer >+> PostgreSQLTransactor.managedLayer
         val flywayLayer = dataSourceLayer >>> FlywayMigrationService.layerWithConfig(flywayConfig)
 
-        // Run migrations before providing the repositories
+        // Combine layers to create the final ZLayer with both infrastructure and migration service
+        val combinedLayer = transactorLayer ++ flywayLayer
+
+        // Run migrations before providing the layer
         ZLayer.scoped {
             for
                 migrator <- ZIO.service[FlywayMigrationService].provideSome[Scope](flywayLayer)
@@ -71,7 +64,7 @@ object PosgreSQLDatabaseModule:
                     ZIO.logError(s"Migration failed: ${err.getMessage}")
                 )
             yield ()
-        } >>> layer
+        } >>> combinedLayer
     end layerWithMigrations
 
     /** Runs flyway migrations with custom locations
@@ -99,4 +92,4 @@ object PosgreSQLDatabaseModule:
             yield ()
         }
     end migrate
-end PosgreSQLDatabaseModule
+end PostgreSQLDatabaseSupport
