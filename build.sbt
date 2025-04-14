@@ -6,6 +6,8 @@ ThisBuild / scalaVersion := scala3Version
 
 lazy val iwSupportVersion = "0.1.10-SNAPSHOT"
 
+lazy val support = new IWDeps.Support(iwSupportVersion)
+
 ThisBuild / resolvers ++= Seq(
     "IW releases" at "https://dig.iterative.works/maven/releases",
     "IW snapshots" at "https://dig.iterative.works/maven/snapshots"
@@ -14,7 +16,7 @@ ThisBuild / resolvers ++= Seq(
 // Common dependencies
 lazy val commonDependencies = IWDeps.useZIO() ++ Seq(
     IWDeps.zioLogging,
-    libraryDependencies += "works.iterative.support" %% "iw-support-core" % iwSupportVersion
+    support.libs.core
 )
 
 // Web UI common module
@@ -24,11 +26,9 @@ lazy val webUi = (project in file("web-ui"))
     .settings(
         commonDependencies,
         IWDeps.scalatags,
-        libraryDependencies ++= Seq(
-            "works.iterative.support" %% "iw-support-ui" % iwSupportVersion,
-            "works.iterative.support" %% "iw-support-ui-scalatags" % iwSupportVersion,
-            "works.iterative.support" %% "iw-support-forms-http" % iwSupportVersion
-        )
+        support.libs.ui,
+        support.supportLib("ui-scalatags"),
+        support.supportLib("forms-http")
     )
 
 // Core module (shared across all contexts)
@@ -53,12 +53,7 @@ lazy val transactions = (project in file("bounded-contexts/transactions"))
         IWDeps.http4sBlazeServer,
         IWDeps.scalatags,
         IWDeps.chimney,
-        libraryDependencies ++= Seq(
-            "org.flywaydb" % "flyway-core" % "11.4.0",
-            "org.flywaydb" % "flyway-database-postgresql" % "11.4.0",
-            "org.postgresql" % "postgresql" % "42.7.5",
-            "com.zaxxer" % "HikariCP" % "6.2.1"
-        )
+        support.supportLib("sqldb")
     )
     .dependsOn(core, webUi)
 
@@ -123,9 +118,7 @@ lazy val root = (project in file("."))
         commonDependencies,
         IWDeps.http4sBlazeServer,
         IWDeps.logbackClassic,
-        libraryDependencies ++= Seq(
-            "works.iterative.support" %% "iw-support-server-http" % iwSupportVersion
-        ),
+        support.supportLib("server-http"),
         reStart / javaOptions += "-DLOG_LEVEL=DEBUG",
         reStart / envVars ++= Map(
             "BASEURI" -> "/",

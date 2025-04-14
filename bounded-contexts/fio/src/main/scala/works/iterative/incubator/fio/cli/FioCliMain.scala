@@ -8,7 +8,12 @@ import works.iterative.incubator.fio.application.service.{FioImportService, FioA
 import works.iterative.incubator.fio.infrastructure.client.FioClient
 import works.iterative.incubator.fio.infrastructure.config.FioConfig
 import works.iterative.incubator.fio.infrastructure.service.FioTransactionImportService
-import works.iterative.incubator.fio.infrastructure.security.{FioTokenManager, FioTokenManagerLive, FioTokenAuditServiceLive, FioSecurityConfig}
+import works.iterative.incubator.fio.infrastructure.security.{
+    FioTokenManager,
+    FioTokenManagerLive,
+    FioTokenAuditServiceLive,
+    FioSecurityConfig
+}
 import works.iterative.incubator.fio.infrastructure.persistence.{
     InMemoryFioImportStateRepository,
     PostgreSQLFioImportStateRepository,
@@ -24,11 +29,7 @@ import works.iterative.incubator.transactions.infrastructure.persistence.{
     PostgreSQLSourceAccountRepository,
     PostgreSQLTransactionRepository
 }
-import works.iterative.incubator.transactions.infrastructure.config.{
-    PostgreSQLConfig,
-    PostgreSQLDataSource,
-    PostgreSQLTransactor
-}
+import works.iterative.sqldb.{PostgreSQLConfig, PostgreSQLDataSource, PostgreSQLTransactor}
 import works.iterative.incubator.transactions.domain.model.{SourceAccount, CreateSourceAccount}
 import works.iterative.incubator.transactions.domain.query.SourceAccountQuery
 import works.iterative.incubator.fio.infrastructure.client.FioClientLive
@@ -40,7 +41,8 @@ object FioCliMain extends ZIOAppDefault:
     // Command options
     sealed trait Command
     object Command:
-        case class ImportByDate(from: LocalDate, to: LocalDate, accountId: Option[Long]) extends Command
+        case class ImportByDate(from: LocalDate, to: LocalDate, accountId: Option[Long])
+            extends Command
         case class ImportNew(accountId: Option[Long]) extends Command
         case object ListAccounts extends Command
         case class CreateAccount(sourceAccountId: Long, token: String) extends Command
@@ -58,7 +60,7 @@ object FioCliMain extends ZIOAppDefault:
                     _ <- Console.printLine(s"Starting import$accountInfo...")
                     count <- accountId match
                         case Some(id) => service.importTransactionsForAccount(from, to, id)
-                        case None => service.importFioTransactions(from, to)
+                        case None     => service.importFioTransactions(from, to)
                     _ <- Console.printLine(s"Imported $count transactions.")
                 yield ()
 
@@ -70,7 +72,7 @@ object FioCliMain extends ZIOAppDefault:
                     _ <- Console.printLine(s"Starting import$accountInfo...")
                     count <- accountId match
                         case Some(id) => service.importNewTransactionsForAccount(id)
-                        case None => service.importNewTransactions()
+                        case None     => service.importNewTransactions()
                     _ <- Console.printLine(s"Imported $count transactions.")
                 yield ()
 
@@ -80,28 +82,33 @@ object FioCliMain extends ZIOAppDefault:
                     accountService <- ZIO.service[FioAccountService]
                     accounts <- accountService.getAccounts()
                     _ <- Console.printLine(s"Found ${accounts.size} Fio accounts:")
-                    _ <- ZIO.foreach(accounts)(account => 
+                    _ <- ZIO.foreach(accounts)(account =>
                         Console.printLine(
                             s"  - Account ID: ${account.id}, " +
-                            s"Source Account ID: ${account.sourceAccountId}, " +
-                            s"Last Sync: ${account.lastSyncTime.getOrElse("Never")}"
+                                s"Source Account ID: ${account.sourceAccountId}, " +
+                                s"Last Sync: ${account.lastSyncTime.getOrElse("Never")}"
                         )
                     )
                 yield ()
-                
+
             case Command.CreateAccount(sourceAccountId, token) =>
                 for
-                    _ <- Console.printLine(s"Creating Fio account for source account ID: $sourceAccountId...")
+                    _ <- Console.printLine(
+                        s"Creating Fio account for source account ID: $sourceAccountId..."
+                    )
                     accountService <- ZIO.service[FioAccountService]
                     id <- accountService.createAccount(sourceAccountId, token)
-                    _ <- Console.printLine(s"Created Fio account with ID: $id (automatically set bookmark to 60 days ago)")
+                    _ <- Console.printLine(
+                        s"Created Fio account with ID: $id (automatically set bookmark to 60 days ago)"
+                    )
                 yield ()
 
             case Command.Help =>
                 ZIO.succeed(printHelp())
 
     // Main application logic
-    private def cliApp(args: Array[String]): ZIO[FioImportService & FioAccountService, Throwable, ExitCode] =
+    private def cliApp(args: Array[String])
+        : ZIO[FioImportService & FioAccountService, Throwable, ExitCode] =
         for
             command <- parseCommand(args)
             _ <- executeCommand(command)
@@ -115,12 +122,13 @@ object FioCliMain extends ZIOAppDefault:
         else
             // Check for --option=value format
             args.find(_.startsWith(s"$option=")).map(_.drop(option.length + 1))
+        end if
     end getOptionValue
 
     // Parse command from command-line arguments
     def parseCommand(args: Array[String]): Task[Command] =
         val argsList = args.toList
-        
+
         argsList match
             case Nil | "help" :: _ =>
                 ZIO.succeed(Command.Help)
@@ -128,39 +136,47 @@ object FioCliMain extends ZIOAppDefault:
             case "import" :: rest =>
                 val fromOpt = rest.find(_.startsWith("--from=")).map(_.drop(7))
                 val toOpt = rest.find(_.startsWith("--to=")).map(_.drop(6))
-                val accountId = getOptionValue(rest, "--account").flatMap(id => Try(id.toLong).toOption)
-                
+                val accountId =
+                    getOptionValue(rest, "--account").flatMap(id => Try(id.toLong).toOption)
+
                 if fromOpt.isEmpty || toOpt.isEmpty then
-                    ZIO.fail(new IllegalArgumentException("Missing required parameters: --from=YYYY-MM-DD --to=YYYY-MM-DD"))
+                    ZIO.fail(new IllegalArgumentException(
+                        "Missing required parameters: --from=YYYY-MM-DD --to=YYYY-MM-DD"
+                    ))
                 else
                     for
                         from <- parseDate(fromOpt.get)
                         to <- parseDate(toOpt.get)
                     yield Command.ImportByDate(from, to, accountId)
                     end for
+                end if
 
             case "import-new" :: rest =>
-                val accountId = getOptionValue(rest, "--account").flatMap(id => Try(id.toLong).toOption)
+                val accountId =
+                    getOptionValue(rest, "--account").flatMap(id => Try(id.toLong).toOption)
                 ZIO.succeed(Command.ImportNew(accountId))
 
             case "list-accounts" :: _ =>
                 ZIO.succeed(Command.ListAccounts)
-                
+
             case "create-account" :: rest =>
                 val sourceAccountId = getOptionValue(rest, "--source-id")
                     .flatMap(id => Try(id.toLong).toOption)
                 val token = getOptionValue(rest, "--token")
-                
+
                 (sourceAccountId, token) match
-                    case (Some(id), Some(t)) => 
+                    case (Some(id), Some(t)) =>
                         ZIO.succeed(Command.CreateAccount(id, t))
                     case _ =>
                         ZIO.fail(new IllegalArgumentException(
                             "Missing required parameters for create-account: --source-id=ID --token=TOKEN"
                         ))
+                end match
 
             case cmd :: _ =>
                 ZIO.fail(new IllegalArgumentException(s"Unknown command: $cmd"))
+        end match
+    end parseCommand
 
     // Parse date from string
     private def parseDate(dateStr: String): Task[LocalDate] =
@@ -175,7 +191,8 @@ object FioCliMain extends ZIOAppDefault:
         )
 
     // Application layers
-    private def createRuntime: ZIO[Any, Nothing, ZLayer[Scope, Throwable, FioImportService & FioAccountService]] =
+    private def createRuntime
+        : ZIO[Any, Nothing, ZLayer[Scope, Throwable, FioImportService & FioAccountService]] =
         // Use environment variables for configuration
         val fioToken = sys.env.get("FIO_TOKEN")
         val usePostgres = sys.env.getOrElse("USE_POSTGRES", "false").toBoolean

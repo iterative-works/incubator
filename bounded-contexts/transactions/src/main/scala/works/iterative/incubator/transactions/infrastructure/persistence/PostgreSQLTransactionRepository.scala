@@ -4,10 +4,7 @@ import zio.*
 import works.iterative.incubator.transactions.domain.repository.TransactionRepository
 import works.iterative.incubator.transactions.domain.model.{Transaction, TransactionId}
 import works.iterative.incubator.transactions.domain.query.TransactionQuery
-import works.iterative.incubator.transactions.infrastructure.config.{
-    PostgreSQLDataSource,
-    PostgreSQLTransactor
-}
+import works.iterative.sqldb.{PostgreSQLDataSource, PostgreSQLTransactor}
 import com.augustnagro.magnum.PostgresDbType
 import com.augustnagro.magnum.magzio.*
 import java.time.LocalDate

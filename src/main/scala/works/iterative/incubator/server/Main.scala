@@ -12,7 +12,7 @@ import works.iterative.server.http.ZIOWebModule
 import view.modules.*
 import works.iterative.server.http.ScalatagsViteSupport
 import works.iterative.incubator.transactions.infrastructure.config.PostgreSQLTransactionsDatabaseModule
-import works.iterative.incubator.transactions.infrastructure.config.PostgreSQLDatabaseSupport
+import works.iterative.sqldb.PostgreSQLDatabaseSupport
 import works.iterative.incubator.fio.infrastructure.service.FioTransactionImportService
 import works.iterative.incubator.fio.infrastructure.client.FioClient
 import works.iterative.incubator.transactions.infrastructure.service.DefaultTransactionManagerService

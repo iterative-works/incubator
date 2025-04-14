@@ -3,6 +3,7 @@ package works.iterative.incubator.transactions.infrastructure.config
 import zio.*
 import works.iterative.incubator.transactions.domain.repository.*
 import works.iterative.incubator.transactions.infrastructure.persistence.*
+import works.iterative.sqldb.*
 
 /** Combines transaction-specific repositories with the database infrastructure
   *

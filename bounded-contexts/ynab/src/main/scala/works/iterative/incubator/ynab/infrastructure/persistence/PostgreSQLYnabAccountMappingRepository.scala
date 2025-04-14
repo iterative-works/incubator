@@ -3,10 +3,7 @@ package works.iterative.incubator.ynab.infrastructure.persistence
 import zio.*
 import works.iterative.incubator.ynab.domain.model.{CreateYnabAccountMapping, YnabAccountMapping}
 import works.iterative.incubator.ynab.domain.repository.YnabAccountMappingRepository
-import works.iterative.incubator.transactions.infrastructure.config.{
-    PostgreSQLDataSource,
-    PostgreSQLTransactor
-}
+import works.iterative.sqldb.{PostgreSQLDataSource, PostgreSQLTransactor}
 import com.augustnagro.magnum.PostgresDbType
 import com.augustnagro.magnum.magzio.*
 import io.scalaland.chimney.dsl.*

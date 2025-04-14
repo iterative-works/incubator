@@ -3,10 +3,7 @@ package works.iterative.incubator.fio.infrastructure.persistence
 import zio.*
 import java.time.Instant
 import works.iterative.incubator.fio.domain.model.*
-import works.iterative.incubator.transactions.infrastructure.config.{
-    PostgreSQLDataSource,
-    PostgreSQLTransactor
-}
+import works.iterative.sqldb.{PostgreSQLDataSource, PostgreSQLTransactor}
 import com.augustnagro.magnum.PostgresDbType
 import com.augustnagro.magnum.magzio.*
 import io.scalaland.chimney.dsl.*

@@ -9,10 +9,7 @@ import works.iterative.incubator.transactions.domain.model.{
 }
 import works.iterative.incubator.transactions.domain.query.TransactionProcessingStateQuery
 import works.iterative.incubator.infrastructure.DbCodecs.given
-import works.iterative.incubator.transactions.infrastructure.config.{
-    PostgreSQLDataSource,
-    PostgreSQLTransactor
-}
+import works.iterative.sqldb.{PostgreSQLDataSource, PostgreSQLTransactor}
 import com.augustnagro.magnum.PostgresDbType
 import com.augustnagro.magnum.magzio.*
 import java.time.Instant
