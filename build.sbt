@@ -57,6 +57,12 @@ lazy val transactions = (project in file("bounded-contexts/transactions"))
     )
     .dependsOn(core, webUi)
 
+lazy val `transactions-it` = (project in file("bounded-contexts/transactions/it")).settings(
+    name := "transactions-it"
+).settings(IWDeps.useZIO(), IWDeps.logbackClassic, support.supportLib("sqldb-testing")).dependsOn(
+    transactions
+)
+
 // YNAB Integration Context
 lazy val ynab = (project in file("bounded-contexts/ynab"))
     .settings(name := "ynab")

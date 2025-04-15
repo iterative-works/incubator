@@ -77,7 +77,7 @@ The application follows the Functional Core/Imperative Shell pattern:
 
 ### Web Layer
 - **API Module**: Transaction import/export endpoints
-- **User Interface**: 
+- **User Interface**:
   - **TransactionImportModule**: Transaction listing, categorizing, and management
   - **SourceAccountModule**: Bank account configuration and management
 
@@ -96,6 +96,56 @@ The database schema reflects our event-centric model:
 3. **transaction_processing_state**: Mutable processing state
    - Processing status, categorization, YNAB integration
    - References transaction
+
+## Bounded Context Integration
+
+This application uses multiple bounded contexts (transactions, fio, ynab) with clear dependencies:
+- The transactions context is foundational and contains core entities like SourceAccount
+- The fio and ynab contexts depend on the transactions context
+
+We've made a conscious decision to use direct database references between bounded contexts:
+- Both fio and ynab contexts reference the source_account table via foreign keys
+- This creates a strong coupling at the database level while maintaining code separation
+
+This approach was chosen for pragmatic reasons:
+- Simplifies data integrity across contexts
+- Reduces complexity in a single-team, monolithic application
+- Provides stronger guarantees than logical references
+
+### Tradeoffs and Considerations
+While this approach violates strict DDD principles of bounded context isolation, we've accepted these tradeoffs:
+- Schema changes to source_account require careful coordination
+- Database migration ordering must respect context dependencies
+- Evolution of the transactions context must consider impacts on dependent contexts
+
+## Database Migration Strategy
+
+Our database migrations follow these principles:
+1. Each bounded context maintains its own migration files in its resources directory
+2. Migration files use the standard Flyway naming convention: V{number}__{description}.sql
+3. Migration execution order follows context dependencies
+
+### Migration File Organization
+```
+bounded-contexts/
+├── transactions/
+│   └── src/main/resources/db/migration/
+│       └── V1__transactions_schema.sql
+├── fio/
+│   └── src/main/resources/db/migration/
+│       ├── V200__fio_import_state.sql
+│       └── V201__fio_account.sql
+└── ynab/
+    └── src/main/resources/db/migration/
+        └── V300__ynab_account_mappings.sql
+```
+
+### Ensuring Proper Migration Order
+- Transactions context migrations use versions 1-99
+- FIO context migrations use versions 100-199
+- YNAB context migrations use versions 200-299
+
+This numbering scheme ensures that migrations run in the correct dependency order while allowing each context to evolve independently.
 
 ## Implementation Patterns
 
