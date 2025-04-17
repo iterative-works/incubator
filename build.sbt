@@ -90,7 +90,8 @@ lazy val fio = (project in file("bounded-contexts/fio"))
         IWDeps.sttpClient4Lib("zio"),
         IWDeps.magnumZIO,
         IWDeps.magnumPG,
-        IWDeps.chimney
+        IWDeps.chimney,
+        IWDeps.logbackClassic
     )
     .dependsOn(core, transactions)
 
