@@ -24,11 +24,11 @@ tags:
 | Task | Status | Assignee | Started | Completed | Notes |
 |------|--------|----------|---------|-----------|-------|
 | Create PayeeCleanupRule domain model | Completed | | 2025-04-20 | 2025-04-20 | Created with proper enums for PatternType, GeneratorType, and RuleStatus |
-| Create PayeeCleanupService interface | Completed | | 2025-04-20 | 2025-04-20 | Interface defines rule and cleanup capabilities |
-| Create OpenAI client | In Progress | | 2025-04-20 | | Created basic stub with placeholder functionality |
+| Create PayeeCleanupService interface | Not Started | | | | |
+| Create OpenAI client | Not Started | | | | |
 | Create database migrations for payee rules | Completed | | 2025-04-20 | 2025-04-20 | Created V400__payee_cleanup_rules.sql migration |
-| Create PostgreSQLPayeeCleanupRuleRepository | In Progress | | 2025-04-20 | | Created initial implementation but requires fixes |
-| Implement LLMPayeeCleanupServiceImpl | In Progress | | 2025-04-20 | | Created initial implementation but requires integration testing |
+| Create PostgreSQLPayeeCleanupRuleRepository | Not Started | | | | |
+| Implement LLMPayeeCleanupServiceImpl | Not Started | | | | |
 | Update TransactionProcessor integration | Not Started | | | | |
 | Update transaction UI to show cleaned names | Not Started | | | | |
 | Unit tests for PayeeCleanupService | Not Started | | | | |
