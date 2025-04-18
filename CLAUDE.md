@@ -1,5 +1,13 @@
 # YNAB Importer Project Guidelines
 
+# Disciplined Development Approach
+
+We are working according to a plan, always.
+
+We follow a disciplined development process. This is important. We complete only one step of the plan at a time. After each step is done, we stop to review our work and document our progress.
+
+If you encounter a problem that proves difficult to resolve after an initial attempt, do not continue struggling alone. Reach out for assistance. Remember that you have experienced developers as colleagues who can provide guidance. Always ask for help when facing unclear or complicated solutions rather than attempting to solve challenging problems by yourself.
+
 ## Build & Test Commands
 
 We usually use metals for development. It is useful to run sbt server separately in a console, and than access the server using `sbtn`.
