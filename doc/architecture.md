@@ -179,6 +179,7 @@ This numbering scheme ensures that migrations run in the correct dependency orde
 
 2. **Processing Phase**
    - AI categorization is applied to transactions
+   - Self-learning payee name cleanup is applied to transactions
    - User can review and override categorizations
    - TransactionProcessingState is updated to Categorized status
 
@@ -186,6 +187,49 @@ This numbering scheme ensures that migrations run in the correct dependency orde
    - Categorized transactions are submitted to YNAB
    - TransactionProcessingState is updated with YNAB IDs and Submitted status
    - Synchronization metadata is updated
+
+## Self-Learning Payee Cleanup System
+
+This subsystem improves transaction data quality by cleaning up messy payee names before they're sent to YNAB.
+
+### Design Approach
+- Combines LLM-based processing with a rule-based system that learns over time
+- Starts with no predefined rules and builds a rule database through usage
+- Uses feedback mechanisms to evaluate and improve rule quality
+
+### Key Components
+
+1. **PayeeCleanupRule (Domain Entity)**
+   - Defines patterns for matching transaction payees
+   - Supports multiple pattern types (exact, contains, startsWith, regex)
+   - Tracks usage statistics and success rates
+   - Maintains approval workflow statuses
+
+2. **Rule Application Tracking**
+   - Records every rule application to a transaction
+   - Collects feedback on rule effectiveness
+   - Updates rule metrics based on feedback
+
+### Learning Workflow
+
+1. **Initial Processing**
+   - When no matching rules exist, LLM is used to clean payee names
+   - LLM suggests potential rules based on the cleaning process
+
+2. **Rule Management**
+   - Suggested rules start in "Pending" status for admin review
+   - Rules can be approved, rejected, or modified
+   - Human-created rules start as "Approved"
+
+3. **Continuous Improvement**
+   - Rules are evaluated based on application success rate
+   - Higher confidence rules are preferred over lower confidence ones
+   - Over time, the system relies less on LLM calls and more on proven rules
+
+### Integration Points
+- Integrates with the TransactionProcessor during the Processing Phase
+- Updates the TransactionProcessingState with cleaned payee names
+- Provides feedback mechanisms for users to improve rule quality
 
 ## Technologies
 
