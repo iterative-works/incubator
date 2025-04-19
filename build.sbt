@@ -105,6 +105,9 @@ lazy val categorization = (project in file("bounded-contexts/categorization"))
     .settings(name := "categorization")
     .enablePlugins(IWScalaProjectPlugin)
     .settings(commonDependencies)
+    .settings(
+        libraryDependencies += "com.softwaremill.sttp.openai" %% "zio" % "0.3.4"
+    )
     .dependsOn(core, transactions)
 
 // User Management Context (Skeleton)
