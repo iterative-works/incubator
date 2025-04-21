@@ -18,6 +18,7 @@ import works.iterative.incubator.categorization.infrastructure.config.OpenAIConf
 
 import zio.*
 import sttp.openai.OpenAIUris
+import scala.annotation.unused
 
 /** Live implementation of OpenAIClient that uses sttp-openai to communicate with OpenAI API
   *
@@ -182,7 +183,7 @@ case class OpenAIClientLive(
 
     /** Parse the JSON response from OpenAI into domain types */
     private def parseCleanupResponse(
-        original: String,
+        @unused original: String,
         response: ChatResponse
     ): IO[OpenAIError, (String, Option[PayeeCleanupRule])] =
         ZIO.attempt {
@@ -191,12 +192,20 @@ case class OpenAIClientLive(
                 .map(_.message.content)
                 .getOrElse(throw new RuntimeException("No content in OpenAI response"))
 
+            // Validate that the response text contains JSON structure
+            if !responseText.trim.startsWith("{") || !responseText.trim.endsWith("}") then
+                throw new RuntimeException("Response is not in expected JSON format")
+
             // Parse JSON manually since we don't want to introduce another JSON library dependency
             // This is a simplified parsing implementation - in production you might want to use a real JSON parser
             val jsonMap = parseSimpleJson(responseText)
 
+            // Verify we have at least the cleaned_payee key in the response
+            if !jsonMap.contains("cleaned_payee") then
+                throw new RuntimeException("Response missing required 'cleaned_payee' field")
+
             // Extract cleaned payee name
-            val cleanedPayee = jsonMap.getOrElse("cleaned_payee", original)
+            val cleanedPayee = jsonMap("cleaned_payee")
 
             // Extract confidence
             val confidence = jsonMap.get("confidence")

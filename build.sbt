@@ -110,6 +110,11 @@ lazy val categorization = (project in file("bounded-contexts/categorization"))
     )
     .dependsOn(core, transactions)
 
+lazy val `categorization-it` = (project in file("bounded-contexts/categorization/it"))
+    .settings(name := "categorization-it")
+    .settings(IWDeps.useZIO())
+    .dependsOn(categorization)
+
 // User Management Context (Skeleton)
 lazy val auth = (project in file("bounded-contexts/auth"))
     .settings(name := "auth")

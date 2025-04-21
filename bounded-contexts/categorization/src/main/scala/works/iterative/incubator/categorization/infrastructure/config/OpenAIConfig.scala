@@ -20,8 +20,8 @@ object OpenAIConfig:
     given config: Config[OpenAIConfig] =
         import Config.*
         (secret("key").nested("api") zip
-            string("model") zip
-            int("maxRetries") zip
+            string("model").withDefault("gpt-4o-mini") zip
+            int("maxRetries").withDefault(2) zip
             uri("baseUrl").optional zip
             double("temperature").optional zip
             int("maxTokens").optional).nested("openai").map(OpenAIConfig.apply)

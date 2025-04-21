@@ -2,9 +2,9 @@ package works.iterative.incubator.categorization.infrastructure.service
 
 import sttp.client4.Backend
 import sttp.model.StatusCode
+import sttp.client4.testing.*
 import works.iterative.incubator.categorization.domain.model.*
 import works.iterative.incubator.categorization.domain.service.OpenAIClient
-import works.iterative.incubator.categorization.infrastructure.config.OpenAIConfig
 
 import zio.*
 import zio.test.*
@@ -18,15 +18,6 @@ object OpenAIClientLiveSpec extends ZIOSpecDefault:
         "amount" -> "123.45",
         "date" -> "2023-10-15",
         "counterAccount" -> "GB12345678901234"
-    )
-
-    // Test configuration
-    val testConfig = OpenAIConfig(
-        apiKey = Config.Secret("test-api-key"),
-        model = "gpt-4o-mini",
-        maxRetries = 2,
-        temperature = Some(0.7),
-        maxTokens = Some(500)
     )
 
     // Config Layer for tests
@@ -112,51 +103,49 @@ object OpenAIClientLiveSpec extends ZIOSpecDefault:
     }"""
 
     // Create test backend that returns predetermined responses
-    def createTestBackend: UIO[Backend[Task]] =
-        ZIO.succeed {
-            // Start with a stub backend
-            HttpClientZioBackend.stub
-                // Match cleanupPayee request
-                .whenRequestMatches(r =>
-                    r.uri.path.lastOption.contains("chat/completions") &&
-                        r.body.toString.contains(testPayee)
-                )
-                .thenRespondAdjust(validJsonResponse)
+    def testBackend: Backend[Task] =
+        // Start with a stub backend
+        HttpClientZioBackend.stub
+            // Match cleanupPayee request
+            .whenRequestMatches(r =>
+                r.uri.path.lastOption.contains("completions") &&
+                    r.forceBodyAsString.contains(testPayee)
+            )
+            .thenRespondAdjust(validJsonResponse)
 
-                // Match health check request
-                .whenRequestMatches(r =>
-                    r.uri.path.lastOption.contains("chat/completions") &&
-                        r.body.toString.contains("health check")
-                )
-                .thenRespondAdjust(healthCheckResponse)
+            // Match health check request
+            .whenRequestMatches(r =>
+                r.uri.path.endsWith(List("chat", "completions")) &&
+                    r.forceBodyAsString.contains("health check")
+            )
+            .thenRespondAdjust(healthCheckResponse)
 
-                // Match authentication error
-                .whenRequestMatches(r =>
-                    r.uri.path.lastOption.contains("chat/completions") &&
-                        r.body.toString.contains("trigger_auth_error")
-                )
-                .thenRespondAdjust(
-                    """{"error":{"message":"Invalid Authentication","type":"invalid_request_error"}}""",
-                    StatusCode.Unauthorized
-                )
+            // Match authentication error
+            .whenRequestMatches(r =>
+                r.uri.path.endsWith(List("chat", "completions")) &&
+                    r.forceBodyAsString.contains("trigger_auth_error")
+            )
+            .thenRespondAdjust(
+                """{"error":{"message":"Invalid Authentication","type":"invalid_request_error"}}""",
+                StatusCode.Unauthorized
+            )
 
-                // Match rate limit error
-                .whenRequestMatches(r =>
-                    r.uri.path.lastOption.contains("chat/completions") &&
-                        r.body.toString.contains("trigger_rate_limit")
-                )
-                .thenRespondAdjust(
-                    """{"error":{"message":"Rate limit exceeded","type":"rate_limit_error"}}""",
-                    StatusCode.TooManyRequests
-                )
+            // Match rate limit error
+            .whenRequestMatches(r =>
+                r.uri.path.endsWith(List("chat", "completions")) &&
+                    r.forceBodyAsString.contains("trigger_rate_limit")
+            )
+            .thenRespondAdjust(
+                """{"error":{"message":"Rate limit exceeded","type":"rate_limit_error"}}""",
+                StatusCode.TooManyRequests
+            )
 
-                // Match invalid JSON response
-                .whenRequestMatches(r =>
-                    r.uri.path.lastOption.contains("chat/completions") &&
-                        r.body.toString.contains("trigger_invalid_json")
-                )
-                .thenRespondAdjust(invalidJsonResponse)
-        }
+            // Match invalid JSON response
+            .whenRequestMatches(r =>
+                r.uri.path.endsWith(List("chat", "completions")) &&
+                    r.forceBodyAsString.contains("trigger_invalid_json")
+            )
+            .thenRespondAdjust(invalidJsonResponse)
 
     // Tests
     def spec = suite("OpenAIClientLive")(
@@ -183,45 +172,22 @@ object OpenAIClientLiveSpec extends ZIOSpecDefault:
                 for
                     client <- ZIO.service[OpenAIClient]
                     result <- client.cleanupPayee("trigger_auth_error", testContext).exit
-                yield assert(result)(fails(isSubtype[OpenAIError.AuthenticationError](anything)))
+                yield assert(result)(failsWithA[OpenAIError.AuthenticationError])
             },
             test("cleanupPayee should handle rate limit errors") {
                 for
                     client <- ZIO.service[OpenAIClient]
                     result <- client.cleanupPayee("trigger_rate_limit", testContext).exit
-                yield assert(result)(fails(isSubtype[OpenAIError.RateLimitError](anything)))
+                yield assert(result)(failsWithA[OpenAIError.RateLimitError])
             },
             test("cleanupPayee should handle invalid JSON responses") {
                 for
                     client <- ZIO.service[OpenAIClient]
                     result <- client.cleanupPayee("trigger_invalid_json", testContext).exit
-                yield assert(result)(fails(isSubtype[OpenAIError.ResponseParsingError](anything)))
+                yield assert(result)(failsWithA[OpenAIError.ResponseParsingError])
             }
-        ).provideLayer(OpenAIClientLive.live),
-
-        // Integration tests - only run when enabled
-        suite("Integration tests with real OpenAI API")(
-            test("cleanupPayee should successfully clean a payee name") {
-                for
-                    client <- ZIO.service[OpenAIClient]
-                    result <- client.cleanupPayee(
-                        "AMAZON UK MARKETPLACE 123-4567890-1234567 PAYMENT",
-                        Map("amount" -> "29.99")
-                    )
-                yield assertTrue(
-                    result._1.toLowerCase.contains("amazon"),
-                    !result._1.contains("123-4567890-1234567")
-                )
-            },
-            test("healthCheck should connect to the real API") {
-                for
-                    client <- ZIO.service[OpenAIClient]
-                    result <- client.healthCheck()
-                yield assertCompletes
-            }
-        ).provide(
-            mockConfigProvider,
-            OpenAIClientLive.live
-        ) @@ TestAspect.ifEnvSet("OPENAI_API_KEY")
-    )
+        )
+    ).provideLayer(
+        mockConfigProvider >>> ZLayer.succeed(testBackend) >>> OpenAIClientLive.layer
+    ) @@ TestAspect.withLiveClock
 end OpenAIClientLiveSpec
