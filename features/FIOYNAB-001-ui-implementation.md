@@ -772,7 +772,7 @@ object MockSubmissionService:
 | 7 | Handle YNAB API connection failure | ErrorNotification, SubmissionResultsPanel |
 | 8 | Prevent duplicate submission | DuplicateWarning, SubmissionResultsPanel |
 | 9 | Validate transaction date range | ImportForm, ValidationMessage |
-| 10 | Unauthorized access attempt | LoginForm, ProtectedRoute |
+| (Deferred) | Unauthorized access attempt | (Deferred to future iteration) |
 
 ## Document History
 

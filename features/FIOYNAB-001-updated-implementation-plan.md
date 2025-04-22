@@ -197,23 +197,9 @@ Instead of organizing work by technical components, we structure the implementat
 - YnabAdapter
 - DuplicateDetectionImplementation
 
-### Scenario Group 4: Authentication
+### Scenario Group 4: Authentication (Deferred to Future Iteration)
 
-**Scenarios**:
-- Unauthorized access attempt
-
-**Domain Model Components**:
-- AuthenticationService
-- UserRepository interface
-
-**UI Components**:
-- LoginForm
-- ProtectedRoute
-- NavigationGuard
-
-**Infrastructure Components**:
-- JWTAuthenticationImplementation
-- PostgreSQLUserRepository
+> Note: After team discussion, we've decided to defer the authentication/authorization implementation to a future iteration. For the MVS, we'll use a deployment-specific solution for securing the application.
 
 ## Implementation Sequence
 
@@ -226,11 +212,9 @@ The following table outlines the sequence in which scenario groups will be imple
 | 2 | UI Implementation | Scenario Group 1: Core Import & Management |
 | 2 | UI Implementation | Scenario Group 2: Categorization |
 | 3 | UI Implementation | Scenario Group 3: Submission |
-| 3 | UI Implementation | Scenario Group 4: Authentication |
 | 3 | Infrastructure Implementation | Scenario Group 1: Core Import & Management |
 | 4 | Infrastructure Implementation | Scenario Group 2: Categorization |
 | 4 | Infrastructure Implementation | Scenario Group 3: Submission |
-| 4 | Infrastructure Implementation | Scenario Group 4: Authentication |
 
 ## Integration with Existing Components
 

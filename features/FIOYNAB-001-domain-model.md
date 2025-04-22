@@ -617,8 +617,8 @@ This section maps the domain model components to the specific scenarios they sup
 - **Key Components**: ValidationService, ImportService
 - **View Models**: ImportBatchStatusView with validation errors
 
-### Scenario 10: Unauthorized access attempt
-- **Key Components**: Authentication is handled at the application layer, not in domain model
+### Scenario 10: Unauthorized access attempt (Deferred to Future Iteration)
+- **Note**: Authentication implementation has been deferred to a future iteration. The MVS will use a deployment-specific security solution.
 
 ## Next Steps
 

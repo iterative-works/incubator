@@ -243,24 +243,11 @@ The analysis serves as the foundation for domain model design, testing strategy,
 - UI level: Test date input and validation message display
 - E2E level: Test complete validation process with different inputs
 
-### Scenario 10: Unauthorized access attempt
+### Scenario 10: Unauthorized access attempt (Deferred to Future Iteration)
 
-**Domain Components:**
-- `AuthenticationService`: Service for user authentication
-- `AccessControl`: Service for checking permissions
+> Note: After team discussion, we've decided to defer the authentication/authorization implementation to a future iteration. For the MVS, we'll use a deployment-specific solution for securing the application.
 
-**Repository Interfaces:**
-- `UserRepository.findByCredentials(username: String, passwordHash: String): Task[Option[User]]`
-
-**UI Components:**
-- Login form
-- Authentication error messages
-- Redirect mechanism for unauthorized access
-
-**Test Scenarios:**
-- Domain level: Test authentication with various credentials
-- UI level: Test login form and error message display
-- E2E level: Test complete authentication process
+**Domain Components, Repository Interfaces, UI Components, and Test Scenarios will be defined in a future iteration.**
 
 ## Shared Behaviors and Common Patterns
 
@@ -294,15 +281,16 @@ Based on the analysis, the following dependencies exist between scenarios:
 
 Recommended implementation order:
 1. Scenario 1: Import
-2. Scenario 10: Authentication
-3. Scenario 2: AI Categorization
-4. Scenario 3: Manual Category Modification
-5. Scenario 8: Filtering
-6. Scenario 9: Date Validation
-7. Scenario 4: Bulk Modification
-8. Scenario 5: Submission
-9. Scenario 6: Error Handling
-10. Scenario 7: Duplicate Prevention
+2. Scenario 2: AI Categorization
+3. Scenario 3: Manual Category Modification
+4. Scenario 8: Filtering
+5. Scenario 9: Date Validation
+6. Scenario 4: Bulk Modification
+7. Scenario 5: Submission
+8. Scenario 6: Error Handling
+9. Scenario 7: Duplicate Prevention
+
+> Note: Scenario 10 (Authentication) has been deferred to a future iteration.
 
 ## Document History
 
