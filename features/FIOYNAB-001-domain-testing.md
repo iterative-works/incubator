@@ -20,6 +20,7 @@ tags:
 - **Scenario Analysis**: [FIOYNAB-001-scenario-analysis](./FIOYNAB-001-scenario-analysis.md)
 - **Domain Model**: [FIOYNAB-001-domain-model](./FIOYNAB-001-domain-model.md)
 - **Gherkin Feature**: [FIOYNAB-001.feature](./FIOYNAB-001.feature)
+- **Implementation Plan**: [FIOYNAB-001-implementation-plan](./FIOYNAB-001-implementation-plan.md)
 
 ## Overview
 

@@ -5,8 +5,9 @@ Feature: Fio Bank to YNAB Integration
   So that I can save time and improve the accuracy of my financial data
 
   Background:
-    Given I am logged in as an administrator
-    And the system is connected to Fio Bank and YNAB APIs
+    # Note: Authentication is deferred to a future iteration
+    # Given I am logged in as an administrator
+    Given the system is connected to Fio Bank and YNAB APIs
 
   @import @happy-path
   Scenario: Successfully import transactions from Fio Bank
@@ -88,9 +89,12 @@ Feature: Fio Bank to YNAB Integration
       |             | 2025-04-15  | Start date is required                     |
       | 2025-04-01  |             | End date is required                       |
 
-  @security
-  Scenario: Unauthorized access attempt
-    Given I am not logged in
-    When I attempt to access the transaction management page
-    Then I should be redirected to the login page
-    And I should see a message "Authentication required"
+  @security @deferred
+  Scenario: Unauthorized access attempt (Deferred to Future Iteration)
+    # Note: Authentication implementation has been deferred to a future iteration.
+    # For the MVS, we'll use a deployment-specific security solution.
+    #
+    # Given I am not logged in
+    # When I attempt to access the transaction management page
+    # Then I should be redirected to the login page
+    # And I should see a message "Authentication required"

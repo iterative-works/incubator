@@ -21,6 +21,7 @@ tags:
 - **Domain Model**: [FIOYNAB-001-domain-model](./FIOYNAB-001-domain-model.md)
 - **Domain Testing**: [FIOYNAB-001-domain-testing](./FIOYNAB-001-domain-testing.md)
 - **Gherkin Feature**: [FIOYNAB-001.feature](./FIOYNAB-001.feature)
+- **Implementation Plan**: [FIOYNAB-001-implementation-plan](./FIOYNAB-001-implementation-plan.md)
 
 ## Overview
 
