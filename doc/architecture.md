@@ -1,7 +1,43 @@
 # YNAB Importer Architecture
 
 ## Overview
-The YNAB Importer follows a Functional Core/Imperative Shell architecture that imports bank transactions from various sources and exports them to YNAB (You Need A Budget). The application implements an event-centric approach with clear separation between immutable transaction events and mutable processing state.
+The YNAB Importer follows a BDD-Driven UI-First approach with a Functional Core/Imperative Shell architecture. The application imports bank transactions from various sources, processes them with AI-assisted categorization, and exports them to YNAB (You Need A Budget). Our development is scenario-driven, using Gherkin features as the core of our workflow.
+
+## Architecture Approach
+
+### BDD-Driven UI-First Development
+
+Our development follows these key principles:
+
+1. **Scenarios Drive Everything**: All development is guided by Gherkin scenarios
+2. **UI-First Development**: We build and validate the user experience with mocks before implementing real infrastructure
+3. **Functional Core, Imperative Shell**: We maintain strict separation between pure functional domain logic and side-effecting code
+4. **Multi-Level Testing**: We test scenarios at domain, UI, and end-to-end levels
+
+This approach gives us several advantages:
+- Early validation of user experience
+- Clear connection between requirements and implementation
+- Faster feedback cycles
+- Maintainable architecture with clear separation of concerns
+
+## UI Module Vertical Slices
+
+Based on our scenario analysis, we organize the application into vertical slices within a bounded context:
+
+```
+fio-ynab-integration/            # Bounded Context
+├── domain/                      # Shared Domain Core
+├── import/                      # Import Module (Vertical Slice)
+├── categorization/              # Categorization Module
+├── submission/                  # Submission Module 
+└── transaction-management/      # Transaction Management Module
+```
+
+Each vertical slice:
+- Maps to specific Gherkin scenarios in our feature files
+- Contains a complete implementation from UI to infrastructure
+- Can be developed and tested independently
+- Uses the shared domain core for common functionality
 
 ## Domain Model Design
 
@@ -69,17 +105,45 @@ The application follows the Functional Core/Imperative Shell pattern:
 ### Imperative Shell (Infrastructure Layer)
 - **Repository Implementations**: Concrete data access
   - `PostgreSQLTransactionRepository`, `PostgreSQLTransactionProcessingStateRepository`, `PostgreSQLSourceAccountRepository`
+  - `MockTransactionRepository`, `MockTransactionProcessingStateRepository`, `MockSourceAccountRepository`
 - **Adapters**: External service integration
   - FIO bank adapter (`FioClient`, `FioTransactionImportService`)
+  - Mock adapters for UI development
 - **Database Components**:
   - `PostgreSQLTransactor`, `PostgreSQLDataSource`
   - `FlywayMigrationService` for schema management
 
 ### Web Layer
-- **API Module**: Transaction import/export endpoints
-- **User Interface**:
-  - **TransactionImportModule**: Transaction listing, categorizing, and management
-  - **SourceAccountModule**: Bank account configuration and management
+- **UI Modules**: Scenario-based vertical slices
+  - **ImportModule**: For handling transaction imports (Scenarios 1, 9)
+  - **CategorizationModule**: For AI and manual categorization (Scenarios 2, 3, 4)
+  - **SubmissionModule**: For submitting to YNAB (Scenarios 5, 6, 7)
+  - **TransactionManagementModule**: For filtering and viewing (Scenario 8)
+
+## Module Structure
+
+Each module follows our Functional MVP pattern with this structure:
+
+```
+import/                      # Import Module
+├── domain/                  # Module-specific domain logic
+│   ├── ImportService.scala
+│   └── DateRangeValidator.scala
+├── application/             # Application Services
+│   ├── ImportApplicationService.scala
+│   └── ImportTransactionsCommand.scala
+├── infrastructure/          # Infrastructure
+│   ├── MockFioAdapter.scala # Mock implementation (UI-First)
+│   ├── LiveFioAdapter.scala # Real implementation (Production)
+│   └── ...
+└── web/                     # UI components
+    ├── ImportModule.scala   # Module definition
+    ├── ImportViewModel.scala # View Model
+    ├── ImportService.scala  # UI Service
+    └── views/
+        ├── ImportView.scala # View
+        └── ...
+```
 
 ## Database Schema
 
@@ -99,53 +163,45 @@ The database schema reflects our event-centric model:
 
 ## Bounded Context Integration
 
-This application uses multiple bounded contexts (transactions, fio, ynab) with clear dependencies:
-- The transactions context is foundational and contains core entities like SourceAccount
-- The fio and ynab contexts depend on the transactions context
+With our UI-Module Vertical Slices approach, we're transitioning from technology-oriented bounded contexts (transactions, fio, ynab) to a more cohesive feature-oriented bounded context (fio-ynab-integration) with a shared domain core.
 
-We've made a conscious decision to use direct database references between bounded contexts:
-- Both fio and ynab contexts reference the source_account table via foreign keys
-- This creates a strong coupling at the database level while maintaining code separation
+Within this bounded context, we:
+- Maintain direct database references (as in the previous architecture)
+- Share the domain core across all vertical slices
+- Keep clear boundaries between UI modules
 
-This approach was chosen for pragmatic reasons:
-- Simplifies data integrity across contexts
-- Reduces complexity in a single-team, monolithic application
-- Provides stronger guarantees than logical references
+## Scenario-to-Module Mapping
 
-### Tradeoffs and Considerations
-While this approach violates strict DDD principles of bounded context isolation, we've accepted these tradeoffs:
-- Schema changes to source_account require careful coordination
-- Database migration ordering must respect context dependencies
-- Evolution of the transactions context must consider impacts on dependent contexts
+Based on our BDD approach, we map scenarios to modules as follows:
 
-## Database Migration Strategy
+| Module | Scenarios | Key Functionality |
+|--------|-----------|-------------------|
+| Import | 1, 9 | Import transactions from Fio Bank, Date range validation |
+| Categorization | 2, 3, 4 | AI categorization, Manual modification, Bulk modification |
+| Submission | 5, 6, 7 | Submit to YNAB, Error handling, Duplicate prevention |
+| Transaction Management | 8 | Filtering and viewing transactions |
 
-Our database migrations follow these principles:
-1. Each bounded context maintains its own migration files in its resources directory
-2. Migration files use the standard Flyway naming convention: V{number}__{description}.sql
-3. Migration execution order follows context dependencies
+## Implementation Process
 
-### Migration File Organization
-```
-bounded-contexts/
-├── transactions/
-│   └── src/main/resources/db/migration/
-│       └── V1__transactions_schema.sql
-├── fio/
-│   └── src/main/resources/db/migration/
-│       ├── V200__fio_import_state.sql
-│       └── V201__fio_account.sql
-└── ynab/
-    └── src/main/resources/db/migration/
-        └── V300__ynab_account_mappings.sql
-```
+For each module, our implementation follows this process:
 
-### Ensuring Proper Migration Order
-- Transactions context migrations use versions 1-99
-- FIO context migrations use versions 100-199
-- YNAB context migrations use versions 200-299
+1. **Domain Model First**: 
+   - Implement domain entities, value objects, and services
+   - Create repository interfaces based on scenario needs
 
-This numbering scheme ensures that migrations run in the correct dependency order while allowing each context to evolve independently.
+2. **Mock Services**:
+   - Implement in-memory repository implementations
+   - Create mock implementations of external services
+
+3. **UI Development**:
+   - Build UI components using mock implementations
+   - Implement user flows per scenarios
+   - Validate with users
+
+4. **Real Infrastructure Implementation**:
+   - Implement real repositories and external service adapters
+   - Replace mocks with real implementations
+   - Test scenarios with real infrastructure
 
 ## Implementation Patterns
 
@@ -156,7 +212,7 @@ This numbering scheme ensures that migrations run in the correct dependency orde
 
 ### Repository Pattern
 - Domain-defined interfaces in the core
-- Infrastructure implementations in the shell
+- Both mock and real infrastructure implementations
 - Generic operations with domain-specific queries
 
 ### Performance Optimization
@@ -172,18 +228,18 @@ This numbering scheme ensures that migrations run in the correct dependency orde
 
 ## Processing Flow
 
-1. **Import Phase**
+1. **Import Phase** (Import Module)
    - External bank data is fetched through adapters (e.g., FIO Bank)
    - Raw data is transformed into immutable Transaction events
    - Initial TransactionProcessingState is created with Imported status
 
-2. **Processing Phase**
+2. **Processing Phase** (Categorization Module)
    - AI categorization is applied to transactions
    - Self-learning payee name cleanup is applied to transactions
    - User can review and override categorizations
    - TransactionProcessingState is updated to Categorized status
 
-3. **Export Phase**
+3. **Export Phase** (Submission Module)
    - Categorized transactions are submitted to YNAB
    - TransactionProcessingState is updated with YNAB IDs and Submitted status
    - Synchronization metadata is updated
