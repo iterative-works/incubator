@@ -1,3 +1,7 @@
+---
+state: outdated
+---
+
 # Bounded Context Analysis of YNAB Importer Project
 
 This document outlines the current and planned bounded contexts for the YNAB Importer project, along with their relationships and recommendations for architectural alignment. This analysis serves as a foundation for organizing our codebase according to Domain-Driven Design principles.

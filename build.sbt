@@ -122,6 +122,23 @@ lazy val `categorization-it` = (project in file("bounded-contexts/categorization
     .settings(IWDeps.useZIO())
     .dependsOn(categorization)
 
+// Import Module Context
+lazy val imports = (project in file("bounded-contexts/imports"))
+    .settings(name := "imports")
+    .enablePlugins(IWScalaProjectPlugin)
+    .settings(
+        commonDependencies,
+        IWDeps.zioJson,
+        IWDeps.http4sBlazeServer,
+        IWDeps.scalatags
+    )
+    .dependsOn(core, budget, transactions, fio)
+
+lazy val `imports-it` = (project in file("bounded-contexts/imports/it"))
+    .settings(name := "imports-it")
+    .settings(IWDeps.useZIO())
+    .dependsOn(imports)
+
 // User Management Context (Skeleton)
 lazy val auth = (project in file("bounded-contexts/auth"))
     .settings(name := "auth")
@@ -182,5 +199,5 @@ lazy val root = (project in file("."))
             "1"
         )
     )
-    .dependsOn(transactions, ynab, fio)
-    .aggregate(webUi, core, budget, transactions, ynab, fio, categorization, auth)
+    .dependsOn(transactions, ynab, fio, imports)
+    .aggregate(webUi, core, budget, transactions, ynab, fio, categorization, auth, imports)

@@ -80,7 +80,7 @@ src/
 
 #### 1.3 Module Structure Setup
 
-- [ ] Create basic structure for the Import Module (using 'imports' package)
+- [x] Create basic structure for the Import Module (using 'imports' package)
 - [ ] Create basic structure for the Categorization Module
 - [ ] Create basic structure for the Submission Module
 - [ ] Create basic structure for the Transaction Management Module
