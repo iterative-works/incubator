@@ -71,11 +71,12 @@ src/
 
 #### 1.2 Mock Service Framework
 
-- [ ] Create a mock implementation framework
-- [ ] Implement in-memory repositories
-  - [ ] InMemoryTransactionRepository
-  - [ ] InMemoryTransactionProcessingStateRepository
-  - [ ] InMemorySourceAccountRepository
+- [x] Create a mock implementation framework
+- [x] Implement in-memory repositories
+  - [x] InMemoryTransactionRepository
+  - [x] InMemoryTransactionProcessingStateRepository
+  - [x] InMemorySourceAccountRepository
+  - [x] InMemoryCategoryRepository
 - [ ] Build test data generator for mocks
 
 #### 1.3 Module Structure Setup
@@ -230,6 +231,36 @@ This transition plan provides a structured approach to migrating our architectur
 Progress will be tracked in our project management system with tasks mapped directly to scenarios in our feature files.
 
 ## Progress Updates
+
+### 2025-04-25: Completed Phase 1.2 - Mock Service Framework
+
+We've successfully implemented the mock service framework as the second step in our transition plan. This infrastructure enables our BDD-driven UI-first development approach, allowing us to build and validate user interfaces before implementing real infrastructure.
+
+The following components have been created:
+
+1. **In-Memory Repository Implementations**:
+   - InMemoryTransactionRepository
+   - InMemoryTransactionProcessingStateRepository
+   - InMemorySourceAccountRepository
+   - InMemoryCategoryRepository
+
+2. **Test Data Generation Framework**:
+   - TestDataGenerator with utilities for creating realistic test data
+   - ScenarioTestData with data factories mapped to specific Gherkin scenarios
+   - Support for all scenarios from our feature files
+
+3. **Integration Facilities**:
+   - MockRepositories with convenient ZLayers for different testing scenarios
+   - Scenario-based repository layers for specific test cases
+   - Test utilities for setting up mock environments
+
+This framework provides several key capabilities:
+- Realistic data generation for UI development and testing
+- Direct connection between test data and Gherkin scenarios
+- In-memory repositories that work with the real domain interfaces
+- Easy integration into ZIO applications
+
+With these mock services in place, we can now proceed to implementing the UI modules using a true UI-first approach, where we build and validate the user experience before committing to real infrastructure implementations.
 
 ### 2025-04-23: Completed Phase 1.1 - Domain Core Extraction
 
