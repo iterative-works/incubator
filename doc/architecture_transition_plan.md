@@ -53,20 +53,21 @@ src/
 
 #### 1.1 Domain Core Extraction
 
-- [ ] Create the `budget/domain` package
-- [ ] Move core entities from transactions context to shared domain core
-  - [ ] Transaction
-  - [ ] TransactionProcessingState
-  - [ ] SourceAccount
-  - [ ] Category
-- [ ] Create repository interfaces in domain core
-  - [ ] TransactionRepository
-  - [ ] TransactionProcessingStateRepository
-  - [ ] SourceAccountRepository
-- [ ] Define domain events based on scenarios
-  - [ ] TransactionImported
-  - [ ] TransactionCategorized
-  - [ ] TransactionSubmitted
+- [x] Create the `budget/domain` package
+- [x] Move core entities from transactions context to shared domain core
+  - [x] Transaction
+  - [x] TransactionProcessingState
+  - [x] SourceAccount
+  - [x] Category
+- [x] Create repository interfaces in domain core
+  - [x] TransactionRepository
+  - [x] TransactionProcessingStateRepository
+  - [x] SourceAccountRepository
+  - [x] CategoryRepository
+- [x] Define domain events based on scenarios
+  - [x] TransactionImported
+  - [x] TransactionCategorized
+  - [x] TransactionSubmitted
 
 #### 1.2 Mock Service Framework
 
@@ -227,3 +228,28 @@ We'll use an incremental approach to minimize disruption:
 This transition plan provides a structured approach to migrating our architecture to a BDD-Driven UI-First development model with vertical slices. By focusing on incremental implementation and early user validation, we can minimize risks while making progress toward a more maintainable and user-focused architecture.
 
 Progress will be tracked in our project management system with tasks mapped directly to scenarios in our feature files.
+
+## Progress Updates
+
+### 2025-04-23: Completed Phase 1.1 - Domain Core Extraction
+
+We've successfully completed the first step of our transition plan, extracting the core domain model into the new `budget` bounded context. The following components have been created:
+
+1. **Core Entities**:
+   - Transaction and TransactionId
+   - TransactionProcessingState and TransactionStatus
+   - SourceAccount and CreateSourceAccount
+   - Category
+
+2. **Repository Interfaces**:
+   - TransactionRepository
+   - TransactionProcessingStateRepository
+   - SourceAccountRepository
+   - CategoryRepository
+
+3. **Domain Events**:
+   - TransactionImported
+   - TransactionCategorized
+   - TransactionSubmitted
+
+All these domain components have been migrated to the new package structure and are ready for use in the subsequent phases of our implementation. The interfaces maintain the same contract as before, ensuring compatibility with existing code while we gradually migrate to the new architecture.
