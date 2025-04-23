@@ -37,7 +37,7 @@ src/
               └── fioynab/            # Bounded Context
                   ├── domain/         # Shared Domain Core
                   │   └── ...
-                  ├── imports/         # Imports Module
+                  ├── imports/         # Import Module
                   │   └── ...
                   ├── categorization/ # Categorization Module
                   │   └── ...
@@ -79,13 +79,13 @@ src/
 
 #### 1.3 Module Structure Setup
 
-- [ ] Create basic structure for the Imports Module
+- [ ] Create basic structure for the Import Module (using 'imports' package)
 - [ ] Create basic structure for the Categorization Module
 - [ ] Create basic structure for the Submission Module
 - [ ] Create basic structure for the Transaction Management Module
 - [ ] Update build configuration for new structure
 
-### Phase 2: Imports Module Implementation (1-2 weeks)
+### Phase 2: Import Module Implementation (1-2 weeks)
 
 This phase focuses on implementing Scenarios 1 and 9 from the FIOYNAB-001.feature.
 
@@ -192,7 +192,7 @@ Complete the implementation of the remaining modules following the same pattern.
 
 We'll use an incremental approach to minimize disruption:
 
-1. Start with the Imports Module as proof of concept
+1. Start with the Import Module as proof of concept
 2. Run the new implementation alongside the existing code
 3. Gradually migrate other features to the new architecture
 4. Deprecate and remove old implementations when no longer needed
@@ -207,7 +207,7 @@ We'll use an incremental approach to minimize disruption:
 ### Key Milestones
 
 1. [Week 2] Shared domain core and mock framework complete
-2. [Week 4] Imports Module fully implemented with UI
+2. [Week 4] Import Module fully implemented with UI
 3. [Week 6] Categorization Module complete
 4. [Week 9] All modules implemented with mock services
 5. [Week 12] Complete system with real infrastructure
