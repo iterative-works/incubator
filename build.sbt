@@ -40,6 +40,13 @@ lazy val core = (project in file("bounded-contexts/core"))
 
 // Bounded Contexts
 
+// Budget module (shared kernel)
+lazy val budget = (project in file("bounded-contexts/budget"))
+    .settings(name := "budget")
+    .enablePlugins(IWScalaProjectPlugin)
+    .settings(commonDependencies)
+    .dependsOn(core)
+
 // Transaction Management Context
 lazy val transactions = (project in file("bounded-contexts/transactions"))
     .settings(name := "transactions")
@@ -55,7 +62,7 @@ lazy val transactions = (project in file("bounded-contexts/transactions"))
         IWDeps.chimney,
         support.supportLib("sqldb")
     )
-    .dependsOn(core, webUi)
+    .dependsOn(core, budget, webUi)
 
 lazy val `transactions-it` = (project in file("bounded-contexts/transactions/it")).settings(
     name := "transactions-it"
@@ -72,7 +79,7 @@ lazy val ynab = (project in file("bounded-contexts/ynab"))
         IWDeps.sttpClient4Core,
         IWDeps.sttpClient4Lib("zio")
     )
-    .dependsOn(core, transactions)
+    .dependsOn(core, budget, transactions)
 
 lazy val `ynab-it` = (project in file("bounded-contexts/ynab/it"))
     .settings(name := "ynab-it")
@@ -93,7 +100,7 @@ lazy val fio = (project in file("bounded-contexts/fio"))
         IWDeps.chimney,
         IWDeps.logbackClassic
     )
-    .dependsOn(core, transactions)
+    .dependsOn(core, budget, transactions)
 
 lazy val `fio-it` = (project in file("bounded-contexts/fio/it"))
     .settings(name := "fio-it")
@@ -108,7 +115,7 @@ lazy val categorization = (project in file("bounded-contexts/categorization"))
     .settings(
         libraryDependencies += "com.softwaremill.sttp.openai" %% "zio" % "0.3.4"
     )
-    .dependsOn(core, transactions)
+    .dependsOn(core, budget, transactions)
 
 lazy val `categorization-it` = (project in file("bounded-contexts/categorization/it"))
     .settings(name := "categorization-it")
@@ -176,4 +183,4 @@ lazy val root = (project in file("."))
         )
     )
     .dependsOn(transactions, ynab, fio)
-    .aggregate(webUi, core, transactions, ynab, fio, categorization, auth)
+    .aggregate(webUi, core, budget, transactions, ynab, fio, categorization, auth)
