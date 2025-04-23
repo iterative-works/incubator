@@ -77,7 +77,6 @@ src/
   - [x] InMemoryTransactionProcessingStateRepository
   - [x] InMemorySourceAccountRepository
   - [x] InMemoryCategoryRepository
-- [ ] Build test data generator for mocks
 
 #### 1.3 Module Structure Setup
 
