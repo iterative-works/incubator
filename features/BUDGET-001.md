@@ -13,7 +13,7 @@ tags:
 
 ## Feature Metadata
 - **Related Change Request**: [CR-2025001](../change-requests/CR-2025001.md)
-- **Feature ID**: FIOYNAB-001
+- **Feature ID**: BUDGET-001
 - **Priority**: High
 - **Target Release**: 2025-04-15
 - **Business Domain**: Financial Data Management

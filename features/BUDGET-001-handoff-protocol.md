@@ -10,13 +10,13 @@ tags:
 > [!info] Draft Document
 > This document is an initial draft and may change significantly.
 
-# Implementation Handoff Protocol: FIOYNAB-001
+# Implementation Handoff Protocol: BUDGET-001
 
 ## Feature Reference
-- **Feature ID**: FIOYNAB-001
+- **Feature ID**: BUDGET-001
 - **Feature Name**: Fio Bank to YNAB Integration
-- **Implementation Plan**: [FIOYNAB-001-implementation-plan.md](./FIOYNAB-001-implementation-plan.md)
-- **Business Value Decomposition**: [BVD-FIOYNAB-001.md](./BVD-FIOYNAB-001.md)
+- **Implementation Plan**: [BUDGET-001-implementation-plan.md](./BUDGET-001-implementation-plan.md)
+- **Business Value Decomposition**: [BVD-BUDGET-001.md](./BVD-BUDGET-001.md)
 
 ## Checklist for Implementation Readiness
 
@@ -69,7 +69,7 @@ tags:
        createdAt: java.time.Instant,
        updatedAt: Option[java.time.Instant]
    )
-   
+
    enum RuleStatus:
        case Pending, Approved, Rejected
    ```
@@ -79,16 +79,16 @@ tags:
    trait PayeeCleanupService:
        // Main cleanup method
        def cleanupPayee(
-           original: String, 
+           original: String,
            context: Map[String, String]
        ): Task[(String, Option[PayeeCleanupRule])]
-       
+
        // Rule management
        def getPendingRules(): Task[Seq[PayeeCleanupRule]]
        def getApprovedRules(): Task[Seq[PayeeCleanupRule]]
        def approveRule(ruleId: String, modifications: Option[Map[String, String]] = None): Task[PayeeCleanupRule]
        def rejectRule(ruleId: String, reason: Option[String] = None): Task[Unit]
-       
+
        // Feedback mechanism
        def provideFeedback(ruleId: String, wasSuccessful: Boolean): Task[Unit]
    ```
@@ -134,7 +134,7 @@ New tables required:
    - **Mitigation**: Periodic cleanup, rule consolidation
 
 ## Next Steps
-1. Create development branch `feature/FIOYNAB-001-payee-cleanup`
+1. Create development branch `feature/BUDGET-001-payee-cleanup`
 2. Implement domain models in categorization bounded context
 3. Create PostgreSQL migrations for new tables
 4. Implement OpenAI client

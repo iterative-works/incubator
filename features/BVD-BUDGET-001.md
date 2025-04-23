@@ -14,7 +14,7 @@ tags:
 
 ## Feature Reference
 - **Related Change Request**: [CR-2025001](../change-requests/CR-2025001.md)
-- **Feature Specification**: [FIOYNAB-001](./FIOYNAB-001.md)
+- **Feature Specification**: [BUDGET-001](./BUDGET-001.md)
 - **Decomposition Session Date**: 2025-04-18
 - **Participants**: Product Owner, Technical Lead, Business Analyst, Developer Representative
 

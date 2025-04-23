@@ -12,16 +12,16 @@ tags:
 > [!info] Draft Document
 > This document is an initial draft and may change significantly.
 
-# UI Implementation Plan: FIOYNAB-001
+# UI Implementation Plan: BUDGET-001
 
 ## Feature Reference
 - **Related Change Request**: [CR-2025001](../change-requests/CR-2025001.md)
-- **Feature Specification**: [FIOYNAB-001](./FIOYNAB-001.md)
-- **Scenario Analysis**: [FIOYNAB-001-scenario-analysis](./FIOYNAB-001-scenario-analysis.md)
-- **Domain Model**: [FIOYNAB-001-domain-model](./FIOYNAB-001-domain-model.md)
-- **Domain Testing**: [FIOYNAB-001-domain-testing](./FIOYNAB-001-domain-testing.md)
-- **Gherkin Feature**: [FIOYNAB-001.feature](./FIOYNAB-001.feature)
-- **Implementation Plan**: [FIOYNAB-001-implementation-plan](./FIOYNAB-001-implementation-plan.md)
+- **Feature Specification**: [BUDGET-001](./BUDGET-001.md)
+- **Scenario Analysis**: [BUDGET-001-scenario-analysis](./BUDGET-001-scenario-analysis.md)
+- **Domain Model**: [BUDGET-001-domain-model](./BUDGET-001-domain-model.md)
+- **Domain Testing**: [BUDGET-001-domain-testing](./BUDGET-001-domain-testing.md)
+- **Gherkin Feature**: [BUDGET-001.feature](./BUDGET-001.feature)
+- **Implementation Plan**: [BUDGET-001-implementation-plan](./BUDGET-001-implementation-plan.md)
 
 ## Overview
 
@@ -105,25 +105,25 @@ case class ImportFormProps(
 )
 
 def ImportForm(props: ImportFormProps) =
-    div(cls := "import-form")(  
+    div(cls := "import-form")(
         h2("Import Transactions"),
-        div(cls := "form-group")(  
+        div(cls := "form-group")(
             label("Source Account"),
-            select(id := "account-select")(  
+            select(id := "account-select")(
                 props.availableAccounts.map { account =>
                     option(value := account.id)(account.name)
                 }
             )
         ),
-        div(cls := "form-group")(  
+        div(cls := "form-group")(
             label("Date Range"),
-            div(cls := "date-range")(  
+            div(cls := "date-range")(
                 DatePicker(id := "start-date", label := "From"),
                 DatePicker(id := "end-date", label := "To")
             )
         ),
-        when(props.validationErrors.isDefined)(  
-            div(cls := "validation-errors")(  
+        when(props.validationErrors.isDefined)(
+            div(cls := "validation-errors")(
                 props.validationErrors.get.map { error =>
                     div(cls := "error-message")(error)
                 }
@@ -158,17 +158,17 @@ case class TransactionTableProps(
 )
 
 def TransactionTable(props: TransactionTableProps) =
-    div(cls := "transaction-table-container")(  
-        when(props.isLoading)(  
+    div(cls := "transaction-table-container")(
+        when(props.isLoading)(
             div(cls := "loading-indicator")("Loading...")
         ),
-        when(props.transactions.isEmpty && !props.isLoading)(  
+        when(props.transactions.isEmpty && !props.isLoading)(
             div(cls := "empty-state")("No transactions found")
         ),
-        when(props.transactions.nonEmpty)(  
-            table(cls := "transaction-table")(  
-                thead(  
-                    tr(  
+        when(props.transactions.nonEmpty)(
+            table(cls := "transaction-table")(
+                thead(
+                    tr(
                         th(cls := "checkbox-column")(
                             input(
                                 `type` := "checkbox",
@@ -189,7 +189,7 @@ def TransactionTable(props: TransactionTableProps) =
                         th("Actions")
                     )
                 ),
-                tbody(  
+                tbody(
                     props.transactions.map { transaction =>
                         tr(
                             cls := List(
@@ -197,13 +197,13 @@ def TransactionTable(props: TransactionTableProps) =
                                 "selected" -> props.selectedTransactions.contains(transaction.id)
                             ),
                             onClick := { _ => props.onSelectTransaction(transaction) }
-                        )(  
+                        )(
                             td(cls := "checkbox-column")(
                                 input(
                                     `type` := "checkbox",
                                     checked := props.selectedTransactions.contains(transaction.id),
                                     onChange := { e =>
-                                        val newSelected = 
+                                        val newSelected =
                                             if (e.target.checked)
                                                 props.selectedTransactions :+ transaction.id
                                             else
@@ -257,12 +257,12 @@ case class BulkActionBarProps(
 )
 
 def BulkActionBar(props: BulkActionBarProps) =
-    div(cls := "bulk-action-bar")(  
+    div(cls := "bulk-action-bar")(
         div(cls := "selected-count")(
             s"${props.selectedCount} transactions selected"
         ),
-        div(cls := "actions")(  
-            div(cls := "bulk-categorize")(  
+        div(cls := "actions")(
+            div(cls := "bulk-categorize")(
                 span("Set category:"),
                 select(
                     disabled := props.selectedCount == 0,
@@ -304,30 +304,30 @@ def TransactionManagementPage() =
     val (filter, setFilter) = useState(TransactionFiltersView())
     val (categories, setCategories) = useState[Seq[CategoryView]](Seq.empty)
     val (accounts, setAccounts) = useState[Seq[SourceAccountView]](Seq.empty)
-    
+
     // Mock service calls
     useEffect(() => {
         // Load categories
         MockCategorizationService.getAvailableCategories()
             .then(setCategories)
-            
+
         // Load accounts
         MockAccountService.getSourceAccounts()
             .then(setAccounts)
-            
+
         // Load initial transactions
         refreshTransactions(filter)
     }, [])
-    
+
     def refreshTransactions(filters: TransactionFiltersView) = {
         MockTransactionService.getTransactions(filters, 1, 50)
             .then(result => setTransactions(result.items))
     }
-    
+
     def handleImport(startDate: LocalDate, endDate: LocalDate, accountId: String) = {
         setImportInProgress(true)
         setImportErrors(None)
-        
+
         MockImportService.startImport(accountId, startDate, endDate)
             .then(result => {
                 setImportInProgress(false)
@@ -338,14 +338,14 @@ def TransactionManagementPage() =
                 setImportErrors(Some(Seq(error.message)))
             })
     }
-    
+
     def handleUpdateCategory(transactionId: String, categoryId: String) = {
         MockTransactionService.updateCategory(transactionId, categoryId)
             .then(_ => {
                 refreshTransactions(filter)
             })
     }
-    
+
     def handleBulkCategorize(categoryId: String) = {
         MockTransactionService.updateCategoryBulk(selectedTransactions, categoryId)
             .then(_ => {
@@ -353,7 +353,7 @@ def TransactionManagementPage() =
                 setSelectedTransactions(Seq.empty)
             })
     }
-    
+
     def handleSubmit() = {
         MockSubmissionService.submitToYnab(selectedTransactions, "default-budget", "default-account")
             .then(result => {
@@ -365,19 +365,19 @@ def TransactionManagementPage() =
                 setSelectedTransactions(Seq.empty)
             })
     }
-    
-    div(cls := "transaction-management-page")(  
+
+    div(cls := "transaction-management-page")(
         h1("Transaction Management"),
-        
-        div(cls := "page-content")(  
-            div(cls := "left-panel")(  
+
+        div(cls := "page-content")(
+            div(cls := "left-panel")(
                 ImportForm(
                     onImport = handleImport,
                     availableAccounts = accounts,
                     importInProgress = importInProgress,
                     validationErrors = importErrors
                 ),
-                
+
                 FilterPanel(
                     filter = filter,
                     onFilterChange = newFilter => {
@@ -386,8 +386,8 @@ def TransactionManagementPage() =
                     }
                 )
             ),
-            
-            div(cls := "main-panel")(  
+
+            div(cls := "main-panel")(
                 BulkActionBar(
                     selectedCount = selectedTransactions.length,
                     availableCategories = categories,
@@ -395,7 +395,7 @@ def TransactionManagementPage() =
                     onBulkSubmit = handleSubmit,
                     canSubmit = selectedTransactions.nonEmpty
                 ),
-                
+
                 TransactionTable(
                     transactions = transactions,
                     onSelectTransaction = tx => showTransactionDetail(tx.id),
@@ -405,7 +405,7 @@ def TransactionManagementPage() =
                     availableCategories = categories,
                     isLoading = false
                 ),
-                
+
                 PaginationControls()
             )
         )
@@ -426,7 +426,7 @@ def SubmissionPage() =
     val (isSubmitting, setIsSubmitting) = useState(false)
     val (error, setError) = useState[Option[String]](None)
     val (selectedTransactions, setSelectedTransactions) = useState[Seq[TransactionView]](Seq.empty)
-    
+
     // Load transactions that are ready for submission (has categories)
     useEffect(() => {
         MockTransactionService.getTransactions(
@@ -437,11 +437,11 @@ def SubmissionPage() =
             setSelectedTransactions(result.items)
         })
     }, [])
-    
+
     def handleSubmit(budgetId: String, accountId: String) = {
         setIsSubmitting(true)
         setError(None)
-        
+
         MockSubmissionService.submitToYnab(
             selectedTransactions.map(_.id),
             budgetId,
@@ -454,43 +454,43 @@ def SubmissionPage() =
             setError(Some(err.message))
         })
     }
-    
+
     def handleRetry() = {
         // Clear previous result and try again
         setSubmissionResult(None)
         handleSubmit("default-budget", "default-account")
     }
-    
-    div(cls := "submission-page")(  
+
+    div(cls := "submission-page")(
         h1("Submit Transactions to YNAB"),
-        
-        div(cls := "submission-form-container")(  
+
+        div(cls := "submission-form-container")(
             when(error.isDefined)(
                 ErrorNotification(
                     message = error.get,
                     onRetry = Some(handleRetry)
                 )
             ),
-            
+
             when(submissionResult.isEmpty)(
-                div(cls := "submission-form")(  
+                div(cls := "submission-form")(
                     h2("Ready to Submit"),
                     p(s"${selectedTransactions.length} transactions selected for submission"),
-                    
-                    div(cls := "form-group")(  
+
+                    div(cls := "form-group")(
                         label("Target Budget"),
                         YnabBudgetSelector()
                     ),
-                    
-                    div(cls := "form-group")(  
+
+                    div(cls := "form-group")(
                         label("Target Account"),
                         YnabAccountSelector()
                     ),
-                    
+
                     button(
                         cls := "submit-button",
                         disabled := isSubmitting || selectedTransactions.isEmpty,
-                        onClick := { _ => 
+                        onClick := { _ =>
                             handleSubmit("default-budget", "default-account")
                         }
                     )(
@@ -498,7 +498,7 @@ def SubmissionPage() =
                     )
                 )
             ),
-            
+
             when(submissionResult.isDefined)(
                 SubmissionResultsPanel(
                     result = submissionResult.get,
@@ -561,10 +561,10 @@ object MockImportService:
         // Validation
         if (startDate.isAfter(endDate))
             throw new Exception("End date must be after start date")
-            
+
         if (ChronoUnit.DAYS.between(startDate, endDate) > 30)
             throw new Exception("Date range cannot exceed 30 days")
-        
+
         // Return mock import result
         ImportBatchStatusView(
             id = "batch-" + System.currentTimeMillis(),
@@ -579,29 +579,29 @@ object MockImportService:
 
 object MockTransactionService:
     private var transactions = generateMockTransactions(50)
-    
+
     def getTransactions(
         filters: TransactionFiltersView,
         page: Int,
         pageSize: Int
     ): Future[PageView[TransactionView]] = Future {
         var filtered = transactions
-        
+
         // Apply filters
         if (filters.status.isDefined)
             filtered = filtered.filter(_.status == filters.status.get)
-            
+
         if (filters.searchTerm.isDefined)
-            filtered = filtered.filter(tx => 
-                tx.description.contains(filters.searchTerm.get) || 
+            filtered = filtered.filter(tx =>
+                tx.description.contains(filters.searchTerm.get) ||
                 tx.payee.contains(filters.searchTerm.get)
             )
-        
+
         // Create page
         val start = (page - 1) * pageSize
         val end = Math.min(start + pageSize, filtered.length)
         val items = if (start < filtered.length) filtered.slice(start, end) else Seq.empty
-        
+
         PageView(
             items = items,
             totalItems = filtered.length,
@@ -609,37 +609,37 @@ object MockTransactionService:
             currentPage = page
         )
     }
-    
+
     def updateCategory(
         transactionId: String,
         categoryId: String
     ): Future[TransactionView] = Future {
         val txIndex = transactions.indexWhere(_.id == transactionId)
         if (txIndex < 0) throw new Exception("Transaction not found")
-        
+
         // Get category name
         val categoryName = MockCategorizationService.getCategoryName(categoryId)
-        
+
         // Update transaction
         val updatedTx = transactions(txIndex).copy(
             categoryId = Some(categoryId),
             categoryName = Some(categoryName),
             status = "Categorized"
         )
-        
+
         transactions = transactions.updated(txIndex, updatedTx)
         updatedTx
     }
-    
+
     def updateCategoryBulk(
         transactionIds: Seq[String],
         categoryId: String
     ): Future[BulkUpdateResultView] = Future {
         val categoryName = MockCategorizationService.getCategoryName(categoryId)
-        
+
         var successCount = 0
         var failureCount = 0
-        
+
         transactions = transactions.map { tx =>
             if (transactionIds.contains(tx.id)) {
                 if (tx.status == "Submitted") {
@@ -655,7 +655,7 @@ object MockTransactionService:
                 }
             } else tx
         }
-        
+
         BulkUpdateResultView(
             successCount = successCount,
             failureCount = failureCount,
@@ -671,11 +671,11 @@ object MockCategorizationService:
         CategoryView("fuel", "Fuel", "ynab-fuel", Some("transport"), Some("Transportation")),
         CategoryView("entertainment", "Entertainment", "ynab-entertainment", None, None)
     )
-    
+
     def getAvailableCategories(): Future[Seq[CategoryView]] = Future {
         categories
     }
-    
+
     def getCategoryName(categoryId: String): String = {
         categories.find(_.id == categoryId).map(_.name).getOrElse("Unknown")
     }
@@ -688,34 +688,34 @@ object MockSubmissionService:
     ): Future[SubmissionResultView] = Future {
         // Simulate some processing time
         Thread.sleep(1500)
-        
+
         // Simulate API error (10% chance)
         if (Random.nextDouble() < 0.1)
             throw new Exception("YNAB API connection error")
-        
+
         // Get transactions from MockTransactionService
         val transactions = MockTransactionService.transactions
             .filter(tx => transactionIds.contains(tx.id))
-        
+
         // Count transactions by status
         val alreadySubmitted = transactions.count(_.status == "Submitted")
         val successCount = transactions.length - alreadySubmitted
-        
+
         // Update transaction status to submitted
         MockTransactionService.transactions = MockTransactionService.transactions.map { tx =>
             if (transactionIds.contains(tx.id) && tx.status != "Submitted") {
                 tx.copy(status = "Submitted")
             } else tx
         }
-        
+
         SubmissionResultView(
             submissionId = "submission-" + System.currentTimeMillis(),
             transactionCount = transactions.length,
             successCount = successCount,
             failureCount = alreadySubmitted,
             status = "Completed",
-            errors = if (alreadySubmitted > 0) 
-                Some(Seq(s"$alreadySubmitted transactions were already submitted")) 
+            errors = if (alreadySubmitted > 0)
+                Some(Seq(s"$alreadySubmitted transactions were already submitted"))
                 else None
         )
     }

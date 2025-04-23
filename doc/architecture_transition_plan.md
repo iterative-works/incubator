@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the steps to transition our current architecture to the BDD-Driven UI-First approach with Vertical Slices. The plan is guided by the Gherkin scenarios in `FIOYNAB-001.feature` and follows the implementation workflow described in our development documentation.
+This document outlines the steps to transition our current architecture to the BDD-Driven UI-First approach with Vertical Slices. The plan is guided by the Gherkin scenarios in `BUDGET-001.feature` and follows the implementation workflow described in our development documentation.
 
 ## Goals
 
@@ -34,7 +34,7 @@ src/
   └── main/
       └── scala/
           └── works/iterative/incubator/
-              └── fioynab/            # Bounded Context
+              └── budget/            # Bounded Context
                   ├── domain/         # Shared Domain Core
                   │   └── ...
                   ├── imports/         # Import Module
@@ -53,7 +53,7 @@ src/
 
 #### 1.1 Domain Core Extraction
 
-- [ ] Create the `fioynab/domain` package
+- [ ] Create the `budget/domain` package
 - [ ] Move core entities from transactions context to shared domain core
   - [ ] Transaction
   - [ ] TransactionProcessingState
@@ -87,7 +87,7 @@ src/
 
 ### Phase 2: Import Module Implementation (1-2 weeks)
 
-This phase focuses on implementing Scenarios 1 and 9 from the FIOYNAB-001.feature.
+This phase focuses on implementing Scenarios 1 and 9 from the BUDGET-001.feature.
 
 #### 2.1 Domain Layer
 
@@ -118,7 +118,7 @@ This phase focuses on implementing Scenarios 1 and 9 from the FIOYNAB-001.featur
 
 ### Phase 3: Categorization Module Implementation (1-2 weeks)
 
-This phase focuses on implementing Scenarios 2, 3, and 4 from the FIOYNAB-001.feature.
+This phase focuses on implementing Scenarios 2, 3, and 4 from the BUDGET-001.feature.
 
 #### 3.1 Domain Layer
 

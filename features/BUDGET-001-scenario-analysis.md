@@ -11,17 +11,17 @@ tags:
 > [!info] Draft Document
 > This document is an initial draft and may change significantly.
 
-# Scenario Analysis: FIOYNAB-001
+# Scenario Analysis: BUDGET-001
 
 ## Feature Reference
 - **Related Change Request**: [CR-2025001](../change-requests/CR-2025001.md)
-- **Feature Specification**: [FIOYNAB-001](./FIOYNAB-001.md)
-- **Business Value Decomposition**: [BVD-FIOYNAB-001](./BVD-FIOYNAB-001.md)
-- **Gherkin Feature**: [FIOYNAB-001.feature](./FIOYNAB-001.feature)
+- **Feature Specification**: [BUDGET-001](./BUDGET-001.md)
+- **Business Value Decomposition**: [BVD-BUDGET-001](./BVD-BUDGET-001.md)
+- **Gherkin Feature**: [BUDGET-001.feature](./BUDGET-001.feature)
 
 ## Scenario Analysis Overview
 
-This document analyzes each Gherkin scenario from the FIOYNAB-001 feature file and maps it to:
+This document analyzes each Gherkin scenario from the BUDGET-001 feature file and maps it to:
 - Domain components required for implementation
 - Repository interfaces needed
 - UI components and interactions

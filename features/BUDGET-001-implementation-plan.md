@@ -11,16 +11,16 @@ tags:
 > [!info] Draft Document
 > This document is an initial draft and may change significantly.
 
-# Updated Implementation Plan: FIOYNAB-001
+# Updated Implementation Plan: BUDGET-001
 
 ## Feature Reference
 - **Related Change Request**: [CR-2025001](../change-requests/CR-2025001.md)
-- **Feature Specification**: [FIOYNAB-001](./FIOYNAB-001.md)
-- **Scenario Analysis**: [FIOYNAB-001-scenario-analysis](./FIOYNAB-001-scenario-analysis.md)
-- **Domain Model**: [FIOYNAB-001-domain-model](./FIOYNAB-001-domain-model.md)
-- **Domain Testing**: [FIOYNAB-001-domain-testing](./FIOYNAB-001-domain-testing.md)
-- **UI Implementation**: [FIOYNAB-001-ui-implementation](./FIOYNAB-001-ui-implementation.md)
-- **Gherkin Feature**: [FIOYNAB-001.feature](./FIOYNAB-001.feature)
+- **Feature Specification**: [BUDGET-001](./BUDGET-001.md)
+- **Scenario Analysis**: [BUDGET-001-scenario-analysis](./BUDGET-001-scenario-analysis.md)
+- **Domain Model**: [BUDGET-001-domain-model](./BUDGET-001-domain-model.md)
+- **Domain Testing**: [BUDGET-001-domain-testing](./BUDGET-001-domain-testing.md)
+- **UI Implementation**: [BUDGET-001-ui-implementation](./BUDGET-001-ui-implementation.md)
+- **Gherkin Feature**: [BUDGET-001.feature](./BUDGET-001.feature)
 
 ## Overview
 
@@ -77,7 +77,7 @@ Following our BDD-driven UI-first approach, the implementation will proceed thro
 
 ### Phase 1: Domain Model Development (3 days)
 
-Implement the complete domain model defined in [FIOYNAB-001-domain-model](./FIOYNAB-001-domain-model.md) to support all scenarios.
+Implement the complete domain model defined in [BUDGET-001-domain-model](./BUDGET-001-domain-model.md) to support all scenarios.
 
 **Tasks**:
 1. Implement all domain entities and value objects
@@ -88,7 +88,7 @@ Implement the complete domain model defined in [FIOYNAB-001-domain-model](./FIOY
 
 ### Phase 2: Domain-Level Testing (3 days)
 
-Implement mock implementations and domain-level tests for all scenarios as defined in [FIOYNAB-001-domain-testing](./FIOYNAB-001-domain-testing.md).
+Implement mock implementations and domain-level tests for all scenarios as defined in [BUDGET-001-domain-testing](./BUDGET-001-domain-testing.md).
 
 **Tasks**:
 1. Create in-memory repository implementations
@@ -99,7 +99,7 @@ Implement mock implementations and domain-level tests for all scenarios as defin
 
 ### Phase 3: UI Implementation (5 days)
 
-Implement the user interface with mock services as defined in [FIOYNAB-001-ui-implementation](./FIOYNAB-001-ui-implementation.md).
+Implement the user interface with mock services as defined in [BUDGET-001-ui-implementation](./BUDGET-001-ui-implementation.md).
 
 **Tasks**:
 1. Develop UI components for all scenarios

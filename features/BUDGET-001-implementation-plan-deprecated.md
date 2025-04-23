@@ -9,17 +9,17 @@ tags:
 ---
 
 > [!warning] Deprecated Document
-> This document has been deprecated. Please refer to [FIOYNAB-001-implementation-plan.md](./FIOYNAB-001-implementation-plan.md) for the current implementation plan, which follows our BDD-driven UI-first approach.
+> This document has been deprecated. Please refer to [BUDGET-001-implementation-plan.md](./BUDGET-001-implementation-plan.md) for the current implementation plan, which follows our BDD-driven UI-first approach.
 
 > [!info] Draft Document
 > This document is an initial draft and may change significantly.
 
-# Feature Implementation Plan: FIOYNAB-001
+# Feature Implementation Plan: BUDGET-001
 
 ## Feature Reference
 - **Related Change Request**: [CR-2025001](../change-requests/CR-2025001.md)
-- **Feature Specification**: [FIOYNAB-001](./FIOYNAB-001.md)
-- **Business Value Decomposition**: [BVD-FIOYNAB-001](./BVD-FIOYNAB-001.md)
+- **Feature Specification**: [BUDGET-001](./BUDGET-001.md)
+- **Business Value Decomposition**: [BVD-BUDGET-001](./BVD-BUDGET-001.md)
 
 ## Current State Analysis
 
@@ -180,7 +180,7 @@ Focus on completing the minimum viable solution components:
        createdAt: java.time.Instant,
        updatedAt: Option[java.time.Instant]
    )
-   
+
    enum RuleStatus:
        case Pending, Approved, Rejected
    ```
@@ -199,16 +199,16 @@ Focus on completing the minimum viable solution components:
    trait PayeeCleanupService:
        // Main cleanup method
        def cleanupPayee(
-           original: String, 
+           original: String,
            context: Map[String, String]
        ): Task[(String, Option[PayeeCleanupRule])]
-       
+
        // Rule management
        def getPendingRules(): Task[Seq[PayeeCleanupRule]]
        def getApprovedRules(): Task[Seq[PayeeCleanupRule]]
        def approveRule(ruleId: String, modifications: Option[Map[String, String]] = None): Task[PayeeCleanupRule]
        def rejectRule(ruleId: String, reason: Option[String] = None): Task[Unit]
-       
+
        // Feedback mechanism
        def provideFeedback(ruleId: String, wasSuccessful: Boolean): Task[Unit]
    ```
@@ -271,7 +271,7 @@ Focus on completing the minimum viable solution components:
 
 ### Week 2
 1. Self-Learning Payee Cleanup Processing (Phase 2: Rule Generation)
-2. AI Categorization Integration 
+2. AI Categorization Integration
 3. Category Editing UI Enhancements
 
 ### Week 3

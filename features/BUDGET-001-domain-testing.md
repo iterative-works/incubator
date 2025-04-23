@@ -12,15 +12,15 @@ tags:
 > [!info] Draft Document
 > This document is an initial draft and may change significantly.
 
-# Domain-Level Testing Plan: FIOYNAB-001
+# Domain-Level Testing Plan: BUDGET-001
 
 ## Feature Reference
 - **Related Change Request**: [CR-2025001](../change-requests/CR-2025001.md)
-- **Feature Specification**: [FIOYNAB-001](./FIOYNAB-001.md)
-- **Scenario Analysis**: [FIOYNAB-001-scenario-analysis](./FIOYNAB-001-scenario-analysis.md)
-- **Domain Model**: [FIOYNAB-001-domain-model](./FIOYNAB-001-domain-model.md)
-- **Gherkin Feature**: [FIOYNAB-001.feature](./FIOYNAB-001.feature)
-- **Implementation Plan**: [FIOYNAB-001-implementation-plan](./FIOYNAB-001-implementation-plan.md)
+- **Feature Specification**: [BUDGET-001](./BUDGET-001.md)
+- **Scenario Analysis**: [BUDGET-001-scenario-analysis](./BUDGET-001-scenario-analysis.md)
+- **Domain Model**: [BUDGET-001-domain-model](./BUDGET-001-domain-model.md)
+- **Gherkin Feature**: [BUDGET-001.feature](./BUDGET-001.feature)
+- **Implementation Plan**: [BUDGET-001-implementation-plan](./BUDGET-001-implementation-plan.md)
 
 ## Overview
 
@@ -50,13 +50,13 @@ This document describes the approach for domain-level testing of all scenarios i
 ```scala
 class InMemoryTransactionRepository extends TransactionRepository:
     private val storage = Ref.make(Map.empty[TransactionId, Transaction]).runSync
-    
+
     override def findById(id: TransactionId): UIO[Option[Transaction]] =
         storage.get.map(_.get(id))
-    
+
     override def findByIds(ids: Seq[TransactionId]): UIO[Seq[Transaction]] =
         storage.get.map(s => ids.flatMap(id => s.get(id)))
-    
+
     override def findByFilters(
         filters: TransactionFilters,
         page: Int,
@@ -67,7 +67,7 @@ class InMemoryTransactionRepository extends TransactionRepository:
             filtered = applyFilters(allTransactions, filters)
             paginated = paginate(filtered, page, pageSize)
         yield Page(paginated, filtered.size, Math.ceil(filtered.size / pageSize.toDouble).toInt, page)
-    
+
     // ... implement other methods similarly
 ```
 
@@ -77,14 +77,14 @@ class InMemoryTransactionRepository extends TransactionRepository:
 class MockFioBankPort extends FioBankPort:
     private val transactions = Map(
         "account1" -> Map(
-            (LocalDate.of(2025, 4, 1), LocalDate.of(2025, 4, 15)) -> 
+            (LocalDate.of(2025, 4, 1), LocalDate.of(2025, 4, 15)) ->
                 generateTestTransactions(10, "2025-04-01", "2025-04-15")
         )
     )
-    
+
     override def authenticate(): IO[ApiError, Unit] =
         IO.succeed(())
-    
+
     override def getTransactions(
         accountId: String,
         fromDate: LocalDate,
@@ -103,14 +103,14 @@ class MockAiCategorizationPort extends AiCategorizationPort:
         "Restaurant Payment" -> Category("dining", "Dining Out", "ynab-dining", None),
         "Gas Station" -> Category("fuel", "Fuel", "ynab-fuel", None)
     )
-    
+
     override def suggestCategory(
         transactionDetails: Map[String, String],
         availableCategories: Seq[Category]
     ): IO[ApiError, CategorySuggestion] =
         transactionDetails.get("description")
-            .flatMap(description => 
-                categorySuggestions.find { case (key, _) => 
+            .flatMap(description =>
+                categorySuggestions.find { case (key, _) =>
                     description.contains(key)
                 }.map { case (_, category) =>
                     CategorySuggestion(category, 0.85, s"Matched by description: ${description}")
@@ -177,24 +177,24 @@ test("Import service should successfully import transactions from Fio Bank") {
         transactionRepo = transactionRepo,
         importBatchRepo = importBatchRepo
     )
-    
+
     val sourceAccount = SourceAccount("account1", "Test Account", "fio")
     val startDate = LocalDate.parse("2025-04-01")
     val endDate = LocalDate.parse("2025-04-15")
-    
+
     // When
     val result = importService.importTransactions(
         sourceAccount,
         startDate,
         endDate
     ).runSync
-    
+
     // Then
     assert(result.isRight)
     val importBatch = result.toOption.get
     assertEquals(importBatch.status, ImportBatchStatus.Completed)
     assertEquals(importBatch.transactionCount, 10)
-    
+
     val savedTransactions = transactionRepo.findByImportBatch(importBatch.id).runSync
     assertEquals(savedTransactions.length, 10)
     assertEquals(savedTransactions.map(_.status).distinct, List(TransactionStatus.Imported))
@@ -209,55 +209,55 @@ test("Categorization service should assign categories to imported transactions")
     val aiPort = new MockAiCategorizationPort()
     val transactionRepo = new InMemoryTransactionRepository()
     val categoryRepo = new InMemoryCategoryRepository()
-    
+
     // Seed with test data
     val testCategories = createTestCategories()
     testCategories.foreach(categoryRepo.save(_).runSync)
-    
+
     val testTransactions = Seq(
         createTestTransaction("tx1", 100, "Supermarket Purchase", TransactionStatus.Imported),
         createTestTransaction("tx2", 250, "Restaurant Payment", TransactionStatus.Imported),
         createTestTransaction("tx3", 500, "Gas Station", TransactionStatus.Imported)
     )
     testTransactions.foreach(transactionRepo.save(_).runSync)
-    
+
     val categorizationService = new CategorizationServiceImpl(
         aiPort = aiPort,
         transactionRepo = transactionRepo,
         categoryRepo = categoryRepo
     )
-    
+
     // When
     val result = categorizationService.categorizeTransactions(
         testTransactions.map(_.id)
     ).runSync
-    
+
     // Then
     assert(result.isRight)
     val suggestions = result.toOption.get
     assertEquals(suggestions.length, 3)
-    
+
     // Verify all transactions have categories assigned
     val updatedTransactions = testTransactions.map { tx =>
         transactionRepo.findById(tx.id).runSync.get
     }
-    
+
     // All should have categories
     assert(updatedTransactions.forall(_.category.isDefined))
-    
+
     // All should be marked as categorized
     assertEquals(
         updatedTransactions.map(_.status).distinct,
         List(TransactionStatus.Categorized)
     )
-    
+
     // Check specific categories
     val tx1 = updatedTransactions.find(_.id == "tx1").get
     assertEquals(tx1.category.get.name, "Groceries")
-    
+
     val tx2 = updatedTransactions.find(_.id == "tx2").get
     assertEquals(tx2.category.get.name, "Dining Out")
-    
+
     val tx3 = updatedTransactions.find(_.id == "tx3").get
     assertEquals(tx3.category.get.name, "Fuel")
 }
@@ -271,11 +271,11 @@ test("Transaction manager should allow manual category modification") {
     val transactionRepo = new InMemoryTransactionRepository()
     val categoryRepo = new InMemoryCategoryRepository()
     val auditRepo = new InMemoryAuditRepository()
-    
+
     // Seed test data
     val testCategories = createTestCategories()
     testCategories.foreach(categoryRepo.save(_).runSync)
-    
+
     val transaction = createTestTransaction(
         "tx1",
         100,
@@ -285,30 +285,30 @@ test("Transaction manager should allow manual category modification") {
         category = Some(testCategories.find(_.name == "Groceries").get)
     )
     transactionRepo.save(transaction).runSync
-    
+
     val transactionManager = new TransactionManagerServiceImpl(
         transactionRepo = transactionRepo,
         categoryRepo = categoryRepo,
         auditRepo = auditRepo
     )
-    
+
     // Get the "Dining Out" category
     val diningCategory = testCategories.find(_.name == "Dining Out").get
-    
+
     // When
     val result = transactionManager.updateTransactionCategory(
         transaction.id,
         diningCategory.id
     ).runSync
-    
+
     // Then
     assert(result.isRight)
     val updatedTx = result.toOption.get
-    
+
     // Verify category was changed
     assertEquals(updatedTx.category.get.id, diningCategory.id)
     assertEquals(updatedTx.category.get.name, "Dining Out")
-    
+
     // Verify audit log was created
     val auditEntries = auditRepo.findByTransactionId(transaction.id).runSync
     assertEquals(auditEntries.length, 1)
@@ -325,7 +325,7 @@ test("Submission service should submit transactions to YNAB") {
     // Given
     val ynabPort = new MockYnabPort()
     val transactionRepo = new InMemoryTransactionRepository()
-    
+
     // Create test transactions with categories
     val testCategories = createTestCategories()
     val testTransactions = Seq(
@@ -337,36 +337,36 @@ test("Submission service should submit transactions to YNAB") {
             .copy(category = Some(testCategories.find(_.name == "Fuel").get))
     )
     testTransactions.foreach(transactionRepo.save(_).runSync)
-    
+
     val submissionService = new SubmissionServiceImpl(
         ynabPort = ynabPort,
         transactionRepo = transactionRepo
     )
-    
+
     // When
     val result = submissionService.submitTransactionsToYnab(
         testTransactions.map(_.id),
         "test-budget",
         "test-account"
     ).runSync
-    
+
     // Then
     assert(result.isRight)
     val submissionResult = result.toOption.get
-    
+
     assertEquals(submissionResult.successCount, 3)
     assertEquals(submissionResult.failureCount, 0)
-    
+
     // Verify all transactions were marked as submitted
     val updatedTransactions = testTransactions.map { tx =>
         transactionRepo.findById(tx.id).runSync.get
     }
-    
+
     assertEquals(
         updatedTransactions.map(_.status).distinct,
         List(TransactionStatus.Submitted)
     )
-    
+
     // Verify YNAB IDs were assigned
     assert(updatedTransactions.forall(_.ynabId.isDefined))
     assert(updatedTransactions.forall(_.submittedAt.isDefined))
@@ -380,7 +380,7 @@ test("Submission service should prevent duplicate submission") {
     // Given
     val ynabPort = new MockYnabPort()
     val transactionRepo = new InMemoryTransactionRepository()
-    
+
     // Create test transactions that were already submitted
     val testCategories = createTestCategories()
     val testTransactions = Seq(
@@ -392,29 +392,29 @@ test("Submission service should prevent duplicate submission") {
             )
     )
     testTransactions.foreach(transactionRepo.save(_).runSync)
-    
+
     val submissionService = new SubmissionServiceImpl(
         ynabPort = ynabPort,
         transactionRepo = transactionRepo
     )
-    
+
     // When
     val isDuplicate = submissionService.isDuplicate(testTransactions.head).runSync
-    
+
     // Then
     assert(isDuplicate)
-    
+
     // When trying to submit again
     val result = submissionService.submitTransactionsToYnab(
         testTransactions.map(_.id),
         "test-budget",
         "test-account"
     ).runSync
-    
+
     // Then - result should have those marked as duplicates
     assert(result.isRight)
     val submissionResult = result.toOption.get
-    
+
     assertEquals(submissionResult.successCount, 0)
     assertEquals(submissionResult.failureCount, 1)
     assertEquals(submissionResult.results.head.errorMessage.get, "Transaction already submitted")
@@ -450,10 +450,10 @@ The following table maps each Gherkin scenario step to a corresponding test in t
 ```scala
 // ZIO Test environment setup
 val testLayer = ZLayer.make[
-    TransactionManagerService & 
-    ImportService & 
-    CategorizationService & 
-    SubmissionService & 
+    TransactionManagerService &
+    ImportService &
+    CategorizationService &
+    SubmissionService &
     ValidationService
 ](
     // Mock repositories
@@ -462,13 +462,13 @@ val testLayer = ZLayer.make[
     InMemoryCategoryRepository.layer,
     InMemoryPayeeCleanupRuleRepository.layer,
     InMemoryAuditRepository.layer,
-    
+
     // Mock external ports
     MockFioBankPort.layer,
     MockYnabPort.layer,
     MockAiCategorizationPort.layer,
     MockAiPayeeCleanupPort.layer,
-    
+
     // Service implementations
     TransactionManagerServiceImpl.layer,
     ImportServiceImpl.layer,

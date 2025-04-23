@@ -12,14 +12,14 @@ tags:
 > [!info] Draft Document
 > This document is an initial draft and may change significantly.
 
-# Domain Model Design: FIOYNAB-001
+# Domain Model Design: BUDGET-001
 
 ## Feature Reference
 - **Related Change Request**: [CR-2025001](../change-requests/CR-2025001.md)
-- **Feature Specification**: [FIOYNAB-001](./FIOYNAB-001.md)
-- **Scenario Analysis**: [FIOYNAB-001-scenario-analysis](./FIOYNAB-001-scenario-analysis.md)
-- **Gherkin Feature**: [FIOYNAB-001.feature](./FIOYNAB-001.feature)
-- **Implementation Plan**: [FIOYNAB-001-implementation-plan](./FIOYNAB-001-implementation-plan.md)
+- **Feature Specification**: [BUDGET-001](./BUDGET-001.md)
+- **Scenario Analysis**: [BUDGET-001-scenario-analysis](./BUDGET-001-scenario-analysis.md)
+- **Gherkin Feature**: [BUDGET-001.feature](./BUDGET-001.feature)
+- **Implementation Plan**: [BUDGET-001-implementation-plan](./BUDGET-001-implementation-plan.md)
 
 ## Domain Model Overview
 
@@ -149,7 +149,7 @@ trait ImportService:
         dateRangeStart: java.time.LocalDate,
         dateRangeEnd: java.time.LocalDate
     ): IO[ValidationError, ImportBatch]
-    
+
     def getImportStatus(importBatchId: ImportBatchId): UIO[Option[ImportBatch]]
 ```
 
@@ -162,14 +162,14 @@ trait TransactionManagerService:
         page: Int,
         pageSize: Int
     ): UIO[Page[Transaction]]
-    
+
     def getTransactionById(id: TransactionId): UIO[Option[Transaction]]
-    
+
     def updateTransactionCategory(
         id: TransactionId,
         categoryId: CategoryId
     ): IO[ValidationError, Transaction]
-    
+
     def updateTransactionsCategory(
         ids: Seq[TransactionId],
         categoryId: CategoryId
@@ -183,11 +183,11 @@ trait CategorizationService:
     def categorizeTransactions(
         transactionIds: Seq[TransactionId]
     ): IO[ValidationError, Seq[CategorySuggestion]]
-    
+
     def getSuggestedCategory(
         transaction: Transaction
     ): IO[ValidationError, CategorySuggestion]
-    
+
     def getCategoriesForBudget(budgetId: String): UIO[Seq[Category]]
 ```
 
@@ -199,21 +199,21 @@ trait PayeeCleanupService:
         originalPayee: PayeeName,
         transactionContext: TransactionContext
     ): UIO[PayeeCleanupResult]
-    
+
     def getPendingRules(): UIO[Seq[PayeeCleanupRule]]
-    
+
     def getApprovedRules(): UIO[Seq[PayeeCleanupRule]]
-    
+
     def approveRule(
         ruleId: String,
         modifications: Option[Map[String, String]] = None
     ): IO[ValidationError, PayeeCleanupRule]
-    
+
     def rejectRule(
         ruleId: String,
         reason: Option[String] = None
     ): IO[ValidationError, Unit]
-    
+
     def provideFeedback(
         ruleId: String,
         wasSuccessful: Boolean
@@ -229,7 +229,7 @@ trait SubmissionService:
         budgetId: String,
         accountId: String
     ): IO[ValidationError, BulkSubmissionResult]
-    
+
     def isDuplicate(transaction: Transaction): UIO[Boolean]
 ```
 
@@ -241,7 +241,7 @@ trait ValidationService:
         startDate: java.time.LocalDate,
         endDate: java.time.LocalDate
     ): Either[ValidationError, Unit]
-    
+
     def validateTransaction(transaction: Transaction): Either[ValidationError, Unit]
 ```
 
@@ -252,39 +252,39 @@ trait ValidationService:
 ```scala
 trait TransactionRepository:
     def findById(id: TransactionId): UIO[Option[Transaction]]
-    
+
     def findByIds(ids: Seq[TransactionId]): UIO[Seq[Transaction]]
-    
+
     def findByFilters(
         filters: TransactionFilters,
         page: Int,
         pageSize: Int
     ): UIO[Page[Transaction]]
-    
+
     def save(transaction: Transaction): UIO[Transaction]
-    
+
     def saveAll(transactions: Seq[Transaction]): UIO[Seq[Transaction]]
-    
+
     def updateStatus(
         id: TransactionId,
         status: TransactionStatus
     ): UIO[Option[Transaction]]
-    
+
     def updateCategory(
         id: TransactionId,
         categoryId: CategoryId
     ): UIO[Option[Transaction]]
-    
+
     def updateCategories(
         ids: Seq[TransactionId],
         categoryId: CategoryId
     ): UIO[Seq[Transaction]]
-    
+
     def markAsSubmitted(
         ids: Seq[TransactionId],
         ynabIds: Map[TransactionId, String]
     ): UIO[Seq[Transaction]]
-    
+
     def findSubmitted(fingerprints: Seq[TransactionFingerprint]): UIO[Seq[Transaction]]
 ```
 
@@ -293,14 +293,14 @@ trait TransactionRepository:
 ```scala
 trait ImportBatchRepository:
     def save(importBatch: ImportBatch): UIO[ImportBatch]
-    
+
     def findById(id: ImportBatchId): UIO[Option[ImportBatch]]
-    
+
     def findByDateRange(
         startDate: java.time.LocalDate,
         endDate: java.time.LocalDate
     ): UIO[Seq[ImportBatch]]
-    
+
     def updateStatus(
         id: ImportBatchId,
         status: ImportBatchStatus
@@ -312,13 +312,13 @@ trait ImportBatchRepository:
 ```scala
 trait CategoryRepository:
     def findById(id: CategoryId): UIO[Option[Category]]
-    
+
     def findAll(): UIO[Seq[Category]]
-    
+
     def findByBudgetId(budgetId: String): UIO[Seq[Category]]
-    
+
     def save(category: Category): UIO[Category]
-    
+
     def saveAll(categories: Seq[Category]): UIO[Seq[Category]]
 ```
 
@@ -327,13 +327,13 @@ trait CategoryRepository:
 ```scala
 trait PayeeCleanupRuleRepository:
     def findById(id: String): UIO[Option[PayeeCleanupRule]]
-    
+
     def findByStatus(status: RuleStatus): UIO[Seq[PayeeCleanupRule]]
-    
+
     def save(rule: PayeeCleanupRule): UIO[PayeeCleanupRule]
-    
+
     def updateStatus(id: String, status: RuleStatus): UIO[Option[PayeeCleanupRule]]
-    
+
     def updateFeedback(
         id: String,
         wasSuccessful: Boolean
@@ -347,7 +347,7 @@ trait PayeeCleanupRuleRepository:
 ```scala
 trait FioBankPort:
     def authenticate(): IO[ApiError, Unit]
-    
+
     def getTransactions(
         accountId: String,
         fromDate: java.time.LocalDate,
@@ -360,11 +360,11 @@ trait FioBankPort:
 ```scala
 trait YnabPort:
     def getBudgets(): IO[ApiError, Seq[YnabBudget]]
-    
+
     def getAccounts(budgetId: String): IO[ApiError, Seq[YnabAccount]]
-    
+
     def getCategories(budgetId: String): IO[ApiError, Seq[YnabCategory]]
-    
+
     def createTransactions(
         budgetId: String,
         accountId: String,
@@ -390,7 +390,7 @@ trait AiPayeeCleanupPort:
         payee: PayeeName,
         context: Map[String, String]
     ): IO[ApiError, PayeeCleanupResult]
-    
+
     def generateRule(
         originalPayee: PayeeName,
         cleanedPayee: PayeeName,
@@ -409,7 +409,7 @@ trait TransactionImportApplicationService:
         startDate: java.time.LocalDate,
         endDate: java.time.LocalDate
     ): IO[ApiError, ImportBatch]
-    
+
     def getImportStatus(importBatchId: String): UIO[Option[ImportBatchStatusView]]
 ```
 
@@ -422,14 +422,14 @@ trait TransactionManagementApplicationService:
         page: Int,
         pageSize: Int
     ): UIO[PageView[TransactionView]]
-    
+
     def getTransactionDetails(id: String): UIO[Option[TransactionDetailView]]
-    
+
     def updateCategory(
         id: String,
         categoryId: String
     ): IO[ApiError, TransactionView]
-    
+
     def updateCategoryBulk(
         ids: Seq[String],
         categoryId: String
@@ -443,11 +443,11 @@ trait CategorizationApplicationService:
     def startAutoCategorization(
         transactionIds: Seq[String]
     ): IO[ApiError, AutoCategorizationStatusView]
-    
+
     def getAutoCategorizationStatus(jobId: String): UIO[Option[AutoCategorizationStatusView]]
-    
+
     def getCategorySuggestion(transactionId: String): IO[ApiError, CategorySuggestionView]
-    
+
     def getAvailableCategories(): UIO[Seq[CategoryView]]
 ```
 
@@ -460,7 +460,7 @@ trait SubmissionApplicationService:
         targetBudgetId: String,
         targetAccountId: String
     ): IO[ApiError, SubmissionResultView]
-    
+
     def getSubmissionStatus(submissionId: String): UIO[Option[SubmissionStatusView]]
 ```
 

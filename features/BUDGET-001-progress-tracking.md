@@ -11,14 +11,14 @@ tags:
 > [!info] Draft Document
 > This document is an initial draft and may change significantly.
 
-# Progress Tracking: FIOYNAB-001
+# Progress Tracking: BUDGET-001
 
 ## Feature Reference
 - **Related Change Request**: [CR-2025001](../change-requests/CR-2025001.md)
-- **Feature Specification**: [FIOYNAB-001](./FIOYNAB-001.md)
-- **Scenario Analysis**: [FIOYNAB-001-scenario-analysis](./FIOYNAB-001-scenario-analysis.md)
-- **Domain Model**: [FIOYNAB-001-domain-model](./FIOYNAB-001-domain-model.md)
-- **Implementation Plan**: [FIOYNAB-001-implementation-plan](./FIOYNAB-001-implementation-plan.md)
+- **Feature Specification**: [BUDGET-001](./BUDGET-001.md)
+- **Scenario Analysis**: [BUDGET-001-scenario-analysis](./BUDGET-001-scenario-analysis.md)
+- **Domain Model**: [BUDGET-001-domain-model](./BUDGET-001-domain-model.md)
+- **Implementation Plan**: [BUDGET-001-implementation-plan](./BUDGET-001-implementation-plan.md)
 
 ## Current Implementation Status
 
