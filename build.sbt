@@ -199,5 +199,5 @@ lazy val root = (project in file("."))
             "1"
         )
     )
-    .dependsOn(transactions, ynab, fio, imports)
+    .dependsOn(transactions, ynab, fio, imports, categorization)
     .aggregate(webUi, core, budget, transactions, ynab, fio, categorization, auth, imports)
