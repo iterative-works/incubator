@@ -1,7 +1,7 @@
 # YNAB Importer Architecture
 
 ## Overview
-The YNAB Importer follows a BDD-Driven UI-First approach with a Functional Core/Imperative Shell architecture. The application imports bank transactions from various sources, processes them with AI-assisted categorization, and exports them to YNAB (You Need A Budget). Our development is scenario-driven, using Gherkin features as the core of our workflow.
+The YNAB Importer follows a BDD-Driven UI-First approach with a Functional Core/Imperative Shell architecture across multiple bounded contexts. The application imports bank transactions from various sources, processes them with AI-assisted categorization, and exports them to YNAB (You Need A Budget). Our development is scenario-driven, using Gherkin features as the core of our workflow.
 
 ## Architecture Approach
 
@@ -20,30 +20,205 @@ This approach gives us several advantages:
 - Faster feedback cycles
 - Maintainable architecture with clear separation of concerns
 
-## UI Module Vertical Slices
+## Bounded Context Architecture
 
-Based on our scenario analysis, we organize the application into vertical slices within a bounded context:
+Our application is organized into the following bounded contexts:
+
+### Budget (Shared Kernel)
+- Core domain concepts shared across all contexts
+- Repository interfaces for shared entities
+- Domain events that flow between contexts
+
+### Imports Context
+- Bank integration adapters (currently Fio, future Revolut)
+- Bank-specific models and mappings
+- Import workflows and validation
+- Anticorruption layer between bank APIs and our domain
+
+### Categorization Context
+- AI categorization services
+- Category rules and management
+- Payee cleanup system
+- Category suggestion engines
+
+### Submission Context
+- Budget tool integrations (currently YNAB)
+- Budget-specific models and mappings 
+- Submission workflows and validation
+- Anticorruption layer between budget APIs and our domain
+
+### Auth Context (Future)
+- User authentication and authorization
+- Role and permission management
+- Security infrastructure
+
+## Package Structure
+
+Our package structure reflects the bounded context organization:
 
 ```
-fio-ynab-integration/            # Bounded Context
-├── domain/                      # Shared Domain Core
-├── import/                      # Import Module (Vertical Slice)
-├── categorization/              # Categorization Module
-├── submission/                  # Submission Module 
-└── transaction-management/      # Transaction Management Module
+works.iterative.incubator/
+├── budget/                   # Shared Kernel
+│   ├── domain/               # Domain models shared across contexts
+│   │   ├── model/            # Core domain entities
+│   │   ├── repository/       # Repository interfaces
+│   │   ├── event/            # Domain events
+│   │   └── query/            # Query models
+│   └── infrastructure/       # Shared infrastructure implementations
+│       └── persistence/      # Shared repository implementations
+│
+├── imports/                  # Imports Context (Generic)
+│   ├── domain/               # Import-specific domain logic
+│   │   ├── model/            # Import-specific models
+│   │   ├── service/          # Domain services
+│   │   └── port/             # Ports (interfaces) to infrastructure
+│   │
+│   ├── application/          # Application services
+│   │   ├── service/          # Use case implementations
+│   │   └── port/             # Application service interfaces
+│   │
+│   ├── infrastructure/       # Infrastructure components
+│   │   ├── config/           # Import configuration
+│   │   ├── security/         # Security components for imports
+│   │   └── persistence/      # Import-specific repository implementations
+│   │
+│   ├── adapters/             # Bank-specific adapters
+│   │   ├── fio/              # Fio Bank adapter
+│   │   │   ├── client/       # Fio API client
+│   │   │   ├── model/        # Fio-specific models
+│   │   │   ├── mapper/       # Mappers from Fio models to domain models
+│   │   │   ├── service/      # Fio-specific services
+│   │   │   └── config/       # Fio-specific configuration
+│   │   │
+│   │   └── revolut/          # Future Revolut adapter (similar structure)
+│   │
+│   └── web/                  # Import web UI
+│       ├── module/           # Module definition
+│       ├── view/             # Views
+│       ├── controller/       # Controllers/Routes
+│       └── dto/              # Data transfer objects
+│
+├── categorization/           # Categorization Context
+│   ├── domain/
+│   │   ├── model/            # Categorization models
+│   │   ├── service/          # Domain services
+│   │   └── port/             # Ports to infrastructure
+│   │
+│   ├── application/
+│   │   ├── service/          # AI categorization, Manual categorization, etc.
+│   │   └── port/             # Application service interfaces
+│   │
+│   ├── infrastructure/
+│   │   ├── ai/               # AI integration components
+│   │   │   ├── client/       # AI service clients
+│   │   │   └── mapper/       # AI response mappers
+│   │   │
+│   │   ├── persistence/      # Repository implementations
+│   │   └── config/           # Categorization configuration
+│   │
+│   └── web/
+│       ├── module/           # Module definition (AIModule, ManualCategoryModule)
+│       ├── view/             # Views
+│       ├── controller/       # Controllers/Routes
+│       └── dto/              # Data transfer objects
+│
+├── submission/               # Submission Context (Generic)
+│   ├── domain/
+│   │   ├── model/            # Submission models
+│   │   ├── service/          # Domain services
+│   │   └── port/             # Ports to infrastructure
+│   │
+│   ├── application/
+│   │   ├── service/          # Submission workflows
+│   │   └── port/             # Application service interfaces
+│   │
+│   ├── infrastructure/
+│   │   ├── config/           # Submission configuration
+│   │   └── persistence/      # Repository implementations
+│   │
+│   ├── adapters/             # Budget tool adapters
+│   │   └── ynab/             # YNAB adapter
+│   │       ├── client/       # YNAB API client
+│   │       ├── model/        # YNAB-specific models
+│   │       ├── mapper/       # Mappers from domain models to YNAB models
+│   │       ├── service/      # YNAB-specific services
+│   │       └── config/       # YNAB-specific configuration
+│   │
+│   └── web/
+│       ├── module/           # Module definitions (YNABSubmissionModule)
+│       ├── view/             # Views
+│       ├── controller/       # Controllers/Routes
+│       └── dto/              # Data transfer objects
+│
+├── transactions/             # Transaction Management Context
+│   ├── domain/
+│   │   ├── model/
+│   │   ├── service/
+│   │   └── port/
+│   │
+│   ├── application/
+│   │   ├── service/          # Transaction filtering, searching, etc.
+│   │   └── port/
+│   │
+│   ├── infrastructure/
+│   │   ├── persistence/      # Repository implementations
+│   │   └── config/
+│   │
+│   └── web/
+│       ├── module/           # Module definitions (TransactionFilterModule)
+│       ├── view/             # Views
+│       ├── controller/       # Controllers/Routes
+│       └── dto/              # Data transfer objects
+│
+├── auth/                     # Auth Context (Future)
+│   ├── domain/
+│   ├── application/
+│   ├── infrastructure/
+│   └── web/
+│
+└── server/                   # Application bootstrap and server configuration
+    ├── config/               # Server configuration
+    ├── http/                 # HTTP server setup
+    ├── module/               # Module registry and composition
+    └── Main.scala            # Application entry point
 ```
 
-Each vertical slice:
-- Maps to specific Gherkin scenarios in our feature files
-- Contains a complete implementation from UI to infrastructure
-- Can be developed and tested independently
-- Uses the shared domain core for common functionality
+## Context Relationships
+
+- **Budget ← Imports**: Imports context uses Budget's domain model to store imported transactions
+- **Budget ← Categorization**: Categorization context updates Budget's TransactionProcessingState
+- **Budget ← Submission**: Submission context uses Budget's model to find transactions to submit
+- **Imports ⟷ Categorization**: Sequential workflow where imports trigger categorization
+- **Categorization ⟷ Submission**: Sequential workflow where categorization enables submission
+
+## Vertical Slice Modules
+
+Within each bounded context, we organize modules into vertical slices aligned with Gherkin scenarios:
+
+### Imports Context Modules
+- ImportModule (Generic UI for all import sources)
+- Specific bank adapters:
+  - FioAdapter (Maps to scenarios 1, 9)
+  - Future bank adapters (Revolut, etc.)
+
+### Categorization Context Modules
+- AICategoryModule (Maps to scenario 2)
+- ManualCategoryModule (Maps to scenarios 3, 4)
+
+### Submission Context Modules
+- SubmissionModule (Generic UI for all budget tool submissions)
+- Specific budget tool adapters:
+  - YNABAdapter (Maps to scenarios 5, 6, 7)
+  - Future budget tool adapters
+
+### Transaction Management Modules
+- TransactionFilterModule (Maps to scenario 8)
 
 ## Domain Model Design
 
 ### Event-Centric Approach
 
-The core of our design is an event-centric model that treats transactions as immutable events:
+The core of our design in the Budget shared kernel is an event-centric model that treats transactions as immutable events:
 
 1. **Transaction (Immutable Event)**
    - Represents a financial transaction exactly as it occurred
@@ -92,57 +267,89 @@ Our repositories reflect this event-centric model:
 
 ## Architecture Layers
 
-The application follows the Functional Core/Imperative Shell pattern:
+Each bounded context follows the Functional Core/Imperative Shell pattern:
 
 ### Functional Core (Domain Layer)
 - **Domain Models**: Pure representations of business concepts
-  - `Transaction`, `TransactionId`, `TransactionProcessingState`, `SourceAccount`
 - **Query Models**: Composable filtering capabilities
-  - `TransactionQuery`, `TransactionProcessingStateQuery`, `SourceAccountQuery`
 - **Repository Interfaces**: Domain-defined capabilities
-  - `TransactionRepository`, `TransactionProcessingStateRepository`, `SourceAccountRepository`
+- **Domain Services**: Business logic without side effects
 
 ### Imperative Shell (Infrastructure Layer)
 - **Repository Implementations**: Concrete data access
-  - `PostgreSQLTransactionRepository`, `PostgreSQLTransactionProcessingStateRepository`, `PostgreSQLSourceAccountRepository`
-  - `MockTransactionRepository`, `MockTransactionProcessingStateRepository`, `MockSourceAccountRepository`
 - **Adapters**: External service integration
-  - FIO bank adapter (`FioClient`, `FioTransactionImportService`)
-  - Mock adapters for UI development
-- **Database Components**:
-  - `PostgreSQLTransactor`, `PostgreSQLDataSource`
-  - `FlywayMigrationService` for schema management
+- **Database Components**: Data access infrastructure
+- **Integration Services**: Cross-boundary communication
 
 ### Web Layer
 - **UI Modules**: Scenario-based vertical slices
-  - **ImportModule**: For handling transaction imports (Scenarios 1, 9)
-  - **CategorizationModule**: For AI and manual categorization (Scenarios 2, 3, 4)
-  - **SubmissionModule**: For submitting to YNAB (Scenarios 5, 6, 7)
-  - **TransactionManagementModule**: For filtering and viewing (Scenario 8)
+- **View Models**: UI-specific data representations
+- **Views**: UI rendering components
+- **Routes**: HTTP endpoints
 
 ## Module Structure
 
-Each module follows our Functional MVP pattern with this structure:
+Each bounded context follows our Functional MVP pattern with this general structure:
 
 ```
-import/                      # Import Module
-├── domain/                  # Module-specific domain logic
-│   ├── ImportService.scala
-│   └── DateRangeValidator.scala
-├── application/             # Application Services
-│   ├── ImportApplicationService.scala
-│   └── ImportTransactionsCommand.scala
-├── infrastructure/          # Infrastructure
-│   ├── MockFioAdapter.scala # Mock implementation (UI-First)
-│   ├── LiveFioAdapter.scala # Real implementation (Production)
-│   └── ...
-└── web/                     # UI components
-    ├── ImportModule.scala   # Module definition
-    ├── ImportViewModel.scala # View Model
-    ├── ImportService.scala  # UI Service
-    └── views/
-        ├── ImportView.scala # View
-        └── ...
+context/                   # A specific bounded context (e.g., imports, categorization)
+├── domain/                 # Context-specific domain logic
+│   ├── model/              # Domain models
+│   ├── service/            # Domain services
+│   └── port/               # Ports (interfaces) to infrastructure
+├── application/            # Application Services
+│   ├── service/            # Application service implementations
+│   └── port/               # Application service interfaces
+├── infrastructure/         # Infrastructure components
+│   ├── config/             # Configuration
+│   ├── security/           # Security components
+│   └── persistence/        # Repository implementations
+├── adapters/               # External system adapters (when applicable)
+│   └── specific-adapter/    # Adapter for a specific external system
+│       ├── client/         # API client
+│       ├── model/          # External system-specific models
+│       ├── mapper/         # Model mappers
+│       ├── service/        # Adapter-specific services
+│       └── config/         # Adapter-specific configuration
+└── web/                    # UI components
+    ├── module/             # Module definitions
+    ├── view/               # Views
+    ├── controller/         # Controllers/Routes
+    └── dto/                # Data transfer objects
+```
+
+For example, our imports context with a specific adapter for Fio Bank would have this structure:
+
+```
+imports/                   # Imports Context
+├── domain/                 # Import-specific domain logic
+├── application/            # Import application services 
+├── infrastructure/         # Infrastructure components
+├── adapters/               # Bank-specific adapters
+│   └── fio/                # Fio Bank adapter
+│       ├── client/         # Fio API client
+│       ├── model/          # Fio-specific models
+│       ├── mapper/         # Mappers from Fio models to domain models
+│       ├── service/        # Fio-specific services
+│       └── config/         # Fio-specific configuration
+└── web/                    # Import web UI
+```
+
+Similarly, our submission context with a YNAB adapter would follow this pattern:
+
+```
+submission/                # Submission Context
+├── domain/                 # Submission-specific domain logic
+├── application/            # Submission application services
+├── infrastructure/         # Infrastructure components
+├── adapters/               # Budget tool adapters
+│   └── ynab/               # YNAB adapter
+│       ├── client/         # YNAB API client
+│       ├── model/          # YNAB-specific models
+│       ├── mapper/         # Mappers from domain models to YNAB models
+│       ├── service/        # YNAB-specific services
+│       └── config/         # YNAB-specific configuration
+└── web/                    # Submission web UI
 ```
 
 ## Database Schema
@@ -161,29 +368,43 @@ The database schema reflects our event-centric model:
    - Processing status, categorization, YNAB integration
    - References transaction
 
-## Bounded Context Integration
+## Scenario-to-Context Mapping
 
-With our UI-Module Vertical Slices approach, we're transitioning from technology-oriented bounded contexts (transactions, fio, ynab) to a more cohesive feature-oriented bounded context (fio-ynab-integration) with a shared domain core.
+Based on our BDD approach, we map scenarios to contexts:
 
-Within this bounded context, we:
-- Maintain direct database references (as in the previous architecture)
-- Share the domain core across all vertical slices
-- Keep clear boundaries between UI modules
+| Context | Adapter | Scenarios | Key Functionality |
+|---------|---------|-----------|-------------------|
+| Imports | Generic | - | Generic import infrastructure |
+| Imports | Fio | 1, 9 | Import transactions from Fio Bank, Date range validation |
+| Categorization | - | 2, 3, 4 | AI categorization, Manual modification, Bulk modification |
+| Submission | Generic | - | Generic submission infrastructure |
+| Submission | YNAB | 5, 6, 7 | Submit to YNAB, Error handling, Duplicate prevention |
+| Transaction Management | - | 8 | Filtering and viewing transactions |
 
-## Scenario-to-Module Mapping
+## Feature File Organization
 
-Based on our BDD approach, we map scenarios to modules as follows:
+To align with our bounded context approach, our Gherkin feature files are organized by context:
 
-| Module | Scenarios | Key Functionality |
-|--------|-----------|-------------------|
-| Import | 1, 9 | Import transactions from Fio Bank, Date range validation |
-| Categorization | 2, 3, 4 | AI categorization, Manual modification, Bulk modification |
-| Submission | 5, 6, 7 | Submit to YNAB, Error handling, Duplicate prevention |
-| Transaction Management | 8 | Filtering and viewing transactions |
+```
+features/
+├── budget/                # Shared domain scenarios
+├── imports/               # Import scenarios 
+│   ├── common/             # Generic import features
+│   └── adapters/           # Bank-specific features
+│       └── fio_import.feature  # Fio-specific scenarios (1, 9)
+├── categorization/        # Categorization scenarios (scenarios 2, 3, 4)
+│   └── transaction_categorization.feature
+├── submission/            # Submission scenarios
+│   ├── common/             # Generic submission features
+│   └── adapters/           # Budget tool-specific features
+│       └── ynab_submission.feature  # YNAB-specific scenarios (5, 6, 7)
+└── management/            # Management scenarios (scenario 8)
+    └── transaction_management.feature
+```
 
 ## Implementation Process
 
-For each module, our implementation follows this process:
+For each bounded context, our implementation follows this process:
 
 1. **Domain Model First**: 
    - Implement domain entities, value objects, and services
@@ -226,27 +447,40 @@ For each module, our implementation follows this process:
 - Chimney for type-safe transformations
 - Clear separation between domain models and DTOs
 
+## Cross-Context Communication
+
+Contexts communicate through these mechanisms:
+
+1. **Repository Access**: Contexts can access Budget shared kernel repositories
+2. **Domain Events**: Events published by one context and consumed by others
+3. **Service Interfaces**: Defined in the Budget shared kernel and implemented in specific contexts
+4. **Integration Ports**: Handler interfaces for cross-context workflows
+
 ## Processing Flow
 
-1. **Import Phase** (Import Module)
-   - External bank data is fetched through adapters (e.g., FIO Bank)
+Our end-to-end transaction processing flow crosses multiple bounded contexts:
+
+1. **Import Phase** (Imports Context)
+   - External bank data is fetched through specific bank adapters (e.g., Fio Bank adapter)
+   - Adapter-specific data is transformed into domain model using mappers
    - Raw data is transformed into immutable Transaction events
    - Initial TransactionProcessingState is created with Imported status
 
-2. **Processing Phase** (Categorization Module)
+2. **Processing Phase** (Categorization Context)
    - AI categorization is applied to transactions
    - Self-learning payee name cleanup is applied to transactions
    - User can review and override categorizations
    - TransactionProcessingState is updated to Categorized status
 
-3. **Export Phase** (Submission Module)
-   - Categorized transactions are submitted to YNAB
-   - TransactionProcessingState is updated with YNAB IDs and Submitted status
+3. **Export Phase** (Submission Context)
+   - Categorized transactions are submitted to budget tools through specific adapters (e.g., YNAB adapter)
+   - Domain models are transformed to adapter-specific models using mappers
+   - TransactionProcessingState is updated with external IDs and Submitted status
    - Synchronization metadata is updated
 
 ## Self-Learning Payee Cleanup System
 
-This subsystem improves transaction data quality by cleaning up messy payee names before they're sent to YNAB.
+This subsystem in the Categorization context improves transaction data quality by cleaning up messy payee names before they're sent to YNAB.
 
 ### Design Approach
 - Combines LLM-based processing with a rule-based system that learns over time
@@ -281,11 +515,6 @@ This subsystem improves transaction data quality by cleaning up messy payee name
    - Rules are evaluated based on application success rate
    - Higher confidence rules are preferred over lower confidence ones
    - Over time, the system relies less on LLM calls and more on proven rules
-
-### Integration Points
-- Integrates with the TransactionProcessor during the Processing Phase
-- Updates the TransactionProcessingState with cleaned payee names
-- Provides feedback mechanisms for users to improve rule quality
 
 ## Technologies
 
