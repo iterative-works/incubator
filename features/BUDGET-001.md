@@ -1,6 +1,6 @@
 ---
 status: draft
-last_updated: 2025-04-18
+last_updated: 2025-04-24
 version: "0.1"
 tags:
   - workflow
@@ -64,10 +64,6 @@ This feature significantly reduces the manual effort required to manage financia
   - Details: The system must track submitted transactions and prevent duplicate submissions to YNAB.
   - Rationale: Duplicate transactions would distort financial reports and budgets.
 
-- **FR8**: Authentication and Authorization
-  - Details: The system must implement JWT-based authentication for admin access and secure all API endpoints.
-  - Rationale: Financial data requires appropriate security controls.
-
 #### Optional Requirements
 - **OFR1**: Transaction Rules Creation
   - Details: Allow users to create and save rules for automatic categorization of specific transaction patterns.
@@ -101,27 +97,17 @@ This feature significantly reduces the manual effort required to manage financia
 ## User Experience
 
 ### User Flow
-1. User logs in to the administrative interface
-2. User initiates a new import from Fio Bank, specifying date range
-3. System retrieves transactions and stores them in database
-4. System automatically categorizes transactions using AI
-5. User reviews transaction list, with ability to filter, sort, and search
-6. User reviews and modifies categories as needed
-7. User selects transactions to submit to YNAB
-8. System submits transactions and updates their status
-9. User can view confirmation of submitted transactions
+1. User initiates a new import from Fio Bank, specifying date range
+2. System retrieves transactions and stores them in database
+3. System automatically categorizes transactions using AI
+4. User reviews transaction list, with ability to filter, sort, and search
+5. User reviews and modifies categories as needed
+6. User selects transactions to submit to YNAB
+7. System submits transactions and updates their status
+8. User can view confirmation of submitted transactions
 
 ### UI/UX Requirements
-- **Screen 1**: Login Page
-  - Elements:
-    - Username field
-    - Password field
-    - Login button
-  - Behavior:
-    - Validates credentials and issues JWT token
-    - Redirects to dashboard on success
-
-- **Screen 2**: Dashboard
+- **Screen 1**: Dashboard
   - Elements:
     - Summary statistics (total transactions, categorized, submitted)
     - Import button with date range selector
@@ -132,7 +118,7 @@ This feature significantly reduces the manual effort required to manage financia
     - Allows initiating new imports
     - Provides overview of system status
 
-- **Screen 3**: Transaction Management
+- **Screen 2**: Transaction Management
   - Elements:
     - Detailed transaction table with the following columns:
       - Date
@@ -149,7 +135,7 @@ This feature significantly reduces the manual effort required to manage financia
     - Supports multi-select for bulk actions
     - Updates transaction status in real-time
 
-- **Screen 4**: Submission Confirmation
+- **Screen 3**: Submission Confirmation
   - Elements:
     - List of submitted transactions
     - Success/failure indicators
@@ -163,7 +149,7 @@ This feature significantly reduces the manual effort required to manage financia
 
 ## Acceptance Criteria
 ### Scenario 1: Successful Import from Fio Bank
-- **Given** I am logged in as an administrator
+- **Given** I access the application
 - **When** I initiate an import for the date range of April 1-15, 2025
 - **Then** the system should connect to Fio Bank API
 - **And** retrieve all transactions for the specified date range
@@ -225,7 +211,7 @@ This feature significantly reduces the manual effort required to manage financia
 ### Data Requirements
 - **Data Entities**:
   - Transaction:
-    - Attributes: id, fio_id, date, amount, description, counterparty, account_id, import_batch_id, ynab_id
+    - Attributes: id, date, amount, description, counterparty, account_id, import_batch_id
     - Relationships: belongs to Import Batch, has one Category
   - Category:
     - Attributes: id, name, ynab_id, confidence_score
@@ -233,9 +219,6 @@ This feature significantly reduces the manual effort required to manage financia
   - Import Batch:
     - Attributes: id, date_range_start, date_range_end, status, created_at
     - Relationships: has many Transactions
-  - User:
-    - Attributes: id, username, password_hash, role
-    - Relationships: has many Import Batches
 
 - **Data Sources**:
   - Fio Bank API: Primary source of transaction data
@@ -250,9 +233,9 @@ This feature significantly reduces the manual effort required to manage financia
 ## Testing Considerations
 
 ### Test Strategy
-- **Unit Testing Approach**: pytest for backend components, Jest for frontend components
-- **Integration Testing Approach**: API tests using supertest, mock external APIs for consistent testing
-- **End-to-End Testing Approach**: Cypress for full user flow testing with stubbed external services
+- **Unit Testing Approach**: ZIO tests
+- **Integration Testing Approach**: ZIO tests
+- **End-to-End Testing Approach**: Playwright in ZIO tests
 
 ### Test Cases
 - **Test Case 1**: Fio Bank API Connection
@@ -273,24 +256,28 @@ This feature significantly reduces the manual effort required to manage financia
 ## Implementation Guidance
 
 ### High-Level Architecture
-The system will follow a three-tier architecture with a React frontend, Python FastAPI backend, and PostgreSQL database. Authentication will be handled via JWT tokens, and background processing will use Celery for handling longer-running tasks.
+The system will follow a three-tier architecture with a Scala backend using ZIO, Scalatags for HTML templating combined with HTMX for interactive frontend capabilities, and PostgreSQL database. Background processing will leverage ZIO's concurrency features for handling longer-running tasks.
 
 ### Key Components
-- **Backend API Service**:
-  - Purpose: Provide RESTful endpoints for frontend and handle business logic
-  - Responsibilities: Authentication, transaction management, integration with external APIs
+- **Core ZIO Application**:
+  - Purpose: Serve as the central processing hub with modular effects
+  - Responsibilities: Business logic coordination, request handling, effect management
 
-- **Frontend Application**:
-  - Purpose: Provide user interface for system interaction
-  - Responsibilities: Data display, user input handling, state management
+- **HTTP Layer**:
+  - Purpose: Handle web requests and serve HTML/HTMX interface
+  - Responsibilities: API endpoints, Scalatags templating, HTMX integration
 
-- **Database Service**:
-  - Purpose: Store transaction data and system state
-  - Responsibilities: Data persistence, transaction history, state tracking
+- **Integration Services**:
+  - Purpose: Connect with external systems (Fio Bank, YNAB, OpenAI)
+  - Responsibilities: API authentication, data transformation, error handling
 
-- **AI Categorization Service**:
-  - Purpose: Analyze and categorize transactions
-  - Responsibilities: Pattern recognition, mapping to YNAB categories
+- **Persistent Layer**:
+  - Purpose: Manage data storage and retrieval
+  - Responsibilities: PostgreSQL interactions, transaction history, state management
+
+- **Transaction Processing Pipeline**:
+  - Purpose: Orchestrate the flow of transaction data through the system
+  - Responsibilities: Import scheduling, categorization, submission to YNAB
 
 ### Implementation Recommendations
 - Use a feature flag system to enable gradual rollout and testing of components
