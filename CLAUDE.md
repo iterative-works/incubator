@@ -36,17 +36,38 @@ The application provides multiple UI modules accessible at these URLs:
 
 ## Development Workflow
 
-### Development Logs
+Our development process follows a disciplined Behavior-Driven Development (BDD) approach with Gherkin scenarios as the central driving force throughout the entire development lifecycle.
 
-We maintain development logs in the `dev-logs` directory to track design decisions, implementation details, and changes made to the codebase. Each log is named with the date in the format `YYYYMMDD.md`.
+## Core Workflow Phases
 
-When making significant changes:
-1. Create a new log file for the current date if it doesn't exist
-2. Document the problem, solution approach, and implementation details
-3. Include code snippets, SQL queries, or diagrams as needed
-4. Reference related issues or pull requests
+1. **Change Request**: Formal documentation of proposed changes (CR-XXXX)
+2. **Feature Specification & Scenario Definition**: Detailed requirements captured as Gherkin scenarios
+3. **Business Value Decomposition**: Prioritization of scenarios by business value
+4. **Feature Planning**: Technical implementation planning based on scenarios
+5. **Scenario-Driven Implementation**: Development guided by scenarios using a Functional Core approach
+6. **Scenario-Based Testing**: Multi-level verification of scenario implementation
+7. **Deployment**: Phased release with scenario-based feature flags
 
-These logs serve as documentation for future reference and help track the evolution of the codebase.
+## Implementation Principles
+
+- **BDD-Driven Functional Core**: Design complete domain model as pure functional core first
+- **Mock-First Development**: Create comprehensive mocks before real implementations
+- **UI Validation**: Build and validate UI components with mock implementations before infrastructure
+- **Strict Separation**: Maintain clear boundaries between pure domain logic and side-effecting code
+- **Scenario Traceability**: All code changes must trace back to specific scenarios
+
+## Working with AI Agents
+
+- Always provide Gherkin scenarios as primary context
+- Request scenario-specific implementations and tests
+- Have AI map responses to specific scenario steps
+- Request multi-level testing (domain, UI, E2E)
+
+## Key Templates and Documentation
+
+The workflow is supported by 11 standardized templates covering each phase of development, from Change Requests to Scenario Coverage Reports.
+
+> For complete details, refer to the full [Development Workflow](ai-context/workflows/development_workflow.md) document including implementation guides and templates.
 
 ### Pre-commit/Pre-PR Checklist
 
@@ -58,33 +79,9 @@ Before committing changes or creating a pull request, always run the following c
 2. `sbtn clean` - Clean all compiled artifacts to ensure a fresh build
 3. `sbtn compile` - Compile the code and verify there are no compiler warnings
 4. `sbtn test` - Run all tests to ensure everything is working correctly
-5. `sbtn ynabImporterInfrastructureIT/test` - Run integration tests separately
+5. `sbtn fio-it/test` - Run integration tests separately
 
 This cycle helps catch issues early and ensures that our codebase remains clean and maintainable.
-
-## Environment Composition
-
-The application uses ZIO's environment for dependency injection. When adding new modules or services:
-
-1. **Define service interfaces** in the core module
-2. **Implement services** in the infrastructure module
-3. **Update AppEnv type** in `src/main/scala/works/iterative/incubator/server/AppEnv.scala` to include any new services
-4. **Add service layers** to `Main.scala` in the `run` method
-5. **Never use asInstanceOf** for environment compatibility - instead, properly extend the AppEnv type
-
-## UI Module Implementation Guidelines
-
-When adding new UI modules to the application:
-
-1. Create a new module class in the appropriate package following the naming convention `[EntityName]Module.scala`
-2. Extend `ZIOWebModule` with the appropriate environment type requirements
-3. Structure the module with three main components:
-   - `service`: ZIO effects for data operations
-   - `view`: HTML rendering (using ScalaTags)
-   - `routes`: HTTP endpoints mapping to services and views
-4. Add the new module to `ModuleRegistry` in `src/main/scala/works/iterative/incubator/server/view/modules/ModuleRegistry.scala`
-5. Update `AppEnv` in `src/main/scala/works/iterative/incubator/server/AppEnv.scala` if needed
-6. Ensure any required service implementations are available in the environment
 
 ## Code Style Guidelines
 - **Architecture**: Follow Functional Core/Imperative Shell pattern (see principles.md and ynab-importer/doc/architecture.md)
