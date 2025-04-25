@@ -249,12 +249,12 @@ tags:
   - Handle database errors
 - **Dependencies**:
   - Domain repository interfaces
-  - Doobie for database access
+  - Mangum for database access
 - **Acceptance Criteria**:
   - Repositories properly implement domain interfaces
   - Database queries are type-safe and efficient
   - Proper error handling for database failures
-- **Implementation Guide**: Doobie Repository Guide
+- **Implementation Guide**: Mangum Repository Guide
 
 ### Step 13: Integration and E2E Test Implementation
 - **Component Type**: Test Suite
@@ -282,11 +282,11 @@ tags:
 
 ## Environment Composition
 - **Required ZIO Services**:
-  - ZIO HTTP for web server
+  - HTTP4S for web server
   - ZIO Config for configuration management
   - ZIO Logging for structured logging
   - ZIO Json for serialization
-  - Doobie for database access
+  - Magnum for database access
 - **New Services to Implement**:
   - ImportService
   - CategorizationService
