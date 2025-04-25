@@ -11,6 +11,8 @@ package works.iterative.incubator.budget.domain.model
   *   Display name of the category
   * @param parentId
   *   Optional parent category ID if this is a subcategory
+  * @param ynabId
+  *   Optional external mapping to YNAB category ID
   * @param active
   *   Whether this category is active and available for selection
   *
@@ -20,5 +22,17 @@ case class Category(
     id: String,
     name: String,
     parentId: Option[String],
+    ynabId: Option[String] = None,
     active: Boolean = true
 )
+
+object Category:
+    /** Special built-in category for uncategorized transactions */
+    val Uncategorized: Category = Category(
+        id = "uncategorized",
+        name = "Uncategorized",
+        parentId = None,
+        ynabId = None,
+        active = true
+    )
+end Category

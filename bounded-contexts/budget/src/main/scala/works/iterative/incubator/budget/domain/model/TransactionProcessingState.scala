@@ -17,11 +17,16 @@ case class TransactionProcessingState(
 
     // Processing state
     status: TransactionStatus, // Imported, Categorized, Submitted
+    isDuplicate: Boolean = false, // Whether this transaction is a duplicate
 
     // AI computed/processed fields for YNAB
     suggestedPayeeName: Option[String], // AI suggested payee name
     suggestedCategory: Option[String], // AI suggested category
     suggestedMemo: Option[String], // AI cleaned/processed memo
+    
+    // Confidence scores for AI suggestions
+    categoryConfidence: Option[ConfidenceScore], // How confident is the AI about the category
+    payeeConfidence: Option[ConfidenceScore], // How confident is the AI about the payee
 
     // User overrides (if user wants to adjust AI suggestions)
     overridePayeeName: Option[String], // User override for payee
@@ -49,19 +54,35 @@ case class TransactionProcessingState(
     def isReadyForSubmission: Boolean =
         status == TransactionStatus.Categorized &&
             ynabAccountId.isDefined &&
-            effectivePayeeName.isDefined
+            effectivePayeeName.isDefined &&
+            effectiveCategory.isDefined &&
+            !isDuplicate
+
+    /** Check if this is a manually categorized transaction */
+    def isManuallyCategoriazed: Boolean = overrideCategory.isDefined
+
+    /** Check if the category suggestion is reliable based on confidence score */
+    def hasCategoryWithReliableConfidence: Boolean = 
+        categoryConfidence.exists(_.exceeds(ConfidenceScore.ReliableThreshold))
 
     /** Create a new version with AI categorization applied */
     def withAICategorization(
         payeeName: Option[String],
         category: Option[String],
-        memo: Option[String]
+        memo: Option[String],
+        categoryConfidence: Option[ConfidenceScore] = None,
+        payeeConfidence: Option[ConfidenceScore] = None
     ): TransactionProcessingState =
+        // Only transition to Categorized if we actually have a category
+        val newStatus = if category.isDefined then TransactionStatus.Categorized else this.status
+        
         this.copy(
-            status = TransactionStatus.Categorized,
+            status = newStatus,
             suggestedPayeeName = payeeName,
             suggestedCategory = category,
             suggestedMemo = memo,
+            categoryConfidence = categoryConfidence,
+            payeeConfidence = payeeConfidence,
             processedAt = Some(Instant.now)
         )
 
@@ -71,7 +92,15 @@ case class TransactionProcessingState(
         category: Option[String] = this.overrideCategory,
         memo: Option[String] = this.overrideMemo
     ): TransactionProcessingState =
+        // If user provides a category, state becomes Categorized
+        val newStatus = 
+            if (category.isDefined && this.status == TransactionStatus.Imported)
+                TransactionStatus.Categorized
+            else 
+                this.status
+                
         this.copy(
+            status = newStatus,
             overridePayeeName = payeeName,
             overrideCategory = category,
             overrideMemo = memo
@@ -82,12 +111,29 @@ case class TransactionProcessingState(
         ynabTransactionId: String,
         ynabAccountId: String
     ): TransactionProcessingState =
+        // Can only submit if the transaction is categorized
+        if (status != TransactionStatus.Categorized)
+            throw new IllegalStateException(
+                s"Cannot submit transaction with status $status, must be Categorized"
+            )
+        
+        // Check that we have all required fields
+        if (effectiveCategory.isEmpty)
+            throw new IllegalStateException("Cannot submit transaction without a category")
+            
+        if (effectivePayeeName.isEmpty)
+            throw new IllegalStateException("Cannot submit transaction without a payee name")
+        
         this.copy(
             status = TransactionStatus.Submitted,
             ynabTransactionId = Some(ynabTransactionId),
             ynabAccountId = Some(ynabAccountId),
             submittedAt = Some(Instant.now)
         )
+        
+    /** Mark this transaction as a duplicate */
+    def markAsDuplicate: TransactionProcessingState =
+        this.copy(isDuplicate = true)
 end TransactionProcessingState
 
 object TransactionProcessingState:
@@ -96,9 +142,12 @@ object TransactionProcessingState:
         TransactionProcessingState(
             transactionId = transaction.id,
             status = TransactionStatus.Imported,
+            isDuplicate = false,
             suggestedPayeeName = None,
             suggestedCategory = None,
             suggestedMemo = None,
+            categoryConfidence = None,
+            payeeConfidence = None,
             overridePayeeName = None,
             overrideCategory = None,
             overrideMemo = None,
