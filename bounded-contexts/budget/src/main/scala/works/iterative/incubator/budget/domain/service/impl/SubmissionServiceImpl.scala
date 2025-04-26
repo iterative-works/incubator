@@ -47,6 +47,16 @@ case class SubmissionServiceImpl(
             // Validate states for submission
             validationResult <- validateForSubmission(states)
             
+            // Handle validation failures
+            _ <- ZIO.when(validationResult.invalidTransactions.nonEmpty) {
+                val event = SubmissionFailed(
+                    reason = s"Failed to validate ${validationResult.invalidTransactions.size} transactions",
+                    transactionCount = validationResult.invalidTransactions.size,
+                    occurredAt = Instant.now()
+                )
+                eventPublisher(event)
+            }
+            
             // Submit each valid transaction
             submissionResults <- ZIO.foreach(validationResult.validTransactions) { state =>
                 submitTransaction(state.transactionId)
@@ -54,9 +64,9 @@ case class SubmissionServiceImpl(
             
             // Calculate success/failure counts
             successCount = submissionResults.count(_.submitted)
-            errors = submissionResults.filter(!_.submitted).flatMap(_.error).toSeq
+            submissionErrors = submissionResults.filter(!_.submitted).flatMap(_.error).toSeq
             
-            // Publish events
+            // Publish events for successful submissions
             _ <- ZIO.when(successCount > 0) {
                 // Get the YNAB account ID from one of the successful submissions
                 val ynabAccountId = submissionResults
@@ -72,11 +82,11 @@ case class SubmissionServiceImpl(
                 eventPublisher(event)
             }
             
-            // Publish failure event if any submissions failed
-            _ <- ZIO.when(errors.nonEmpty) {
+            // Publish failure event if any submissions failed (during the actual submission phase)
+            _ <- ZIO.when(submissionErrors.nonEmpty) {
                 val event = SubmissionFailed(
-                    reason = s"Failed to submit ${errors.size} transactions",
-                    transactionCount = errors.size,
+                    reason = s"Failed to submit ${submissionErrors.size} transactions",
+                    transactionCount = submissionErrors.size,
                     occurredAt = Instant.now()
                 )
                 eventPublisher(event)
@@ -84,7 +94,9 @@ case class SubmissionServiceImpl(
         yield SubmissionResult(
             submittedCount = successCount,
             failedCount = transactionIds.size - successCount,
-            errors = errors
+            errors = validationResult.invalidTransactions.map { case (state, reason) =>
+                SubmissionError(state.transactionId, s"Validation failed: $reason")
+            }.toSeq ++ submissionErrors
         )
 
     /** Submit a single transaction to YNAB
