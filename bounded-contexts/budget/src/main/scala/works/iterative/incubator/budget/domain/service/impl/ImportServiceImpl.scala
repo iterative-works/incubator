@@ -1,7 +1,6 @@
 package works.iterative.incubator.budget.domain.service.impl
 
 import zio.*
-import java.time.Instant
 import works.iterative.incubator.budget.domain.model.*
 import works.iterative.incubator.budget.domain.repository.*
 import works.iterative.incubator.budget.domain.event.*
@@ -41,9 +40,9 @@ case class ImportServiceImpl(
         rawTransactions: Seq[RawTransaction]
     ): UIO[(Int, Seq[String])] =
         for
-            // Validate that the source account exists - use a query to get all accounts and filter in memory
-            allAccounts <- sourceAccountRepository.find(null) // Use null as a dummy query to get all accounts
-            sourceAccount <- ZIO.fromOption(allAccounts.find(_.id == sourceAccountId))
+            // Validate that the source account exists
+            sourceAccountOpt <- sourceAccountRepository.load(sourceAccountId)
+            sourceAccount <- ZIO.fromOption(sourceAccountOpt)
                 .orElseFail(new IllegalArgumentException(s"Source account $sourceAccountId not found"))
                 .orDie
                 
@@ -91,19 +90,20 @@ case class ImportServiceImpl(
                 // If duplicate, publish event and return None
                 for
                     existingTx <- transactionRepository.load(transactionId).map(_.get)
+                    time <- Clock.instant
                     event = DuplicateTransactionDetected(
                         externalId = rawTransaction.externalId,
                         sourceAccountId = sourceAccountId,
                         existingTransactionId = transactionId,
-                        occurredAt = Instant.now()
+                        occurredAt = time
                     )
                     _ <- eventPublisher(event)
                 yield None
             else
                 // If new transaction, create it
                 for
-                    now <- ZIO.succeed(Instant.now())
-                    transaction <- ZIO.succeed(Transaction(
+                    now <- Clock.instant
+                    transaction = Transaction(
                         id = transactionId,
                         date = rawTransaction.date,
                         amount = rawTransaction.amount,
@@ -119,7 +119,7 @@ case class ImportServiceImpl(
                         transactionType = rawTransaction.transactionType,
                         comment = rawTransaction.comment,
                         importedAt = now
-                    ))
+                    )
                     
                     // Save the transaction
                     _ <- transactionRepository.save(transaction.id, transaction)
@@ -148,11 +148,13 @@ case class ImportServiceImpl(
       * @return An ImportCompleted event
       */
     override def createImportCompletedEvent(sourceAccountId: Long, count: Int): UIO[ImportCompleted] =
-        ZIO.succeed(ImportCompleted(
+        for
+            now <- Clock.instant
+        yield ImportCompleted(
             sourceAccountId = sourceAccountId,
             count = count,
-            occurredAt = Instant.now()
-        ))
+            occurredAt = now
+        )
 end ImportServiceImpl
 
 /** Companion object for ImportServiceImpl */

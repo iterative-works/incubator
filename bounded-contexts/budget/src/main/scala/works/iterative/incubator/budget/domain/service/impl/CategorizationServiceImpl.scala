@@ -1,7 +1,6 @@
 package works.iterative.incubator.budget.domain.service.impl
 
 import zio.*
-import java.time.Instant
 import works.iterative.incubator.budget.domain.model.*
 import works.iterative.incubator.budget.domain.repository.*
 import works.iterative.incubator.budget.domain.event.*
@@ -52,14 +51,17 @@ case class CategorizationServiceImpl(
             
             // Publish batch event if we have any successful categorizations
             _ <- ZIO.when(validCats.nonEmpty) {
-                val sourceAccountId = validCats.head.transactionId.sourceAccountId
-                val event = TransactionsCategorized(
-                    transactionCount = validCats.size,
-                    sourceAccountId = sourceAccountId,
-                    averageConfidence = avgConfidence.getOrElse(ConfidenceScore(0.0)),
-                    occurredAt = Instant.now()
-                )
-                eventPublisher(event)
+                for
+                    now <- Clock.instant
+                    sourceAccountId = validCats.head.transactionId.sourceAccountId
+                    event = TransactionsCategorized(
+                        transactionCount = validCats.size,
+                        sourceAccountId = sourceAccountId,
+                        averageConfidence = avgConfidence.getOrElse(ConfidenceScore(0.0)),
+                        occurredAt = now
+                    )
+                    _ <- eventPublisher(event)
+                yield ()
             }
         yield CategorizationResult(
             categorizedCount = validCats.size,
@@ -102,14 +104,17 @@ case class CategorizationServiceImpl(
                                 
                                 // Publish event for the categorized transaction
                                 _ <- ZIO.when(categorization.categoryId.isDefined) {
-                                    val event = TransactionCategorized(
-                                        transactionId = transactionId,
-                                        category = categorization.categoryId.get,
-                                        payeeName = categorization.payeeName.getOrElse("Unknown"),
-                                        byAI = true,
-                                        occurredAt = Instant.now()
-                                    )
-                                    eventPublisher(event)
+                                    for
+                                        now <- Clock.instant
+                                        event = TransactionCategorized(
+                                            transactionId = transactionId,
+                                            category = categorization.categoryId.get,
+                                            payeeName = categorization.payeeName.getOrElse("Unknown"),
+                                            byAI = true,
+                                            occurredAt = now
+                                        )
+                                        _ <- eventPublisher(event)
+                                    yield ()
                                 }
                             yield ()
                         }
@@ -157,11 +162,12 @@ case class CategorizationServiceImpl(
                         _ <- processingStateRepository.save(transactionId, updatedState)
                         
                         // Publish event for manual update
+                        now <- Clock.instant
                         event = CategoryUpdated(
                             transactionId = transactionId,
                             oldCategory = state.effectiveCategory,
                             newCategory = categoryId,
-                            occurredAt = Instant.now()
+                            occurredAt = now
                         )
                         _ <- eventPublisher(event)
                     yield Some(updatedState)
@@ -230,13 +236,16 @@ case class CategorizationServiceImpl(
             
             // Publish bulk update event
             _ <- ZIO.when(updatedCount > 0) {
-                val event = BulkCategoryUpdated(
-                    count = updatedCount,
-                    category = categoryId,
-                    filterCriteria = s"Filter: ${filter.toString}",
-                    occurredAt = Instant.now()
-                )
-                eventPublisher(event)
+                for
+                    now <- Clock.instant
+                    event = BulkCategoryUpdated(
+                        count = updatedCount,
+                        category = categoryId,
+                        filterCriteria = s"Filter: ${filter.toString}",
+                        occurredAt = now
+                    )
+                    _ <- eventPublisher(event)
+                yield ()
             }
         yield updatedCount
 
@@ -248,11 +257,10 @@ case class CategorizationServiceImpl(
     override def calculateAverageConfidence(
         categorizations: Seq[TransactionCategorization]
     ): UIO[Option[ConfidenceScore]] =
-        ZIO.succeed {
-            val confidences = categorizations.flatMap(_.confidence.map(_.value))
-            if confidences.isEmpty then None
-            else Some(ConfidenceScore(confidences.sum / confidences.size))
-        }
+        val confidences = categorizations.flatMap(_.confidence.map(_.value))
+        val result = if confidences.isEmpty then None
+                     else Some(ConfidenceScore(confidences.sum / confidences.size))
+        ZIO.succeed(result)
 end CategorizationServiceImpl
 
 /** Companion object for CategorizationServiceImpl */

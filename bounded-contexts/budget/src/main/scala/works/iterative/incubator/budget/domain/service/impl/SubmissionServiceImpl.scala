@@ -1,7 +1,6 @@
 package works.iterative.incubator.budget.domain.service.impl
 
 import zio.*
-import java.time.Instant
 import works.iterative.incubator.budget.domain.model.*
 import works.iterative.incubator.budget.domain.repository.*
 import works.iterative.incubator.budget.domain.event.*
@@ -49,12 +48,15 @@ case class SubmissionServiceImpl(
             
             // Handle validation failures
             _ <- ZIO.when(validationResult.invalidTransactions.nonEmpty) {
-                val event = SubmissionFailed(
-                    reason = s"Failed to validate ${validationResult.invalidTransactions.size} transactions",
-                    transactionCount = validationResult.invalidTransactions.size,
-                    occurredAt = Instant.now()
-                )
-                eventPublisher(event)
+                for
+                    now <- Clock.instant
+                    event = SubmissionFailed(
+                        reason = s"Failed to validate ${validationResult.invalidTransactions.size} transactions",
+                        transactionCount = validationResult.invalidTransactions.size,
+                        occurredAt = now
+                    )
+                    _ <- eventPublisher(event)
+                yield ()
             }
             
             // Submit each valid transaction
@@ -68,28 +70,34 @@ case class SubmissionServiceImpl(
             
             // Publish events for successful submissions
             _ <- ZIO.when(successCount > 0) {
-                // Get the YNAB account ID from one of the successful submissions
-                val ynabAccountId = submissionResults
-                    .find(_.submitted)
-                    .flatMap(_.ynabTransactionId)
-                    .getOrElse("unknown")
-                
-                val event = TransactionsSubmitted(
-                    count = successCount,
-                    ynabAccountId = ynabAccountId,
-                    occurredAt = Instant.now()
-                )
-                eventPublisher(event)
+                for
+                    // Get the YNAB account ID from one of the successful submissions
+                    now <- Clock.instant
+                    ynabAccountId = submissionResults
+                        .find(_.submitted)
+                        .flatMap(_.ynabTransactionId)
+                        .getOrElse("unknown")
+                    
+                    event = TransactionsSubmitted(
+                        count = successCount,
+                        ynabAccountId = ynabAccountId,
+                        occurredAt = now
+                    )
+                    _ <- eventPublisher(event)
+                yield ()
             }
             
             // Publish failure event if any submissions failed (during the actual submission phase)
             _ <- ZIO.when(submissionErrors.nonEmpty) {
-                val event = SubmissionFailed(
-                    reason = s"Failed to submit ${submissionErrors.size} transactions",
-                    transactionCount = submissionErrors.size,
-                    occurredAt = Instant.now()
-                )
-                eventPublisher(event)
+                for
+                    now <- Clock.instant
+                    event = SubmissionFailed(
+                        reason = s"Failed to submit ${submissionErrors.size} transactions",
+                        transactionCount = submissionErrors.size,
+                        occurredAt = now
+                    )
+                    _ <- eventPublisher(event)
+                yield ()
             }
         yield SubmissionResult(
             submittedCount = successCount,
@@ -201,11 +209,12 @@ case class SubmissionServiceImpl(
                                                     _ <- processingStateRepository.save(transactionId, updatedState)
                                                     
                                                     // Publish success event
+                                                    now <- Clock.instant
                                                     event = TransactionSubmitted(
                                                         transactionId = transactionId,
                                                         ynabTransactionId = response.transactionId,
                                                         ynabAccountId = response.accountId,
-                                                        occurredAt = Instant.now()
+                                                        occurredAt = now
                                                     )
                                                     _ <- eventPublisher(event)
                                                 yield TransactionSubmissionResult(
@@ -215,7 +224,7 @@ case class SubmissionServiceImpl(
                                                     error = None
                                                 )
                                         }
-                                    yield updatedState.asInstanceOf[TransactionSubmissionResult]
+                                    yield updatedState
                             }
                     }
         yield result
@@ -228,34 +237,32 @@ case class SubmissionServiceImpl(
     override def validateForSubmission(
         transactionStates: Seq[TransactionProcessingState]
     ): UIO[ValidationResult] =
-        ZIO.succeed {
-            // Partition into valid and invalid states
-            val (valid, invalid) = transactionStates.partition { state =>
-                state.status == TransactionStatus.Categorized && 
-                state.effectiveCategory.isDefined && 
-                state.effectivePayeeName.isDefined &&
-                !state.isDuplicate
-            }
-            
-            // Add reasons for invalid states
-            val invalidWithReasons = invalid.map { state =>
-                val reason = 
-                    if state.isDuplicate then 
-                        "Transaction is marked as duplicate"
-                    else if state.status != TransactionStatus.Categorized then
-                        s"Invalid status: ${state.status}"
-                    else if state.effectiveCategory.isEmpty then
-                        "Missing category"
-                    else if state.effectivePayeeName.isEmpty then
-                        "Missing payee name"
-                    else
-                        "Unknown validation error"
-                        
-                (state, reason)
-            }
-            
-            ValidationResult(valid, invalidWithReasons)
+        // Partition into valid and invalid states
+        val (valid, invalid) = transactionStates.partition { state =>
+            state.status == TransactionStatus.Categorized && 
+            state.effectiveCategory.isDefined && 
+            state.effectivePayeeName.isDefined &&
+            !state.isDuplicate
         }
+        
+        // Add reasons for invalid states
+        val invalidWithReasons = invalid.map { state =>
+            val reason = 
+                if state.isDuplicate then 
+                    "Transaction is marked as duplicate"
+                else if state.status != TransactionStatus.Categorized then
+                    s"Invalid status: ${state.status}"
+                else if state.effectiveCategory.isEmpty then
+                    "Missing category"
+                else if state.effectivePayeeName.isEmpty then
+                    "Missing payee name"
+                else
+                    "Unknown validation error"
+                    
+            (state, reason)
+        }
+        
+        ZIO.succeed(ValidationResult(valid, invalidWithReasons))
 
     /** Get statistics about transaction submission status
       *
