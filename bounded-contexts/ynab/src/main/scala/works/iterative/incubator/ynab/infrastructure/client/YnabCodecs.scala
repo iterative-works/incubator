@@ -5,12 +5,12 @@ import java.time.LocalDate
 import works.iterative.incubator.ynab.domain.model.*
 
 /** DTOs and JSON codecs for YNAB API
- *
- * This file contains the data transfer objects and JSON codecs for interacting with the YNAB API.
- * DTOs are used to map between our domain model and the API's JSON structure.
- *
- * Classification: Infrastructure DTO
- */
+  *
+  * This file contains the data transfer objects and JSON codecs for interacting with the YNAB API.
+  * DTOs are used to map between our domain model and the API's JSON structure.
+  *
+  * Classification: Infrastructure DTO
+  */
 
 // Generic API response wrapper
 case class ApiResponse[T](data: T)
@@ -55,6 +55,7 @@ case class AccountDTO(
             transferPayeeId = transfer_payee_id,
             deleted = deleted
         )
+end AccountDTO
 
 case class CategoryGroupDTO(
     id: String,
@@ -69,9 +70,9 @@ case class CategoryDTO(
     name: String,
     hidden: Boolean,
     deleted: Boolean,
-    budgeted: Option[Long],   // Milliunits format from API
-    activity: Option[Long],   // Milliunits format from API
-    balance: Option[Long]     // Milliunits format from API
+    budgeted: Option[Long], // Milliunits format from API
+    activity: Option[Long], // Milliunits format from API
+    balance: Option[Long] // Milliunits format from API
 )
 
 case class TransactionDTO(
@@ -104,6 +105,7 @@ case class TransactionDTO(
             flagColor = flag_color,
             importId = import_id
         )
+end TransactionDTO
 
 object TransactionDTO:
     // Convert domain model to DTO
@@ -122,53 +124,55 @@ object TransactionDTO:
             flag_color = transaction.flagColor,
             import_id = transaction.importId.orElse(Some(transaction.generateImportId))
         )
+end TransactionDTO
 
 // JSON codecs
 object YnabCodecs:
     // Date format conversion helpers
     private val dateFormat = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE
-    
+
     given JsonEncoder[LocalDate] = JsonEncoder.string.contramap[LocalDate](_.format(dateFormat))
     given JsonDecoder[LocalDate] = JsonDecoder.string.map(LocalDate.parse(_, dateFormat))
-    
+
     // Domain model codecs
     given JsonEncoder[YnabBudget] = DeriveJsonEncoder.gen[YnabBudget]
     given JsonDecoder[YnabBudget] = DeriveJsonDecoder.gen[YnabBudget]
-    
+
     given JsonEncoder[YnabAccount] = DeriveJsonEncoder.gen[YnabAccount]
     given JsonDecoder[YnabAccount] = DeriveJsonDecoder.gen[YnabAccount]
-    
+
     given JsonEncoder[YnabCategoryGroup] = DeriveJsonEncoder.gen[YnabCategoryGroup]
     given JsonDecoder[YnabCategoryGroup] = DeriveJsonDecoder.gen[YnabCategoryGroup]
-    
+
     given JsonEncoder[YnabCategory] = DeriveJsonEncoder.gen[YnabCategory]
     given JsonDecoder[YnabCategory] = DeriveJsonDecoder.gen[YnabCategory]
-    
+
     // DTO codecs
     given JsonEncoder[TransactionDTO] = DeriveJsonEncoder.gen[TransactionDTO]
     given JsonDecoder[TransactionDTO] = DeriveJsonDecoder.gen[TransactionDTO]
-    
+
     given JsonEncoder[AccountDTO] = DeriveJsonEncoder.gen[AccountDTO]
     given JsonDecoder[AccountDTO] = DeriveJsonDecoder.gen[AccountDTO]
-    
+
     given JsonEncoder[CategoryDTO] = DeriveJsonEncoder.gen[CategoryDTO]
     given JsonDecoder[CategoryDTO] = DeriveJsonDecoder.gen[CategoryDTO]
-    
+
     given JsonEncoder[CategoryGroupDTO] = DeriveJsonEncoder.gen[CategoryGroupDTO]
     given JsonDecoder[CategoryGroupDTO] = DeriveJsonDecoder.gen[CategoryGroupDTO]
-    
+
     // Request/Response codecs
     given JsonEncoder[TransactionCreateRequest] = DeriveJsonEncoder.gen[TransactionCreateRequest]
     given JsonDecoder[TransactionCreateRequest] = DeriveJsonDecoder.gen[TransactionCreateRequest]
-    
+
     given JsonEncoder[TransactionsCreateRequest] = DeriveJsonEncoder.gen[TransactionsCreateRequest]
     given JsonDecoder[TransactionsCreateRequest] = DeriveJsonDecoder.gen[TransactionsCreateRequest]
-    
+
     given [T: JsonDecoder]: JsonDecoder[ApiResponse[T]] = DeriveJsonDecoder.gen[ApiResponse[T]]
     given [T: JsonEncoder]: JsonEncoder[ApiResponse[T]] = DeriveJsonEncoder.gen[ApiResponse[T]]
-    
+
     given JsonDecoder[BudgetsResponse] = DeriveJsonDecoder.gen[BudgetsResponse]
     given JsonDecoder[AccountsResponse] = DeriveJsonDecoder.gen[AccountsResponse]
     given JsonDecoder[CategoriesResponse] = DeriveJsonDecoder.gen[CategoriesResponse]
     given JsonDecoder[TransactionResponse] = DeriveJsonDecoder.gen[TransactionResponse]
     given JsonDecoder[TransactionsResponse] = DeriveJsonDecoder.gen[TransactionsResponse]
+end YnabCodecs

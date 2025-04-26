@@ -2,13 +2,17 @@ package works.iterative.incubator.budget.infrastructure.repository.inmemory
 
 import zio.*
 import works.iterative.incubator.budget.domain.repository.TransactionProcessingStateRepository
-import works.iterative.incubator.budget.domain.model.{TransactionId, TransactionProcessingState, TransactionStatus}
+import works.iterative.incubator.budget.domain.model.{
+    TransactionId,
+    TransactionProcessingState,
+    TransactionStatus
+}
 import works.iterative.incubator.budget.domain.query.TransactionProcessingStateQuery
 
 /** In-memory implementation of TransactionProcessingStateRepository for testing
   *
-  * This repository holds transaction processing state data in memory, without persistence to a database.
-  * It's useful for testing, development, and UI-first implementation.
+  * This repository holds transaction processing state data in memory, without persistence to a
+  * database. It's useful for testing, development, and UI-first implementation.
   *
   * Classification: Infrastructure Repository Implementation (Test Double)
   */
@@ -19,7 +23,8 @@ class InMemoryTransactionProcessingStateRepository extends TransactionProcessing
 
     /** Find processing states matching the given query
       */
-    override def find(query: TransactionProcessingStateQuery): UIO[Seq[TransactionProcessingState]] =
+    override def find(query: TransactionProcessingStateQuery)
+        : UIO[Seq[TransactionProcessingState]] =
         storage.get.map { states =>
             states.values
                 .filter { state =>
@@ -30,13 +35,24 @@ class InMemoryTransactionProcessingStateRepository extends TransactionProcessing
                     // Filter by status if provided
                     query.status.forall(_ == state.status) &&
                     // Filter by whether it has a YNAB ID
-                    query.hasYnabId.forall(has => if has then state.ynabTransactionId.isDefined else state.ynabTransactionId.isEmpty) &&
+                    query.hasYnabId.forall(has =>
+                        if has then state.ynabTransactionId.isDefined
+                        else state.ynabTransactionId.isEmpty
+                    ) &&
                     // Filter by processed time if provided
-                    query.processedAfter.forall(after => state.processedAt.exists(_.isAfter(after))) &&
-                    query.processedBefore.forall(before => state.processedAt.exists(_.isBefore(before))) &&
+                    query.processedAfter.forall(after =>
+                        state.processedAt.exists(_.isAfter(after))
+                    ) &&
+                    query.processedBefore.forall(before =>
+                        state.processedAt.exists(_.isBefore(before))
+                    ) &&
                     // Filter by submitted time if provided
-                    query.submittedAfter.forall(after => state.submittedAt.exists(_.isAfter(after))) &&
-                    query.submittedBefore.forall(before => state.submittedAt.exists(_.isBefore(before)))
+                    query.submittedAfter.forall(after =>
+                        state.submittedAt.exists(_.isAfter(after))
+                    ) &&
+                    query.submittedBefore.forall(before =>
+                        state.submittedAt.exists(_.isBefore(before))
+                    )
                 }
                 .toSeq
         }
@@ -58,8 +74,8 @@ class InMemoryTransactionProcessingStateRepository extends TransactionProcessing
             states.values
                 .filter(state =>
                     state.status == TransactionStatus.Categorized &&
-                    state.ynabTransactionId.isEmpty &&
-                    state.isReadyForSubmission
+                        state.ynabTransactionId.isEmpty &&
+                        state.isReadyForSubmission
                 )
                 .toSeq
         }

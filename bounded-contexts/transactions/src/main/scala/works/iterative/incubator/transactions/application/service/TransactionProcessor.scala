@@ -1,14 +1,18 @@
 package works.iterative.incubator.transactions.application.service
 
 import zio.*
-import works.iterative.incubator.transactions.domain.model.{Transaction, TransactionId, TransactionProcessingState}
+import works.iterative.incubator.transactions.domain.model.{
+    Transaction,
+    TransactionId,
+    TransactionProcessingState
+}
 
 /** Service responsible for processing imported transactions
   *
   * This service is responsible for:
-  *   1. Creating initial processing state records for imported transactions
-  *   2. Applying categorization and processing to transactions
-  *   3. Managing the transaction processing lifecycle
+  *   1. Creating initial processing state records for imported transactions 2. Applying
+  *      categorization and processing to transactions 3. Managing the transaction processing
+  *      lifecycle
   *
   * Classification: Application Service
   */

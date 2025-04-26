@@ -28,7 +28,7 @@ trait FioImportService:
         to: LocalDate,
         accountId: Option[Long] = None
     ): Task[Int]
-    
+
     /** Import transactions from Fio Bank API for a specific account
       *
       * @param from
@@ -77,7 +77,7 @@ trait FioImportService:
       *   Number of transactions imported
       */
     def importNewTransactions(accountId: Option[Long] = None): Task[Int]
-    
+
     /** Import new transactions from Fio Bank API for a specific account
       *
       * @param accountId
@@ -85,11 +85,13 @@ trait FioImportService:
       * @return
       *   Number of transactions imported
       */
-    def importNewTransactionsForAccount(accountId: Long): Task[Int] = importNewTransactions(Some(accountId))
-    
+    def importNewTransactionsForAccount(accountId: Long): Task[Int] =
+        importNewTransactions(Some(accountId))
+
     /** Legacy method to maintain compatibility with TransactionImportService interface
       */
-    def importNewTransactionsForAccount(accountId: Option[Long] = None): Task[Int] = importNewTransactions(accountId)
+    def importNewTransactionsForAccount(accountId: Option[Long] = None): Task[Int] =
+        importNewTransactions(accountId)
 
     /** Import new transactions from Fio Bank API with specific token
       *

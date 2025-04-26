@@ -7,6 +7,7 @@ This bounded context handles transaction importing, categorization, and submissi
 The Budget bounded context is structured according to the Functional Core/Imperative Shell architecture pattern, with:
 
 - **Domain Model (Functional Core):** Pure, immutable entities and value objects defining the domain concepts and business rules
+- **Domain Services:** Define the workflow operations and business logic for core domain processes
 - **Repository Interfaces:** Define data access capabilities without implementation details
 - **Domain Events:** Represent significant state changes and trigger workflows
 - **Infrastructure (Imperative Shell):** Implementations of repository interfaces, providing concrete data access
@@ -23,6 +24,32 @@ graph TD
         TXPS --> CAT[Category]
         SA[SourceAccount] --> TX
     end
+
+    subgraph "Domain Services"
+        %% Service interfaces
+        IMP[ImportService] --> TX
+        IMP --> TXPS
+        CAT_SVC[CategorizationService] --> TXPS
+        CAT_SVC --> CAT
+        SUB[SubmissionService] --> TXPS
+        
+        %% Service implementations
+        IMPI[ImportServiceImpl] -.implements.-> IMP
+        CATI[CategorizationServiceImpl] -.implements.-> CAT_SVC
+        SUBI[SubmissionServiceImpl] -.implements.-> SUB
+        
+        %% Implementation dependencies
+        IMPI --> TXREPO
+        IMPI --> TXPSREPO
+        IMPI --> SAREPO
+        CATI --> TXREPO
+        CATI --> TXPSREPO
+        CATI --> CATREPO
+        CATI --> CAT_STRAT[CategorizationStrategy]
+        SUBI --> TXREPO
+        SUBI --> TXPSREPO
+        SUBI --> YNAB[YnabSubmitter]
+    end
     
     subgraph "Domain Events"
         TXI[TransactionImported] --> TX
@@ -35,6 +62,18 @@ graph TD
         TXSS[TransactionsSubmitted] --> TXPS
         DTD[DuplicateTransactionDetected] --> TX
         SF[SubmissionFailed] --> TXPS
+        
+        %% Event publishing
+        IMPI -.publishes.-> TXI
+        IMPI -.publishes.-> IC
+        IMPI -.publishes.-> DTD
+        CATI -.publishes.-> TXC
+        CATI -.publishes.-> TXCS
+        CATI -.publishes.-> CU
+        CATI -.publishes.-> BCU
+        SUBI -.publishes.-> TXS
+        SUBI -.publishes.-> TXSS
+        SUBI -.publishes.-> SF
     end
     
     subgraph "Repository Interfaces"
@@ -76,6 +115,21 @@ graph TD
 |-----------|------|----------|---------|---------------------|------------------|
 | `SourceAccount` | Entity | `domain/model/SourceAccount.scala` | Bank account from which transactions are imported | Transaction import workflow | Referenced by `TransactionId` and `Transaction` |
 | `CreateSourceAccount` | Command | `domain/model/SourceAccount.scala` | Data transfer object for account creation | Account management | Creates `SourceAccount` instances |
+
+## Domain Services
+
+Service interfaces and implementations that define the core business operations:
+
+| Service | Location | Purpose | Scenarios Supported | Key Relationships |
+|---------|----------|---------|---------------------|------------------|
+| `ImportService` | `domain/service/ImportService.scala` | Defines transaction import workflow | Transaction import, Duplicate detection | Works with `TransactionRepository`, publishes `ImportCompleted` events |
+| `CategorizationService` | `domain/service/CategorizationService.scala` | Defines transaction categorization | Transaction categorization, Manual overrides, Bulk updates | Works with `TransactionProcessingStateRepository` and `CategoryRepository` |
+| `SubmissionService` | `domain/service/SubmissionService.scala` | Defines submission to external systems | Transaction submission, Validation, Statistics | Works with `TransactionProcessingStateRepository`, validates submission requirements |
+| `ImportServiceImpl` | `domain/service/impl/ImportServiceImpl.scala` | Implements transaction import workflow | Transaction import, Duplicate detection | Implements `ImportService` interface with business logic |
+| `CategorizationServiceImpl` | `domain/service/impl/CategorizationServiceImpl.scala` | Implements transaction categorization | Transaction categorization, Manual overrides, Bulk updates | Implements `CategorizationService` interface with business logic |
+| `SubmissionServiceImpl` | `domain/service/impl/SubmissionServiceImpl.scala` | Implements submission to external systems | Transaction submission, Validation, Statistics | Implements `SubmissionService` interface with business logic |
+| `CategorizationStrategy` | `domain/service/impl/CategorizationServiceImpl.scala` | Strategy for categorizing transactions | Transaction categorization | Used by `CategorizationServiceImpl` to allow pluggable categorization algorithms |
+| `YnabSubmitter` | `domain/service/impl/SubmissionServiceImpl.scala` | Interface for YNAB submission | Transaction submission | Used by `SubmissionServiceImpl` to abstract submission details |
 
 ## Domain Events
 
@@ -127,6 +181,22 @@ Repository implementations:
 | `InMemoryTransactionProcessingStateRepository` | `infrastructure/repository/inmemory/InMemoryTransactionProcessingStateRepository.scala` | In-memory state storage | All processing state scenarios in dev/test | Implements `TransactionProcessingStateRepository` |
 | `InMemoryCategoryRepository` | `infrastructure/repository/inmemory/InMemoryCategoryRepository.scala` | In-memory category storage | All category scenarios in dev/test | Implements `CategoryRepository` |
 | `InMemorySourceAccountRepository` | `infrastructure/repository/inmemory/InMemorySourceAccountRepository.scala` | In-memory account storage | All account scenarios in dev/test | Implements `SourceAccountRepository` |
+
+## Service Data Transfer Objects
+
+Data structures used by services for operations:
+
+| DTO | Location | Purpose | Scenarios Supported | Key Relationships |
+|-----|----------|---------|---------------------|------------------|
+| `RawTransaction` | `domain/service/ImportService.scala` | Raw transaction data from external sources | Transaction import workflow | Used by `ImportService` for creating `Transaction` entities |
+| `CategorizationResult` | `domain/service/CategorizationService.scala` | Results of categorization operations | Transaction categorization | Used by `CategorizationService` to report results |
+| `TransactionCategorization` | `domain/service/CategorizationService.scala` | Category assignment for a transaction | Transaction categorization | Used by `CategorizationService` for categorization operations |
+| `TransactionFilter` | `domain/service/CategorizationService.scala` | Filter criteria for bulk operations | Bulk category update | Used by `CategorizationService` for targeted updates |
+| `SubmissionResult` | `domain/service/SubmissionService.scala` | Results of submission operations | Transaction submission workflow | Used by `SubmissionService` to report results |
+| `TransactionSubmissionResult` | `domain/service/SubmissionService.scala` | Results of single transaction submission | Transaction submission workflow | Used by `SubmissionService` for individual submission results |
+| `ValidationResult` | `domain/service/SubmissionService.scala` | Validation results for submission | Transaction submission validation | Used by `SubmissionService` to validate before submission |
+| `SubmissionError` | `domain/service/SubmissionService.scala` | Error information for failed submissions | Transaction submission validation | Used by `SubmissionService` to track failure reasons |
+| `SubmissionStatistics` | `domain/service/SubmissionService.scala` | Transaction status statistics | Transaction status statistics | Used by `SubmissionService` to report status metrics |
 
 ## Supported Gherkin Scenarios
 
@@ -206,10 +276,12 @@ Tests are written using ZIO Test, focusing on:
 - Correct status transitions
 - Boundary conditions for value objects
 - Basic workflow validation
+- Service behavior verification through test implementations
 
 ## Future Development
 
 Next steps for this bounded context include:
+- Service implementations for the defined interfaces
 - Application services for implementing transaction workflows
 - Web controllers for user interaction
 - Integration with external banking APIs

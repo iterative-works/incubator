@@ -26,14 +26,13 @@ import org.http4s.UrlForm
 import works.iterative.incubator.ynab.web.view.YnabAccountMappingViews
 import works.iterative.incubator.ynab.web.view.YnabAccountMappingViewsImpl
 
-/**
- * Web module for YNAB Account Mapping management
- *
- * This module provides UI for creating, editing, and managing mappings between 
- * source accounts and YNAB accounts.
- *
- * Classification: Web Module
- */
+/** Web module for YNAB Account Mapping management
+  *
+  * This module provides UI for creating, editing, and managing mappings between source accounts and
+  * YNAB accounts.
+  *
+  * Classification: Web Module
+  */
 class YnabAccountMappingModule(appShell: ScalatagsAppShell)
     extends ZIOWebModule[YnabAccountMappingRepository & YnabService & SourceAccountRepository]
     with ScalatagsSupport:
@@ -45,23 +44,23 @@ class YnabAccountMappingModule(appShell: ScalatagsAppShell)
         // Get all YNAB account mappings
         def getAllMappings(using req: Request[WebTask]): WebTask[List[YnabAccountMapping]] =
             ZIO.serviceWithZIO[YnabAccountMappingRepository](_.findAll())
-            
+
         // Get all active YNAB account mappings
         def getActiveMappings(using req: Request[WebTask]): WebTask[List[YnabAccountMapping]] =
             ZIO.serviceWithZIO[YnabAccountMappingRepository](_.findAllActive())
-            
+
         // Create a new YNAB account mapping
         def createMapping(mapping: CreateYnabAccountMapping): WebTask[YnabAccountMapping] =
             ZIO.serviceWithZIO[YnabAccountMappingRepository](_.save(mapping))
-            
+
         // Update a YNAB account mapping
         def updateMapping(mapping: YnabAccountMapping): WebTask[YnabAccountMapping] =
             ZIO.serviceWithZIO[YnabAccountMappingRepository](_.update(mapping))
-            
+
         // Delete a YNAB account mapping
         def deleteMapping(sourceAccountId: Long): WebTask[Unit] =
             ZIO.serviceWithZIO[YnabAccountMappingRepository](_.delete(sourceAccountId))
-            
+
         // Get source accounts that don't have a YNAB mapping
         def getUnmappedSourceAccounts(using req: Request[WebTask]): WebTask[Seq[(Long, String)]] =
             for
@@ -70,10 +69,11 @@ class YnabAccountMappingModule(appShell: ScalatagsAppShell)
                 sourceAccounts <- sourceAccountRepo.find(SourceAccountQuery(active = Some(true)))
                 mappings <- mappingRepo.findAll()
                 mappedAccountIds = mappings.map(_.sourceAccountId).toSet
-                unmappedAccounts = sourceAccounts.filterNot(account => mappedAccountIds.contains(account.id))
+                unmappedAccounts =
+                    sourceAccounts.filterNot(account => mappedAccountIds.contains(account.id))
                 accountsWithNames = unmappedAccounts.map(account => (account.id, account.name))
             yield accountsWithNames
-            
+
         // Get YNAB accounts available for mapping
         def getYnabAccounts(using req: Request[WebTask]): WebTask[Seq[(String, String)]] =
             for
@@ -82,11 +82,11 @@ class YnabAccountMappingModule(appShell: ScalatagsAppShell)
                 budgets <- ynabService.getBudgets()
                 // Get accounts from the first budget
                 budgetId = budgets.headOption.map(_.id).getOrElse("")
-                accounts <- 
-                            if budgetId.nonEmpty then
-                                ynabService.getBudgetService(budgetId).getAccounts()
-                            else
-                                ZIO.succeed(Seq.empty)
+                accounts <-
+                    if budgetId.nonEmpty then
+                        ynabService.getBudgetService(budgetId).getAccounts()
+                    else
+                        ZIO.succeed(Seq.empty)
                 accountsWithNames = accounts.map(account => (account.id, account.name))
             yield accountsWithNames
     end service
@@ -120,41 +120,46 @@ class YnabAccountMappingModule(appShell: ScalatagsAppShell)
             // List all account mappings
             case GET -> Root / "ynab" / "account-mappings" =>
                 respondZIO(
-                    for 
+                    for
                         mappings <- service.getAllMappings
                         // Get source accounts to display names
                         sourceAccountRepo <- ZIO.service[SourceAccountRepository]
                         sourceAccounts <- sourceAccountRepo.find(SourceAccountQuery())
-                        
+
                         // Get YNAB accounts to display names
                         ynabService <- ZIO.service[YnabService]
                         budgets <- ynabService.getBudgets()
                         budgetId = budgets.headOption.map(_.id).getOrElse("")
-                        ynabAccounts <- 
-                                        if budgetId.nonEmpty then
-                                            ynabService.getBudgetService(budgetId).getAccounts()
-                                        else
-                                            ZIO.succeed(Seq.empty)
+                        ynabAccounts <-
+                            if budgetId.nonEmpty then
+                                ynabService.getBudgetService(budgetId).getAccounts()
+                            else
+                                ZIO.succeed(Seq.empty)
                     yield (mappings, sourceAccounts, ynabAccounts),
-                    dataTriple => {
+                    dataTriple =>
                         // Explicitly extract and type the components
                         val (mappings, sourceAccounts, ynabAccounts) = dataTriple
-                        
+
                         // Create lookup maps for account names
-                        val sourceAccountMap = 
-                            sourceAccounts.asInstanceOf[Seq[works.iterative.incubator.transactions.domain.model.SourceAccount]]
+                        val sourceAccountMap =
+                            sourceAccounts.asInstanceOf[Seq[
+                                works.iterative.incubator.transactions.domain.model.SourceAccount
+                            ]]
                                 .map(acc => acc.id -> acc.name).toMap
-                        
-                        val ynabAccountMap = 
-                            ynabAccounts.asInstanceOf[Seq[works.iterative.incubator.ynab.domain.model.YnabAccount]]
+
+                        val ynabAccountMap =
+                            ynabAccounts.asInstanceOf[Seq[
+                                works.iterative.incubator.ynab.domain.model.YnabAccount
+                            ]]
                                 .map(acc => acc.id -> acc.name).toMap
-                        
+
                         views.accountMappingList(
-                            mappings.asInstanceOf[List[works.iterative.incubator.ynab.domain.model.YnabAccountMapping]], 
-                            sourceAccountMap, 
+                            mappings.asInstanceOf[List[
+                                works.iterative.incubator.ynab.domain.model.YnabAccountMapping
+                            ]],
+                            sourceAccountMap,
                             ynabAccountMap
                         )
-                    }
                 )
 
             // Show form to create a new mapping
@@ -164,27 +169,26 @@ class YnabAccountMappingModule(appShell: ScalatagsAppShell)
                         unmappedAccounts <- service.getUnmappedSourceAccounts
                         ynabAccounts <- service.getYnabAccounts
                     yield (unmappedAccounts, ynabAccounts),
-                    data => {
+                    data =>
                         val (unmappedAccounts, ynabAccounts) = data
                         views.accountMappingForm(None, unmappedAccounts, ynabAccounts)
-                    }
                 )
 
             // Show form to edit a mapping
             case GET -> Root / "ynab" / "account-mappings" / LongVar(sourceAccountId) / "edit" =>
                 respondZIO(
                     for
-                        mappingRepo <- ZIO.service[YnabAccountMappingRepository] 
+                        mappingRepo <- ZIO.service[YnabAccountMappingRepository]
                         mappingOpt <- mappingRepo.findBySourceAccountId(sourceAccountId)
                         ynabAccounts <- service.getYnabAccounts
-                        
+
                         // We also need the source account name
                         sourceAccountRepo <- ZIO.service[SourceAccountRepository]
                         sourceAccountOpt <- sourceAccountRepo.load(sourceAccountId)
                     yield (mappingOpt, ynabAccounts, sourceAccountOpt),
-                    data => {
+                    data =>
                         val (mappingOpt, ynabAccounts, sourceAccountOpt) = data
-                        
+
                         // If we find both the mapping and the account, show the edit form
                         if mappingOpt.isDefined && sourceAccountOpt.isDefined then
                             val sourceAccount = sourceAccountOpt.get
@@ -192,7 +196,7 @@ class YnabAccountMappingModule(appShell: ScalatagsAppShell)
                             views.accountMappingForm(mappingOpt, sourceAccountInfo, ynabAccounts)
                         else
                             views.mappingNotFound(sourceAccountId)
-                    }
+                        end if
                 )
 
             // Create or update a mapping (form submission)
@@ -202,12 +206,15 @@ class YnabAccountMappingModule(appShell: ScalatagsAppShell)
                     _ =>
                         req.as[UrlForm].flatMap { form =>
                             // Get the source account ID and YNAB account ID from the form
-                            val sourceAccountIdOpt = form.values.get("sourceAccountId").flatMap(_.headOption.flatMap(_.toLongOption))
-                            val ynabAccountIdOpt = form.values.get("ynabAccountId").flatMap(_.headOption)
+                            val sourceAccountIdOpt = form.values.get("sourceAccountId").flatMap(
+                                _.headOption.flatMap(_.toLongOption)
+                            )
+                            val ynabAccountIdOpt =
+                                form.values.get("ynabAccountId").flatMap(_.headOption)
                             val active = form.values.get("active").exists(_.contains("true"))
-                            
+
                             // Validate form data
-                            sourceAccountIdOpt.flatMap(sourceId => 
+                            sourceAccountIdOpt.flatMap(sourceId =>
                                 ynabAccountIdOpt.map(ynabId => (sourceId, ynabId))
                             ) match
                                 case Some((sourceId, ynabId)) =>
@@ -231,10 +238,13 @@ class YnabAccountMappingModule(appShell: ScalatagsAppShell)
                                                     active = active
                                                 )
                                                 service.createMapping(newMapping)
-                                        resp <- SeeOther(Location(Uri.unsafeFromString("/ynab/account-mappings")))
+                                        resp <- SeeOther(
+                                            Location(Uri.unsafeFromString("/ynab/account-mappings"))
+                                        )
                                     yield resp
                                 case None =>
                                     BadRequest("Missing required fields")
+                            end match
                         }
                 )
 
@@ -245,7 +255,8 @@ class YnabAccountMappingModule(appShell: ScalatagsAppShell)
                     _ =>
                         for
                             _ <- service.deleteMapping(sourceAccountId)
-                            resp <- SeeOther(Location(Uri.unsafeFromString("/ynab/account-mappings")))
+                            resp <-
+                                SeeOther(Location(Uri.unsafeFromString("/ynab/account-mappings")))
                         yield resp
                 )
         }

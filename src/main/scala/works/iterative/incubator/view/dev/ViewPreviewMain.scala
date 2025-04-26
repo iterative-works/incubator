@@ -1,11 +1,11 @@
 package works.iterative.incubator.view.dev
 
-import zio._
-import org.http4s._
+import zio.*
+import org.http4s.*
 import org.http4s.server.websocket.WebSocketBuilder2
 import works.iterative.server.http.HttpServer
 import works.iterative.server.http.impl.blaze.BlazeHttpServer
-import zio.logging._
+import zio.logging.*
 import com.typesafe.config.ConfigFactory
 import zio.config.typesafe.TypesafeConfigProvider
 import works.iterative.server.http.ZIOWebModule
@@ -13,12 +13,11 @@ import works.iterative.server.http.ScalatagsViteSupport
 import works.iterative.incubator.server.view.modules.AssetsModule
 import works.iterative.incubator.components.ScalatagsAppShell
 
-/**
- * Standalone server for previewing UI views with test data.
- * Provides a lightweight environment with only the necessary dependencies
- * for UI development without requiring the full application stack.
- */
-object ViewPreviewMain extends ZIOAppDefault {
+/** Standalone server for previewing UI views with test data. Provides a lightweight environment
+  * with only the necessary dependencies for UI development without requiring the full application
+  * stack.
+  */
+object ViewPreviewMain extends ZIOAppDefault:
 
     // Define a simple environment type for our preview server
     type PreviewEnv = ScalatagsViteSupport & AssetsModule
@@ -78,21 +77,20 @@ object ViewPreviewMain extends ZIOAppDefault {
             AssetsModule.layer
         )
     end run
-}
+end ViewPreviewMain
 
-/**
- * Registry for view preview modules.
- * Similar to the main ModuleRegistry but focused only on preview modules.
- */
+/** Registry for view preview modules. Similar to the main ModuleRegistry but focused only on
+  * preview modules.
+  */
 class ViewPreviewModuleRegistry(
     viteConfig: AssetsModule.ViteConfig,
     viteSupport: ScalatagsViteSupport
-) {
+):
     private val appShell = ScalatagsAppShell(viteSupport)
-    
+
     // Assets module for serving JS/CSS
     private val assetsModule = AssetsModule(viteConfig)
-    
+
     // Preview module with example views
     private val viewPreviewModule = ViewPreviewModule(appShell)
 
@@ -100,9 +98,9 @@ class ViewPreviewModuleRegistry(
         assetsModule.widen,
         viewPreviewModule.widen
     )
-}
+end ViewPreviewModuleRegistry
 
-object ViewPreviewModuleRegistry {
+object ViewPreviewModuleRegistry:
     val layer: ZLayer[ScalatagsViteSupport, Config.Error, ViewPreviewModuleRegistry] =
         ZLayer {
             for
@@ -110,4 +108,4 @@ object ViewPreviewModuleRegistry {
                 viteSupport <- ZIO.service[ScalatagsViteSupport]
             yield ViewPreviewModuleRegistry(viteConfig, viteSupport)
         }
-}
+end ViewPreviewModuleRegistry

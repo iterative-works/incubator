@@ -7,8 +7,8 @@ import works.iterative.incubator.budget.domain.query.CategoryQuery
 
 /** In-memory implementation of CategoryRepository for testing
   *
-  * This repository holds category data in memory, without persistence to a database.
-  * It's useful for testing, development, and UI-first implementation.
+  * This repository holds category data in memory, without persistence to a database. It's useful
+  * for testing, development, and UI-first implementation.
   *
   * Classification: Infrastructure Repository Implementation (Test Double)
   */

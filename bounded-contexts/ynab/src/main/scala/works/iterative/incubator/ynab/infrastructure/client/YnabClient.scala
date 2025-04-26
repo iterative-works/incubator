@@ -261,16 +261,20 @@ case class YnabClientLive(config: YnabConfig, backend: Backend[Task]) extends Yn
         end for
     end createTransactions
 
-    /**
-     * Build a properly encoded URI by composing the base URL with path segments
-     *
-     * @param segments Path segments that will be properly URL-encoded
-     * @return A properly constructed and encoded URI
-     */
+    /** Build a properly encoded URI by composing the base URL with path segments
+      *
+      * @param segments
+      *   Path segments that will be properly URL-encoded
+      * @return
+      *   A properly constructed and encoded URI
+      */
     private def buildUri(segments: String*): Uri =
-        val baseUri = Uri.parse(baseUrl).getOrElse(throw new IllegalArgumentException(s"Invalid base URL: $baseUrl"))
+        val baseUri = Uri.parse(baseUrl).getOrElse(
+            throw new IllegalArgumentException(s"Invalid base URL: $baseUrl")
+        )
         // Add each segment to the base URI, ensuring proper URL encoding
         baseUri.addPath(segments.toList)
+    end buildUri
 end YnabClientLive
 
 object YnabClient:

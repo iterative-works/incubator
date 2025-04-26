@@ -2,8 +2,8 @@ package works.iterative.incubator.budget.domain.model
 
 /** Represents a transaction category
   *
-  * Categories are used to classify transactions for budgeting and reporting purposes.
-  * A category can have a parent category, creating a hierarchy.
+  * Categories are used to classify transactions for budgeting and reporting purposes. A category
+  * can have a parent category, creating a hierarchy.
   *
   * @param id
   *   Unique identifier for the category

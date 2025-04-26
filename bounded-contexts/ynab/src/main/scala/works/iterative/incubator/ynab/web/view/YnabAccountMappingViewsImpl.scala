@@ -5,25 +5,27 @@ import scalatags.Text.TypedTag
 import works.iterative.incubator.ynab.domain.model.YnabAccountMapping
 import works.iterative.incubator.components.ScalatagsTailwindTable
 
-/**
- * Implementation of YnabAccountMappingViews using ScalaTags
- * 
- * This class renders the HTML for YNAB account mapping related views.
- * 
- * Classification: Web View Implementation
- */
+/** Implementation of YnabAccountMappingViews using ScalaTags
+  *
+  * This class renders the HTML for YNAB account mapping related views.
+  *
+  * Classification: Web View Implementation
+  */
 class YnabAccountMappingViewsImpl extends YnabAccountMappingViews with ScalatagsSupport:
     import scalatags.Text.all.*
     import works.iterative.scalatags.sl as sl
-    
-    /**
-     * View for the account mapping list page
-     * 
-     * @param mappings List of account mappings
-     * @param sourceAccountMap Map of source account IDs to names
-     * @param ynabAccountMap Map of YNAB account IDs to names
-     * @return HTML for the account mapping list page
-     */
+
+    /** View for the account mapping list page
+      *
+      * @param mappings
+      *   List of account mappings
+      * @param sourceAccountMap
+      *   Map of source account IDs to names
+      * @param ynabAccountMap
+      *   Map of YNAB account IDs to names
+      * @return
+      *   HTML for the account mapping list page
+      */
     override def accountMappingList(
         mappings: List[YnabAccountMapping],
         sourceAccountMap: Map[Long, String],
@@ -34,7 +36,7 @@ class YnabAccountMappingViewsImpl extends YnabAccountMappingViews with Scalatags
                 sl.Badge(sl.variant := "success")("Active")
             else
                 sl.Badge(sl.variant := "neutral")("Inactive")
-        
+
         // Define table columns
         val columns = Seq(
             // Source Account column
@@ -42,35 +44,37 @@ class YnabAccountMappingViewsImpl extends YnabAccountMappingViews with Scalatags
                 header = "Source Account",
                 render = mapping =>
                     sourceAccountMap.get(mapping.sourceAccountId) match
-                        case Some(name) => 
+                        case Some(name) =>
                             div(
                                 div(name),
-                                div(cls := "text-xs text-gray-500")(s"ID: ${mapping.sourceAccountId}")
+                                div(cls := "text-xs text-gray-500")(
+                                    s"ID: ${mapping.sourceAccountId}"
+                                )
                             )
-                        case None => 
+                        case None =>
                             span(cls := "text-gray-500")(s"Unknown (${mapping.sourceAccountId})")
             ),
-            
+
             // YNAB Account column
             ScalatagsTailwindTable.Column[YnabAccountMapping](
                 header = "YNAB Account",
                 render = mapping =>
                     ynabAccountMap.get(mapping.ynabAccountId) match
-                        case Some(name) => 
+                        case Some(name) =>
                             div(
                                 div(name),
                                 div(cls := "text-xs text-gray-500")(s"ID: ${mapping.ynabAccountId}")
                             )
-                        case None => 
+                        case None =>
                             span(cls := "text-gray-500")(s"Unknown (${mapping.ynabAccountId})")
             ),
-            
+
             // Status column
             ScalatagsTailwindTable.Column[YnabAccountMapping](
                 header = "Status",
                 render = mapping => statusBadge(mapping.active)
             ),
-            
+
             // Actions column
             ScalatagsTailwindTable.Column[YnabAccountMapping](
                 header = "Actions",
@@ -94,25 +98,25 @@ class YnabAccountMappingViewsImpl extends YnabAccountMappingViews with Scalatags
                     )
             )
         )
-        
+
         val mappingTable = ScalatagsTailwindTable
             .table(columns, mappings)
             .withClass("border-collapse mappings-table")
             .withHeaderClasses(Seq("bg-gray-100"))
             .render
-            
+
         div(cls := "p-4")(
             // Header with title and actions
             div(cls := "flex justify-between items-center mb-4")(
                 h1(cls := "text-2xl font-bold")("YNAB Account Mappings"),
-                
+
                 // Add new mapping button
                 a(
                     href := "/ynab/account-mappings/new",
                     cls := "px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
                 )("Add New Mapping")
             ),
-            
+
             // Account mappings table
             div(cls := "overflow-x-auto")(
                 if mappings.isEmpty then
@@ -122,7 +126,7 @@ class YnabAccountMappingViewsImpl extends YnabAccountMappingViews with Scalatags
                 else
                     mappingTable
             ),
-            
+
             // Help text
             div(cls := "mt-6 p-4 bg-blue-50 rounded")(
                 h3(cls := "text-lg font-medium text-blue-800")("About YNAB Account Mappings"),
@@ -132,27 +136,31 @@ class YnabAccountMappingViewsImpl extends YnabAccountMappingViews with Scalatags
                 )
             )
         )
-    
-    /**
-     * View for the account mapping form (create/edit)
-     * 
-     * @param mapping Optional existing mapping (if editing)
-     * @param sourceAccounts Available source accounts for mapping
-     * @param ynabAccounts Available YNAB accounts for mapping
-     * @return HTML for the account mapping form
-     */
+    end accountMappingList
+
+    /** View for the account mapping form (create/edit)
+      *
+      * @param mapping
+      *   Optional existing mapping (if editing)
+      * @param sourceAccounts
+      *   Available source accounts for mapping
+      * @param ynabAccounts
+      *   Available YNAB accounts for mapping
+      * @return
+      *   HTML for the account mapping form
+      */
     override def accountMappingForm(
         mapping: Option[YnabAccountMapping],
         sourceAccounts: Seq[(Long, String)],
         ynabAccounts: Seq[(String, String)]
     ): TypedTag[String] =
         val isNew = mapping.isEmpty
-        val formTitle = if isNew then "Add New YNAB Account Mapping" else "Edit YNAB Account Mapping"
+        val formTitle =
+            if isNew then "Add New YNAB Account Mapping" else "Edit YNAB Account Mapping"
         val submitButtonText = if isNew then "Create Mapping" else "Update Mapping"
-        
+
         div(cls := "p-4 max-w-2xl mx-auto")(
             h1(cls := "text-2xl font-bold mb-6")(formTitle),
-            
             form(
                 action := "/ynab/account-mappings",
                 method := "post",
@@ -180,26 +188,27 @@ class YnabAccountMappingViewsImpl extends YnabAccountMappingViews with Scalatags
                                 option(value := "", disabled := true, selected := true)(
                                     "-- Select Source Account --"
                                 )
-                            else 
-                                frag(),
-                            
+                            else
+                                frag()
+                            ,
                             sourceAccounts.map { case (id, name) =>
                                 option(
                                     value := id.toString,
                                     selected := mapping.exists(_.sourceAccountId == id)
                                 )(s"$name (ID: $id)")
                             }
-                        ),
-                        if !isNew then
-                            input(
-                                `type` := "hidden",
-                                name := "sourceAccountId",
-                                value := mapping.map(_.sourceAccountId).getOrElse(0).toString
-                            )
-                        else
-                            frag()
+                        )
+                    ,
+                    if !isNew then
+                        input(
+                            `type` := "hidden",
+                            name := "sourceAccountId",
+                            value := mapping.map(_.sourceAccountId).getOrElse(0).toString
+                        )
+                    else
+                        frag()
                 ),
-                
+
                 // YNAB Account selection
                 div(cls := "space-y-2")(
                     label(
@@ -228,7 +237,7 @@ class YnabAccountMappingViewsImpl extends YnabAccountMappingViews with Scalatags
                             }
                         )
                 ),
-                
+
                 // Active status
                 div(cls := "flex items-center")(
                     input(
@@ -244,7 +253,7 @@ class YnabAccountMappingViewsImpl extends YnabAccountMappingViews with Scalatags
                         `for` := "active"
                     )("Active")
                 ),
-                
+
                 // Form actions
                 div(cls := "flex gap-4 pt-4")(
                     a(
@@ -258,13 +267,15 @@ class YnabAccountMappingViewsImpl extends YnabAccountMappingViews with Scalatags
                 )
             )
         )
-    
-    /**
-     * View for when a mapping is not found
-     * 
-     * @param sourceAccountId The source account ID that wasn't found
-     * @return HTML for the not found page
-     */
+    end accountMappingForm
+
+    /** View for when a mapping is not found
+      *
+      * @param sourceAccountId
+      *   The source account ID that wasn't found
+      * @return
+      *   HTML for the not found page
+      */
     override def mappingNotFound(sourceAccountId: Long): TypedTag[String] =
         div(cls := "p-4")(
             div(cls := "bg-red-50 border-l-4 border-red-400 p-4 mb-4")(
