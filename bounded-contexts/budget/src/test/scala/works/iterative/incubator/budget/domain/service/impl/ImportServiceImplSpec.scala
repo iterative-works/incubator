@@ -2,61 +2,62 @@ package works.iterative.incubator.budget.domain.service.impl
 
 import zio.*
 import zio.test.*
-import zio.test.Assertion.*
 import zio.test.TestAspect.*
-import java.time.{LocalDate, Instant}
+import java.time.LocalDate
 import works.iterative.incubator.budget.domain.model.*
 import works.iterative.incubator.budget.domain.repository.*
 import works.iterative.incubator.budget.domain.event.*
-import works.iterative.incubator.budget.domain.service.{ImportService, RawTransaction}
-import works.iterative.incubator.budget.domain.query.{TransactionProcessingStateQuery, SourceAccountQuery}
+import works.iterative.incubator.budget.domain.service.RawTransaction
 
 object ImportServiceImplSpec extends ZIOSpecDefault:
     // Mock repositories
     class MockTransactionRepository extends TransactionRepository:
         private var transactions = Map.empty[TransactionId, Transaction]
-        
+
         def save(key: TransactionId, value: Transaction): UIO[Unit] =
             ZIO.succeed { transactions = transactions + (key -> value) }
-            
+
         def load(id: TransactionId): UIO[Option[Transaction]] =
             ZIO.succeed(transactions.get(id))
-            
-        def find[Q](query: Q): UIO[Seq[Transaction]] = 
+
+        def find[Q](query: Q): UIO[Seq[Transaction]] =
             ZIO.succeed(transactions.values.toSeq)
-            
+
         // Add the specific find method with the correct FilterArg type
-        def find(filter: works.iterative.incubator.budget.domain.query.TransactionQuery): UIO[Seq[Transaction]] =
+        def find(filter: works.iterative.incubator.budget.domain.query.TransactionQuery)
+            : UIO[Seq[Transaction]] =
             ZIO.succeed(transactions.values.toSeq)
-            
+
         // Test helper
         def getAll: UIO[Map[TransactionId, Transaction]] = ZIO.succeed(transactions)
     end MockTransactionRepository
-    
+
     class MockProcessingStateRepository extends TransactionProcessingStateRepository:
         private var states = Map.empty[TransactionId, TransactionProcessingState]
-        
-        def find(query: works.iterative.incubator.budget.domain.query.TransactionProcessingStateQuery): UIO[Seq[TransactionProcessingState]] =
+
+        def find(
+            query: works.iterative.incubator.budget.domain.query.TransactionProcessingStateQuery
+        ): UIO[Seq[TransactionProcessingState]] =
             ZIO.succeed {
                 states.values.filter { state =>
                     query.sourceAccountId.forall(_ == state.transactionId.sourceAccountId) &&
                     query.status.forall(_ == state.status)
                 }.toSeq
             }
-            
+
         def save(key: TransactionId, value: TransactionProcessingState): UIO[Unit] =
             ZIO.succeed { states = states + (key -> value) }
-            
+
         def load(id: TransactionId): UIO[Option[TransactionProcessingState]] =
             ZIO.succeed(states.get(id))
-            
+
         def findReadyToSubmit(): UIO[Seq[TransactionProcessingState]] =
             ZIO.succeed(states.values.filter(_.isReadyForSubmission).toSeq)
-            
+
         // Test helper
         def getAll: UIO[Map[TransactionId, TransactionProcessingState]] = ZIO.succeed(states)
     end MockProcessingStateRepository
-    
+
     class MockSourceAccountRepository extends SourceAccountRepository:
         private var accounts = Map(
             1L -> SourceAccount(
@@ -69,22 +70,24 @@ object ImportServiceImplSpec extends ZIOSpecDefault:
                 // Removed iban as it's not in the model
             )
         )
-        
+
         def save(key: Long, value: SourceAccount): UIO[Unit] =
             ZIO.succeed { accounts = accounts + (key -> value) }
-            
+
         // Implement methods for Repository interfaces
         def load(id: Long): UIO[Option[SourceAccount]] =
             ZIO.succeed(accounts.get(id))
-            
-        def find(filter: works.iterative.incubator.budget.domain.query.SourceAccountQuery): UIO[Seq[SourceAccount]] =
+
+        def find(filter: works.iterative.incubator.budget.domain.query.SourceAccountQuery)
+            : UIO[Seq[SourceAccount]] =
             ZIO.succeed(accounts.values.toSeq)
-            
+
         // Implement the generic find method from Repository trait
         def find[Q](query: Q): UIO[Seq[SourceAccount]] =
             ZIO.succeed(accounts.values.toSeq)
-            
-        def create(value: works.iterative.incubator.budget.domain.model.CreateSourceAccount): UIO[Long] =
+
+        def create(value: works.iterative.incubator.budget.domain.model.CreateSourceAccount)
+            : UIO[Long] =
             ZIO.succeed {
                 val nextId = if accounts.isEmpty then 1L else accounts.keys.max + 1
                 val newAccount = SourceAccount(
@@ -99,19 +102,19 @@ object ImportServiceImplSpec extends ZIOSpecDefault:
                 nextId
             }
     end MockSourceAccountRepository
-    
+
     // Event collector for testing
     class EventCollector:
         private var events = List.empty[DomainEvent]
-        
+
         def publishEvent(event: DomainEvent): UIO[Unit] =
             ZIO.succeed { events = event :: events }
-            
+
         def getEvents: UIO[List[DomainEvent]] = ZIO.succeed(events)
-        
+
         def clear: UIO[Unit] = ZIO.succeed { events = List.empty }
     end EventCollector
-    
+
     // Sample data for testing
     private val sampleRawTransactions = Seq(
         RawTransaction(
@@ -147,15 +150,16 @@ object ImportServiceImplSpec extends ZIOSpecDefault:
             comment = None
         )
     )
-    
+
     // Setup test environment
-    def testEnvironment = for
-        txRepo <- ZIO.succeed(new MockTransactionRepository)
-        stateRepo <- ZIO.succeed(new MockProcessingStateRepository)
-        accountRepo <- ZIO.succeed(new MockSourceAccountRepository)
-        eventCollector <- ZIO.succeed(new EventCollector)
-        service = ImportServiceImpl(txRepo, stateRepo, accountRepo, eventCollector.publishEvent)
-    yield (service, txRepo, stateRepo, accountRepo, eventCollector)
+    def testEnvironment =
+        for
+            txRepo <- ZIO.succeed(new MockTransactionRepository)
+            stateRepo <- ZIO.succeed(new MockProcessingStateRepository)
+            accountRepo <- ZIO.succeed(new MockSourceAccountRepository)
+            eventCollector <- ZIO.succeed(new EventCollector)
+            service = ImportServiceImpl(txRepo, stateRepo, accountRepo, eventCollector.publishEvent)
+        yield (service, txRepo, stateRepo, accountRepo, eventCollector)
 
     // Tests
     override def spec =
@@ -169,16 +173,14 @@ object ImportServiceImplSpec extends ZIOSpecDefault:
                     (importedCount, duplicateIds) = result
                     transactions <- txRepo.getAll
                     processingStates <- stateRepo.getAll
-                yield
-                    assertTrue(
-                        importedCount == 2,
-                        duplicateIds.isEmpty,
-                        transactions.size == 2,
-                        processingStates.size == 2,
-                        processingStates.values.forall(_.status == TransactionStatus.Imported)
-                    )
+                yield assertTrue(
+                    importedCount == 2,
+                    duplicateIds.isEmpty,
+                    transactions.size == 2,
+                    processingStates.size == 2,
+                    processingStates.values.forall(_.status == TransactionStatus.Imported)
+                )
             },
-            
             test("importTransactions should detect duplicate transactions") {
                 for
                     env <- testEnvironment
@@ -193,16 +195,14 @@ object ImportServiceImplSpec extends ZIOSpecDefault:
                     txCount2 <- txRepo.getAll.map(_.size)
                     events <- eventCollector.getEvents
                     duplicateEvents = events.collect { case e: DuplicateTransactionDetected => e }
-                yield
-                    assertTrue(
-                        txCount1 == 2,
-                        importedCount == 0,
-                        duplicateIds.length == 2,
-                        txCount2 == 2, // No new transactions added
-                        duplicateEvents.size == 2 // Two duplicate events published
-                    )
+                yield assertTrue(
+                    txCount1 == 2,
+                    importedCount == 0,
+                    duplicateIds.length == 2,
+                    txCount2 == 2, // No new transactions added
+                    duplicateEvents.size == 2 // Two duplicate events published
+                )
             },
-            
             test("ImportCompleted event should be published with correct count") {
                 for
                     env <- testEnvironment
@@ -212,14 +212,12 @@ object ImportServiceImplSpec extends ZIOSpecDefault:
                     _ <- service.importTransactions(sourceAccountId, sampleRawTransactions)
                     events <- eventCollector.getEvents
                     importCompletedEvents = events.collect { case e: ImportCompleted => e }
-                yield
-                    assertTrue(
-                        importCompletedEvents.nonEmpty,
-                        importCompletedEvents.head.count == 2,
-                        importCompletedEvents.head.sourceAccountId == sourceAccountId
-                    )
+                yield assertTrue(
+                    importCompletedEvents.nonEmpty,
+                    importCompletedEvents.head.count == 2,
+                    importCompletedEvents.head.sourceAccountId == sourceAccountId
+                )
             },
-            
             test("TransactionImported events should be published for each transaction") {
                 for
                     env <- testEnvironment
@@ -229,21 +227,19 @@ object ImportServiceImplSpec extends ZIOSpecDefault:
                     _ <- service.importTransactions(sourceAccountId, sampleRawTransactions)
                     events <- eventCollector.getEvents
                     importEvents = events.collect { case e: TransactionImported => e }
-                yield
-                    assertTrue(
-                        importEvents.length == 2,
-                        importEvents.forall(_.sourceAccountId == sourceAccountId)
-                    )
+                yield assertTrue(
+                    importEvents.length == 2,
+                    importEvents.forall(_.sourceAccountId == sourceAccountId)
+                )
             },
-            
             test("importTransaction should fail gracefully with invalid source account") {
                 for
                     env <- testEnvironment
                     (service, _, _, _, _) = env
                     invalidSourceId = 999L
-                    result <- service.importTransactions(invalidSourceId, sampleRawTransactions).exit
-                yield
-                    assertTrue(result.isFailure)
+                    result <-
+                        service.importTransactions(invalidSourceId, sampleRawTransactions).exit
+                yield assertTrue(result.isFailure)
             }
         ) @@ sequential
     end spec

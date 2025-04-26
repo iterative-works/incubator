@@ -1,15 +1,12 @@
 package works.iterative.incubator.budget.domain.service
 
 import zio.*
-import java.time.Instant
 import works.iterative.incubator.budget.domain.model.*
-import works.iterative.incubator.budget.domain.event.{TransactionCategorized, TransactionsCategorized, CategoryUpdated, BulkCategoryUpdated}
 
 /** Service interface for transaction categorization functionality
   *
-  * Handles the workflow of categorizing transactions, either via automatic rules,
-  * AI suggestions, or manual user overrides. Manages the categorization status
-  * and emits appropriate domain events.
+  * Handles the workflow of categorizing transactions, either via automatic rules, AI suggestions,
+  * or manual user overrides. Manages the categorization status and emits appropriate domain events.
   *
   * Classification: Domain Service Interface
   */
@@ -17,33 +14,42 @@ trait CategorizationService:
     /** Apply automated categorization to a batch of transactions
       *
       * This workflow:
-      * 1. Processes uncategorized transactions using categorization logic
-      * 2. Updates transaction processing states with suggested categories and confidence scores
-      * 3. Emits events for categorized transactions
+      *   1. Processes uncategorized transactions using categorization logic 2. Updates transaction
+      *      processing states with suggested categories and confidence scores 3. Emits events for
+      *      categorized transactions
       *
-      * @param transactionIds The IDs of transactions to categorize
-      * @return A CategorizedResult with the number of categorized transactions
+      * @param transactionIds
+      *   The IDs of transactions to categorize
+      * @return
+      *   A CategorizedResult with the number of categorized transactions
       */
     def categorizeTransactions(
         transactionIds: Seq[TransactionId]
     ): UIO[CategorizationResult]
-    
+
     /** Apply categorization to a single transaction
       *
-      * @param transactionId The ID of the transaction to categorize
-      * @return The categorization results for the transaction
+      * @param transactionId
+      *   The ID of the transaction to categorize
+      * @return
+      *   The categorization results for the transaction
       */
     def categorizeTransaction(
         transactionId: TransactionId
     ): UIO[Option[TransactionCategorization]]
-    
+
     /** Manually update category for a single transaction
       *
-      * @param transactionId The ID of the transaction to update
-      * @param categoryId The new category ID
-      * @param memo Optional memo to update
-      * @param payeeName Optional payee name to update
-      * @return An updated TransactionProcessingState
+      * @param transactionId
+      *   The ID of the transaction to update
+      * @param categoryId
+      *   The new category ID
+      * @param memo
+      *   Optional memo to update
+      * @param payeeName
+      *   Optional payee name to update
+      * @return
+      *   An updated TransactionProcessingState
       */
     def updateCategory(
         transactionId: TransactionId,
@@ -51,14 +57,19 @@ trait CategorizationService:
         memo: Option[String] = None,
         payeeName: Option[String] = None
     ): UIO[Option[TransactionProcessingState]]
-    
+
     /** Bulk update categories for transactions matching criteria
       *
-      * @param filter Criteria for matching transactions to update
-      * @param categoryId The new category ID
-      * @param memo Optional memo to update
-      * @param payeeName Optional payee name to update
-      * @return The number of transactions updated
+      * @param filter
+      *   Criteria for matching transactions to update
+      * @param categoryId
+      *   The new category ID
+      * @param memo
+      *   Optional memo to update
+      * @param payeeName
+      *   Optional payee name to update
+      * @return
+      *   The number of transactions updated
       */
     def bulkUpdateCategory(
         filter: TransactionFilter,
@@ -66,11 +77,13 @@ trait CategorizationService:
         memo: Option[String] = None,
         payeeName: Option[String] = None
     ): UIO[Int]
-    
+
     /** Calculate average confidence score for a batch of categorizations
       *
-      * @param categorizations List of transaction categorizations 
-      * @return An average confidence score
+      * @param categorizations
+      *   List of transaction categorizations
+      * @return
+      *   An average confidence score
       */
     def calculateAverageConfidence(
         categorizations: Seq[TransactionCategorization]
@@ -111,13 +124,13 @@ object CategorizationService:
         transactionIds: Seq[TransactionId]
     ): URIO[CategorizationService, CategorizationResult] =
         ZIO.serviceWithZIO[CategorizationService](_.categorizeTransactions(transactionIds))
-        
+
     /** Apply categorization to a single transaction */
     def categorizeTransaction(
         transactionId: TransactionId
     ): URIO[CategorizationService, Option[TransactionCategorization]] =
         ZIO.serviceWithZIO[CategorizationService](_.categorizeTransaction(transactionId))
-    
+
     /** Manually update category for a single transaction */
     def updateCategory(
         transactionId: TransactionId,
@@ -128,7 +141,7 @@ object CategorizationService:
         ZIO.serviceWithZIO[CategorizationService](
             _.updateCategory(transactionId, categoryId, memo, payeeName)
         )
-    
+
     /** Bulk update categories for transactions matching criteria */
     def bulkUpdateCategory(
         filter: TransactionFilter,
@@ -139,13 +152,13 @@ object CategorizationService:
         ZIO.serviceWithZIO[CategorizationService](
             _.bulkUpdateCategory(filter, categoryId, memo, payeeName)
         )
-    
+
     /** Calculate average confidence score for a batch of categorizations */
     def calculateAverageConfidence(
         categorizations: Seq[TransactionCategorization]
     ): URIO[CategorizationService, Option[ConfidenceScore]] =
         ZIO.serviceWithZIO[CategorizationService](_.calculateAverageConfidence(categorizations))
-        
+
     /** Create a layer for the CategorizationService implementation */
     def layer: URLayer[Any, CategorizationService] =
         ??? // To be implemented by concrete implementations
