@@ -10,8 +10,8 @@ import works.iterative.incubator.transactions.infrastructure.Codecs.given
 
 /** In-memory implementation of TransactionRepository, primarily for testing
   *
-  * This repository holds transaction data in memory, without persistence to a database.
-  * It's useful for testing and development.
+  * This repository holds transaction data in memory, without persistence to a database. It's useful
+  * for testing and development.
   *
   * Classification: Infrastructure Repository Implementation (Test Double)
   */

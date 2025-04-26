@@ -262,20 +262,26 @@ class FioTransactionImportService(
       * @return
       *   Decrypted token string
       */
-    private def getTokenForAccount(accountId: Long, fallbackToken: Option[String] = None): Task[String] =
+    private def getTokenForAccount(
+        accountId: Long,
+        fallbackToken: Option[String] = None
+    ): Task[String] =
         tokenManager match
             case Some(manager) =>
                 manager.getToken(accountId).flatMap {
                     case Some(token) => ZIO.succeed(token)
                     case None => fallbackToken match
-                        case Some(token) => ZIO.succeed(token)
-                        case None => ZIO.fail(new RuntimeException(s"No token found for account $accountId"))
+                            case Some(token) => ZIO.succeed(token)
+                            case None => ZIO.fail(
+                                    new RuntimeException(s"No token found for account $accountId")
+                                )
                 }
             case None =>
                 fallbackToken match
                     case Some(token) => ZIO.succeed(token)
-                    case None => ZIO.fail(new RuntimeException(s"No token found for account $accountId"))
-                    
+                    case None =>
+                        ZIO.fail(new RuntimeException(s"No token found for account $accountId"))
+
     /** Get the token for a specific source account, using the token manager if available
       *
       * @param sourceAccountId
@@ -288,7 +294,7 @@ class FioTransactionImportService(
             case Some(manager) =>
                 manager.getTokenBySourceAccountId(sourceAccountId).flatMap {
                     case Some(token) => ZIO.succeed(token)
-                    case None => getDefaultToken()
+                    case None        => getDefaultToken()
                 }
             case None =>
                 // If no token manager is available, try to get the account from repository
@@ -296,7 +302,7 @@ class FioTransactionImportService(
                     case Some(repo) =>
                         repo.getBySourceAccountId(sourceAccountId).flatMap {
                             case Some(account) => ZIO.succeed(account.token)
-                            case None => getDefaultToken()
+                            case None          => getDefaultToken()
                         }
                     case None => getDefaultToken()
 
@@ -682,7 +688,7 @@ object FioTransactionImportService:
                 )
             yield service
         }
-        
+
     // Minimal layer without token manager (for backward compatibility)
     val minimalLayerNoTokenManager: ZLayer[
         FioClient &

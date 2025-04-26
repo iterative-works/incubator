@@ -11,10 +11,14 @@ import works.iterative.incubator.budget.domain.service.{ImportService, RawTransa
   * This implementation follows the functional core pattern, containing all business logic for
   * transaction import while delegating infrastructure concerns to repository interfaces.
   *
-  * @param transactionRepository Repository for storing and retrieving Transaction entities
-  * @param processingStateRepository Repository for storing and retrieving transaction processing states
-  * @param sourceAccountRepository Repository for retrieving source accounts
-  * @param eventPublisher Function to publish domain events
+  * @param transactionRepository
+  *   Repository for storing and retrieving Transaction entities
+  * @param processingStateRepository
+  *   Repository for storing and retrieving transaction processing states
+  * @param sourceAccountRepository
+  *   Repository for retrieving source accounts
+  * @param eventPublisher
+  *   Function to publish domain events
   */
 case class ImportServiceImpl(
     transactionRepository: TransactionRepository,
@@ -26,14 +30,16 @@ case class ImportServiceImpl(
     /** Import a batch of raw transaction data from a source account
       *
       * This method handles:
-      * 1. Checking for duplicate transactions
-      * 2. Creating Transaction entities for new transactions
-      * 3. Creating initial TransactionProcessingState for each transaction
-      * 4. Publishing events for imported transactions
+      *   1. Checking for duplicate transactions 2. Creating Transaction entities for new
+      *      transactions 3. Creating initial TransactionProcessingState for each transaction 4.
+      *      Publishing events for imported transactions
       *
-      * @param sourceAccountId The ID of the source account to import from
-      * @param rawTransactions The raw transaction data to import
-      * @return A tuple containing the count of imported transactions and a list of detected duplicate IDs
+      * @param sourceAccountId
+      *   The ID of the source account to import from
+      * @param rawTransactions
+      *   The raw transaction data to import
+      * @return
+      *   A tuple containing the count of imported transactions and a list of detected duplicate IDs
       */
     override def importTransactions(
         sourceAccountId: Long,
@@ -43,19 +49,22 @@ case class ImportServiceImpl(
             // Validate that the source account exists
             sourceAccountOpt <- sourceAccountRepository.load(sourceAccountId)
             sourceAccount <- ZIO.fromOption(sourceAccountOpt)
-                .orElseFail(new IllegalArgumentException(s"Source account $sourceAccountId not found"))
+                .orElseFail(
+                    new IllegalArgumentException(s"Source account $sourceAccountId not found")
+                )
                 .orDie
-                
+
             // Import transactions one by one
             results <- ZIO.foreach(rawTransactions) { raw =>
                 importTransaction(raw, sourceAccountId)
             }
-            
+
             // Calculate results
             importedTransactions = results.flatten
             importedCount = importedTransactions.size
-            duplicateIds = rawTransactions.map(_.externalId).diff(importedTransactions.map(_.id.transactionId))
-            
+            duplicateIds =
+                rawTransactions.map(_.externalId).diff(importedTransactions.map(_.id.transactionId))
+
             // Publish summary event
             importCompletedEvent <- createImportCompletedEvent(sourceAccountId, importedCount)
             _ <- eventPublisher(importCompletedEvent)
@@ -63,17 +72,22 @@ case class ImportServiceImpl(
 
     /** Check if a transaction already exists in the system
       *
-      * @param transactionId The ID to check for duplicates
-      * @return True if the transaction already exists, false otherwise
+      * @param transactionId
+      *   The ID to check for duplicates
+      * @return
+      *   True if the transaction already exists, false otherwise
       */
     override def checkForDuplicate(transactionId: TransactionId): UIO[Boolean] =
         transactionRepository.load(transactionId).map(_.isDefined)
 
     /** Import a single transaction, handling duplicate detection
       *
-      * @param rawTransaction The raw transaction data to import
-      * @param sourceAccountId The ID of the source account
-      * @return The created Transaction if not a duplicate, None if duplicate
+      * @param rawTransaction
+      *   The raw transaction data to import
+      * @param sourceAccountId
+      *   The ID of the source account
+      * @return
+      *   The created Transaction if not a duplicate, None if duplicate
       */
     override def importTransaction(
         rawTransaction: RawTransaction,
@@ -82,10 +96,10 @@ case class ImportServiceImpl(
         for
             // Create the transaction ID
             transactionId <- ZIO.succeed(TransactionId(sourceAccountId, rawTransaction.externalId))
-            
+
             // Check for duplicates
             isDuplicate <- checkForDuplicate(transactionId)
-            
+
             result <- if isDuplicate then
                 // If duplicate, publish event and return None
                 for
@@ -120,14 +134,17 @@ case class ImportServiceImpl(
                         comment = rawTransaction.comment,
                         importedAt = now
                     )
-                    
+
                     // Save the transaction
                     _ <- transactionRepository.save(transaction.id, transaction)
-                    
+
                     // Create and save the initial processing state
                     processingState = TransactionProcessingState.initial(transaction)
-                    _ <- processingStateRepository.save(processingState.transactionId, processingState)
-                    
+                    _ <- processingStateRepository.save(
+                        processingState.transactionId,
+                        processingState
+                    )
+
                     // Publish event
                     event = TransactionImported(
                         transactionId = transactionId,
@@ -143,11 +160,17 @@ case class ImportServiceImpl(
 
     /** Create a domain event signaling an import completion
       *
-      * @param sourceAccountId The source account ID
-      * @param count The number of transactions imported
-      * @return An ImportCompleted event
+      * @param sourceAccountId
+      *   The source account ID
+      * @param count
+      *   The number of transactions imported
+      * @return
+      *   An ImportCompleted event
       */
-    override def createImportCompletedEvent(sourceAccountId: Long, count: Int): UIO[ImportCompleted] =
+    override def createImportCompletedEvent(
+        sourceAccountId: Long,
+        count: Int
+    ): UIO[ImportCompleted] =
         for
             now <- Clock.instant
         yield ImportCompleted(
@@ -162,7 +185,10 @@ object ImportServiceImpl:
     /** Create a ZLayer for the ImportServiceImpl */
     def layer(
         eventPublisher: DomainEvent => UIO[Unit]
-    ): URLayer[TransactionRepository & TransactionProcessingStateRepository & SourceAccountRepository, ImportService] =
+    ): URLayer[
+        TransactionRepository & TransactionProcessingStateRepository & SourceAccountRepository,
+        ImportService
+    ] =
         ZLayer {
             for
                 transactionRepository <- ZIO.service[TransactionRepository]

@@ -51,9 +51,8 @@ object HealthModule extends ZIOWebModule[AppEnv]:
         }
     end routes
 
-    /** Check the health of all dependencies 
-      * Uses TransactionRepository to verify database connectivity
-      * Can be extended to check other dependencies as needed
+    /** Check the health of all dependencies Uses TransactionRepository to verify database
+      * connectivity Can be extended to check other dependencies as needed
       */
     private def checkAllDependencies: URIO[AppEnv, HealthStatus] =
         for
@@ -68,21 +67,25 @@ object HealthModule extends ZIOWebModule[AppEnv]:
             )
         )
 
-    /** Check database connectivity using TransactionRepository
-      * Simply tries to perform a basic operation to verify connectivity
+    /** Check database connectivity using TransactionRepository Simply tries to perform a basic
+      * operation to verify connectivity
       */
     private def checkDatabaseHealth: ZIO[AppEnv, Throwable, HealthStatusResult] =
         ZIO.scoped {
             for
                 // Use an existing repository to check database connectivity
-                repo <- ZIO.service[works.iterative.incubator.transactions.domain.repository.TransactionRepository]
+                repo <- ZIO.service[
+                    works.iterative.incubator.transactions.domain.repository.TransactionRepository
+                ]
                 // Execute a simple find query with no filters to check DB connectivity
                 _ <- ZIO.attemptBlockingInterrupt {
                     // This is just to trigger the find and make sure it works
-                    repo.find(works.iterative.incubator.transactions.domain.query.TransactionQuery())
+                    repo.find(
+                        works.iterative.incubator.transactions.domain.query.TransactionQuery()
+                    )
                 }.flatMap(task => task)
             yield HealthStatusResult("UP")
-        }.catchAll(err => 
+        }.catchAll(err =>
             ZIO.fail(new Exception(s"Database connection error: ${err.getMessage}", err))
         )
 end HealthModule

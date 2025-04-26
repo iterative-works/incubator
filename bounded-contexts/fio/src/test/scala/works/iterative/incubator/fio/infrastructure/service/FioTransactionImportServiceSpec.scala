@@ -94,7 +94,7 @@ object FioTransactionImportServiceSpec extends ZIOSpecDefault:
 
         override def fetchNewTransactions(token: String): Task[FioResponse] =
             loadExampleResponse()
-            
+
         override def setLastDate(token: String, date: LocalDate): Task[Unit] =
             ZIO.succeed(()) // Just succeed without doing anything in the mock
 

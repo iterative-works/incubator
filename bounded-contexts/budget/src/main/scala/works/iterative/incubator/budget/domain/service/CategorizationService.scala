@@ -87,7 +87,7 @@ trait CategorizationService:
       */
     def calculateAverageConfidence(
         categorizations: Seq[TransactionCategorization]
-    ): UIO[Option[ConfidenceScore]]
+    ): Option[ConfidenceScore]
 end CategorizationService
 
 /** Results of a categorization operation */
@@ -157,7 +157,7 @@ object CategorizationService:
     def calculateAverageConfidence(
         categorizations: Seq[TransactionCategorization]
     ): URIO[CategorizationService, Option[ConfidenceScore]] =
-        ZIO.serviceWithZIO[CategorizationService](_.calculateAverageConfidence(categorizations))
+        ZIO.serviceWith[CategorizationService](_.calculateAverageConfidence(categorizations))
 
     /** Create a layer for the CategorizationService implementation */
     def layer: URLayer[Any, CategorizationService] =

@@ -1,12 +1,11 @@
 package works.iterative.incubator.ynab.domain.model
 
-/**
- * YNAB Category
- *
- * Represents a category that transactions can be assigned to
- *
- * Domain Model: This is a core domain entity representing a YNAB category.
- */
+/** YNAB Category
+  *
+  * Represents a category that transactions can be assigned to
+  *
+  * Domain Model: This is a core domain entity representing a YNAB category.
+  */
 case class YnabCategory(
     id: String,
     name: String,

@@ -3,14 +3,14 @@ package works.iterative.incubator.ynab.application.service
 import zio.*
 import works.iterative.incubator.ynab.domain.model.*
 
-/** 
- * YNAB Service
- *
- * Service interface for interacting with YNAB. This service provides access to YNAB budgets
- * and the ability to create budget-specific services.
- *
- * Application Service: This is a service interface defining operations provided by the YNAB integration.
- */
+/** YNAB Service
+  *
+  * Service interface for interacting with YNAB. This service provides access to YNAB budgets and
+  * the ability to create budget-specific services.
+  *
+  * Application Service: This is a service interface defining operations provided by the YNAB
+  * integration.
+  */
 trait YnabService:
     /** Verify the connection to YNAB using the configured API token
       *
@@ -25,7 +25,7 @@ trait YnabService:
       *   A sequence of YNAB budgets
       */
     def getBudgets(): Task[Seq[YnabBudget]]
-    
+
     /** Get a budget-specific service for a given budget ID
       *
       * @param budgetId
@@ -36,14 +36,13 @@ trait YnabService:
     def getBudgetService(budgetId: String): YnabBudgetService
 end YnabService
 
-/**
- * YNAB Budget Service
- *
- * Service interface for interacting with a specific YNAB budget. This service provides
- * access to accounts, categories, and transactions within a specific budget.
- *
- * Application Service: This is a service interface for budget-specific operations.
- */
+/** YNAB Budget Service
+  *
+  * Service interface for interacting with a specific YNAB budget. This service provides access to
+  * accounts, categories, and transactions within a specific budget.
+  *
+  * Application Service: This is a service interface for budget-specific operations.
+  */
 trait YnabBudgetService:
     /** Get all accounts in the budget
       *

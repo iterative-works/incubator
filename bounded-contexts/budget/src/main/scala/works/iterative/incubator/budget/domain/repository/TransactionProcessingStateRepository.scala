@@ -1,7 +1,11 @@
 package works.iterative.incubator.budget.domain.repository
 
 import zio.UIO
-import works.iterative.incubator.budget.domain.model.{TransactionId, TransactionProcessingState, TransactionStatus}
+import works.iterative.incubator.budget.domain.model.{
+    TransactionId,
+    TransactionProcessingState,
+    TransactionStatus
+}
 import works.iterative.incubator.budget.domain.query.TransactionProcessingStateQuery
 
 /** Repository interface for transaction processing states

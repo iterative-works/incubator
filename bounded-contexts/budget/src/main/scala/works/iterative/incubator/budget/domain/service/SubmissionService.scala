@@ -48,7 +48,7 @@ trait SubmissionService:
       */
     def validateForSubmission(
         transactionStates: Seq[TransactionProcessingState]
-    ): UIO[ValidationResult]
+    ): ValidationResult
 
     /** Get statistics about transaction submission status
       *
@@ -116,7 +116,7 @@ object SubmissionService:
     def validateForSubmission(
         transactionStates: Seq[TransactionProcessingState]
     ): URIO[SubmissionService, ValidationResult] =
-        ZIO.serviceWithZIO[SubmissionService](_.validateForSubmission(transactionStates))
+        ZIO.serviceWith[SubmissionService](_.validateForSubmission(transactionStates))
 
     /** Get statistics about transaction submission status */
     def getSubmissionStatistics(

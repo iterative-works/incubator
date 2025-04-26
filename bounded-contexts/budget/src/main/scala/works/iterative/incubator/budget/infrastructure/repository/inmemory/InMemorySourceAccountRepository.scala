@@ -9,8 +9,8 @@ import works.iterative.incubator.budget.domain.query.SourceAccountQuery
 
 /** In-memory implementation of SourceAccountRepository for testing
   *
-  * This repository holds source account data in memory, without persistence to a database.
-  * It's useful for testing, development, and UI-first implementation.
+  * This repository holds source account data in memory, without persistence to a database. It's
+  * useful for testing, development, and UI-first implementation.
   *
   * Classification: Infrastructure Repository Implementation (Test Double)
   */
@@ -64,7 +64,9 @@ class InMemorySourceAccountRepository extends SourceAccountRepository:
                 accounts.values.exists(a =>
                     a.accountId == command.accountId && a.bankId == command.bankId
                 )
-            )(ZIO.fail(new RuntimeException("Source account with the same account ID and bank ID already exists")).orDie)
+            )(ZIO.fail(new RuntimeException(
+                "Source account with the same account ID and bank ID already exists"
+            )).orDie)
             id = idCounter.getAndIncrement()
             account = SourceAccount(
                 id = id,
@@ -106,21 +108,24 @@ class InMemorySourceAccountRepository extends SourceAccountRepository:
             accounts.values
                 .filter(account =>
                     account.active &&
-                    (account.lastSyncTime.isEmpty || account.lastSyncTime.exists(_.isBefore(cutoffTime)))
+                        (account.lastSyncTime.isEmpty || account.lastSyncTime.exists(
+                            _.isBefore(cutoffTime)
+                        ))
                 )
                 .toSeq
         }
 
     /** Add a batch of source accounts (for testing)
       */
-    def addBatch(accounts: Seq[SourceAccount]): UIO[Unit] = for
-        _ <- ZIO.foreach(accounts)(account => storage.update(_ + (account.id -> account)))
-        _ <- ZIO.succeed {
-            // Update the ID counter to be higher than any existing ID
-            val maxId = accounts.map(_.id).maxOption.getOrElse(0L)
-            if maxId >= idCounter.get() then idCounter.set(maxId + 1)
-        }
-    yield ()
+    def addBatch(accounts: Seq[SourceAccount]): UIO[Unit] =
+        for
+            _ <- ZIO.foreach(accounts)(account => storage.update(_ + (account.id -> account)))
+            _ <- ZIO.succeed {
+                // Update the ID counter to be higher than any existing ID
+                val maxId = accounts.map(_.id).maxOption.getOrElse(0L)
+                if maxId >= idCounter.get() then idCounter.set(maxId + 1)
+            }
+        yield ()
 
     /** Reset the repository (for testing)
       */

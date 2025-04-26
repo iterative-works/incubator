@@ -338,7 +338,7 @@ object CategorizationServiceImplSpec extends ZIOSpecDefault:
                     )
 
                     // Calculate average confidence
-                    avgConfidence <- service.calculateAverageConfidence(categorizations)
+                    avgConfidence = service.calculateAverageConfidence(categorizations)
                 yield assertTrue(
                     avgConfidence.isDefined,
                     avgConfidence.get.value == 0.8 // (0.7 + 0.9) / 2 = 0.8

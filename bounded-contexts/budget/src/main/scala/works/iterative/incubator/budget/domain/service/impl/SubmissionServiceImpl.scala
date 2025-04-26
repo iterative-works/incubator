@@ -7,15 +7,20 @@ import works.iterative.incubator.budget.domain.event.*
 import works.iterative.incubator.budget.domain.service.*
 import works.iterative.incubator.budget.domain.query.TransactionProcessingStateQuery
 
-/** Implementation of the SubmissionService that contains all business logic for transaction submission.
+/** Implementation of the SubmissionService that contains all business logic for transaction
+  * submission.
   *
   * This implementation follows the functional core pattern, containing all business logic for
   * transaction submission while delegating infrastructure concerns to repository interfaces.
   *
-  * @param processingStateRepository Repository for storing and retrieving transaction processing states
-  * @param transactionRepository Repository for retrieving Transaction entities
-  * @param ynabSubmitter The component that handles actual submission to YNAB
-  * @param eventPublisher Function to publish domain events
+  * @param processingStateRepository
+  *   Repository for storing and retrieving transaction processing states
+  * @param transactionRepository
+  *   Repository for retrieving Transaction entities
+  * @param ynabSubmitter
+  *   The component that handles actual submission to YNAB
+  * @param eventPublisher
+  *   Function to publish domain events
   */
 case class SubmissionServiceImpl(
     processingStateRepository: TransactionProcessingStateRepository,
@@ -23,17 +28,18 @@ case class SubmissionServiceImpl(
     ynabSubmitter: YnabSubmitter,
     eventPublisher: DomainEvent => UIO[Unit]
 ) extends SubmissionService:
-    
+
     /** Submit a batch of transactions to YNAB
       *
       * This workflow:
-      * 1. Validates that transactions are ready for submission
-      * 2. Submits ready transactions to YNAB
-      * 3. Updates transaction processing states with YNAB IDs
-      * 4. Emits events for submitted transactions
+      *   1. Validates that transactions are ready for submission 2. Submits ready transactions to
+      *      YNAB 3. Updates transaction processing states with YNAB IDs 4. Emits events for
+      *      submitted transactions
       *
-      * @param transactionIds The IDs of transactions to submit
-      * @return A SubmissionResult with counts of successful and failed submissions
+      * @param transactionIds
+      *   The IDs of transactions to submit
+      * @return
+      *   A SubmissionResult with counts of successful and failed submissions
       */
     override def submitTransactions(
         transactionIds: Seq[TransactionId]
@@ -42,32 +48,33 @@ case class SubmissionServiceImpl(
             // Load all processing states
             statesOpt <- ZIO.foreach(transactionIds)(processingStateRepository.load)
             states = statesOpt.flatten
-            
+
             // Validate states for submission
-            validationResult <- validateForSubmission(states)
-            
+            validationResult = validateForSubmission(states)
+
             // Handle validation failures
             _ <- ZIO.when(validationResult.invalidTransactions.nonEmpty) {
                 for
                     now <- Clock.instant
                     event = SubmissionFailed(
-                        reason = s"Failed to validate ${validationResult.invalidTransactions.size} transactions",
+                        reason =
+                            s"Failed to validate ${validationResult.invalidTransactions.size} transactions",
                         transactionCount = validationResult.invalidTransactions.size,
                         occurredAt = now
                     )
                     _ <- eventPublisher(event)
                 yield ()
             }
-            
+
             // Submit each valid transaction
             submissionResults <- ZIO.foreach(validationResult.validTransactions) { state =>
                 submitTransaction(state.transactionId)
             }
-            
+
             // Calculate success/failure counts
             successCount = submissionResults.count(_.submitted)
             submissionErrors = submissionResults.filter(!_.submitted).flatMap(_.error).toSeq
-            
+
             // Publish events for successful submissions
             _ <- ZIO.when(successCount > 0) {
                 for
@@ -77,7 +84,7 @@ case class SubmissionServiceImpl(
                         .find(_.submitted)
                         .flatMap(_.ynabTransactionId)
                         .getOrElse("unknown")
-                    
+
                     event = TransactionsSubmitted(
                         count = successCount,
                         ynabAccountId = ynabAccountId,
@@ -86,7 +93,7 @@ case class SubmissionServiceImpl(
                     _ <- eventPublisher(event)
                 yield ()
             }
-            
+
             // Publish failure event if any submissions failed (during the actual submission phase)
             _ <- ZIO.when(submissionErrors.nonEmpty) {
                 for
@@ -109,8 +116,10 @@ case class SubmissionServiceImpl(
 
     /** Submit a single transaction to YNAB
       *
-      * @param transactionId The ID of the transaction to submit
-      * @return The submission results for the transaction
+      * @param transactionId
+      *   The ID of the transaction to submit
+      * @return
+      *   The submission results for the transaction
       */
     override def submitTransaction(
         transactionId: TransactionId
@@ -118,7 +127,7 @@ case class SubmissionServiceImpl(
         for
             // Load transaction and processing state
             stateOpt <- processingStateRepository.load(transactionId)
-            
+
             result <- stateOpt match
                 case None =>
                     ZIO.succeed(TransactionSubmissionResult(
@@ -127,19 +136,20 @@ case class SubmissionServiceImpl(
                         ynabTransactionId = None,
                         error = Some(SubmissionError(transactionId, "Transaction not found"))
                     ))
-                    
+
                 case Some(state) if state.status != TransactionStatus.Categorized =>
                     ZIO.succeed(TransactionSubmissionResult(
                         transactionId = transactionId,
                         submitted = false,
                         ynabTransactionId = None,
                         error = Some(SubmissionError(
-                            transactionId, 
+                            transactionId,
                             s"Transaction has invalid status: ${state.status}"
                         ))
                     ))
-                    
-                case Some(state) if state.effectiveCategory.isEmpty || state.effectivePayeeName.isEmpty =>
+
+                case Some(state)
+                    if state.effectiveCategory.isEmpty || state.effectivePayeeName.isEmpty =>
                     ZIO.succeed(TransactionSubmissionResult(
                         transactionId = transactionId,
                         submitted = false,
@@ -149,11 +159,11 @@ case class SubmissionServiceImpl(
                             "Transaction is missing required fields (category or payee name)"
                         ))
                     ))
-                    
+
                 case Some(state) =>
                     // Load transaction to get details for submission
                     transactionRepository.load(transactionId).flatMap {
-                        case None => 
+                        case None =>
                             ZIO.succeed(TransactionSubmissionResult(
                                 transactionId = transactionId,
                                 submitted = false,
@@ -163,7 +173,7 @@ case class SubmissionServiceImpl(
                                     "Transaction entity not found"
                                 ))
                             ))
-                            
+
                         case Some(tx) =>
                             // Create submission request for YNAB
                             val submissionRequest = YnabSubmissionRequest(
@@ -173,7 +183,7 @@ case class SubmissionServiceImpl(
                                 categoryName = state.effectiveCategory.get,
                                 memo = state.effectiveMemo.getOrElse("")
                             )
-                            
+
                             // Submit to YNAB
                             ynabSubmitter.submitTransaction(submissionRequest).flatMap {
                                 case Left(error) =>
@@ -183,7 +193,7 @@ case class SubmissionServiceImpl(
                                         ynabTransactionId = None,
                                         error = Some(SubmissionError(transactionId, error))
                                     ))
-                                    
+
                                 case Right(response) =>
                                     for
                                         // Update processing state with YNAB IDs
@@ -192,38 +202,49 @@ case class SubmissionServiceImpl(
                                                 ynabTransactionId = response.transactionId,
                                                 ynabAccountId = response.accountId
                                             )
-                                        }.orElseFail(s"Failed to update processing state: ${response.transactionId}")
-                                         .catchAll(error => 
-                                            ZIO.succeed(TransactionSubmissionResult(
-                                                transactionId = transactionId,
-                                                submitted = false,
-                                                ynabTransactionId = None,
-                                                error = Some(SubmissionError(transactionId, error.toString))
-                                            ))
-                                         )
-                                         .flatMap {
-                                            case result: TransactionSubmissionResult => ZIO.succeed(result)
-                                            case updatedState: TransactionProcessingState => 
-                                                for
-                                                    // Save the updated state
-                                                    _ <- processingStateRepository.save(transactionId, updatedState)
-                                                    
-                                                    // Publish success event
-                                                    now <- Clock.instant
-                                                    event = TransactionSubmitted(
-                                                        transactionId = transactionId,
-                                                        ynabTransactionId = response.transactionId,
-                                                        ynabAccountId = response.accountId,
-                                                        occurredAt = now
-                                                    )
-                                                    _ <- eventPublisher(event)
-                                                yield TransactionSubmissionResult(
+                                        }.orElseFail(
+                                            s"Failed to update processing state: ${response.transactionId}"
+                                        )
+                                            .catchAll(error =>
+                                                ZIO.succeed(TransactionSubmissionResult(
                                                     transactionId = transactionId,
-                                                    submitted = true,
-                                                    ynabTransactionId = Some(response.transactionId),
-                                                    error = None
-                                                )
-                                        }
+                                                    submitted = false,
+                                                    ynabTransactionId = None,
+                                                    error = Some(SubmissionError(
+                                                        transactionId,
+                                                        error.toString
+                                                    ))
+                                                ))
+                                            )
+                                            .flatMap {
+                                                case result: TransactionSubmissionResult =>
+                                                    ZIO.succeed(result)
+                                                case updatedState: TransactionProcessingState =>
+                                                    for
+                                                        // Save the updated state
+                                                        _ <- processingStateRepository.save(
+                                                            transactionId,
+                                                            updatedState
+                                                        )
+
+                                                        // Publish success event
+                                                        now <- Clock.instant
+                                                        event = TransactionSubmitted(
+                                                            transactionId = transactionId,
+                                                            ynabTransactionId =
+                                                                response.transactionId,
+                                                            ynabAccountId = response.accountId,
+                                                            occurredAt = now
+                                                        )
+                                                        _ <- eventPublisher(event)
+                                                    yield TransactionSubmissionResult(
+                                                        transactionId = transactionId,
+                                                        submitted = true,
+                                                        ynabTransactionId =
+                                                            Some(response.transactionId),
+                                                        error = None
+                                                    )
+                                            }
                                     yield updatedState
                             }
                     }
@@ -231,24 +252,26 @@ case class SubmissionServiceImpl(
 
     /** Check if transactions meet requirements for submission
       *
-      * @param transactionStates The processing states to validate
-      * @return A ValidationResult with valid and invalid transactions
+      * @param transactionStates
+      *   The processing states to validate
+      * @return
+      *   A ValidationResult with valid and invalid transactions
       */
     override def validateForSubmission(
         transactionStates: Seq[TransactionProcessingState]
-    ): UIO[ValidationResult] =
+    ): ValidationResult =
         // Partition into valid and invalid states
         val (valid, invalid) = transactionStates.partition { state =>
-            state.status == TransactionStatus.Categorized && 
-            state.effectiveCategory.isDefined && 
+            state.status == TransactionStatus.Categorized &&
+            state.effectiveCategory.isDefined &&
             state.effectivePayeeName.isDefined &&
             !state.isDuplicate
         }
-        
+
         // Add reasons for invalid states
         val invalidWithReasons = invalid.map { state =>
-            val reason = 
-                if state.isDuplicate then 
+            val reason =
+                if state.isDuplicate then
                     "Transaction is marked as duplicate"
                 else if state.status != TransactionStatus.Categorized then
                     s"Invalid status: ${state.status}"
@@ -258,16 +281,19 @@ case class SubmissionServiceImpl(
                     "Missing payee name"
                 else
                     "Unknown validation error"
-                    
+
             (state, reason)
         }
-        
-        ZIO.succeed(ValidationResult(valid, invalidWithReasons))
+
+        ValidationResult(valid, invalidWithReasons)
+    end validateForSubmission
 
     /** Get statistics about transaction submission status
       *
-      * @param sourceAccountId Optional account ID to filter by
-      * @return Statistics about transaction counts by status
+      * @param sourceAccountId
+      *   Optional account ID to filter by
+      * @return
+      *   Statistics about transaction counts by status
       */
     override def getSubmissionStatistics(
         sourceAccountId: Option[Long] = None
@@ -277,7 +303,7 @@ case class SubmissionServiceImpl(
             query <- ZIO.succeed(TransactionProcessingStateQuery(
                 sourceAccountId = sourceAccountId
             ))
-            
+
             // Get all states matching the query
             states <- processingStateRepository.find(query)
         yield SubmissionStatistics(
@@ -326,5 +352,6 @@ case class YnabSubmissionResponse(
 
 /** Interface for the component that submits transactions to YNAB */
 trait YnabSubmitter:
-    def submitTransaction(request: YnabSubmissionRequest): UIO[Either[String, YnabSubmissionResponse]]
+    def submitTransaction(request: YnabSubmissionRequest)
+        : UIO[Either[String, YnabSubmissionResponse]]
 end YnabSubmitter

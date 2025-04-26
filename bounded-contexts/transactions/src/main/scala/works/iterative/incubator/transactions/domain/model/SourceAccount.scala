@@ -5,8 +5,8 @@ import works.iterative.core.service.Create
 
 /** Represents a bank account from which transactions are imported
   *
-  * This entity serves as a reference/lookup entity for bank accounts
-  * as well as storing configuration for accessing bank APIs.
+  * This entity serves as a reference/lookup entity for bank accounts as well as storing
+  * configuration for accessing bank APIs.
   *
   * @param id
   *   Unique identifier for the source account

@@ -60,7 +60,7 @@ case class FioStatementInfo(
     idList: Option[String],
     idFrom: Long,
     idTo: Long,
-    idLastDownload: Option[Long] 
+    idLastDownload: Option[Long]
 )
 
 /** Account statement from Fio Bank API
