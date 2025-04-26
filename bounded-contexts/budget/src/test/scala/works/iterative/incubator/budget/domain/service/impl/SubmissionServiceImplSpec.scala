@@ -230,7 +230,7 @@ object SubmissionServiceImplSpec extends ZIOSpecDefault:
                     states = statesOpt.flatten
                     
                     // Validate states
-                    result <- service.validateForSubmission(states)
+                    result <- service.validateForSubmission(states.toSeq)
                 yield
                     assertTrue(
                         result.validTransactions.size == 1,   // Only one transaction is ready

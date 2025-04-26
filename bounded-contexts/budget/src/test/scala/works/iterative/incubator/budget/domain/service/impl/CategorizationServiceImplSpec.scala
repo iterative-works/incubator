@@ -125,18 +125,9 @@ object CategorizationServiceImplSpec extends ZIOSpecDefault:
                     .filter { state =>
                         query.sourceAccountId.forall(_ == state.transactionId.sourceAccountId) &&
                         query.status.forall(_ == state.status) &&
-                        query.minAmount.forall(min => 
-                            transactions.get(state.transactionId).exists(_.amount >= min)
-                        ) &&
-                        query.maxAmount.forall(max => 
-                            transactions.get(state.transactionId).exists(_.amount <= max)
-                        ) &&
-                        query.startDate.forall(start => 
-                            transactions.get(state.transactionId).exists(_.date.compareTo(start) >= 0)
-                        ) &&
-                        query.endDate.forall(end => 
-                            transactions.get(state.transactionId).exists(_.date.compareTo(end) <= 0)
-                        )
+                        // Removed minAmount and maxAmount checks as they're not in TransactionProcessingStateQuery
+                        // Also need to remove startDate and endDate checks
+                        true
                     }
                     .toSeq
             }

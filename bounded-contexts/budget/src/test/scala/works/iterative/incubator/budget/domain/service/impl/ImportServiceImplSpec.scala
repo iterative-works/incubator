@@ -9,6 +9,7 @@ import works.iterative.incubator.budget.domain.model.*
 import works.iterative.incubator.budget.domain.repository.*
 import works.iterative.incubator.budget.domain.event.*
 import works.iterative.incubator.budget.domain.service.{ImportService, RawTransaction}
+import works.iterative.incubator.budget.domain.query.{TransactionProcessingStateQuery, SourceAccountQuery}
 
 object ImportServiceImplSpec extends ZIOSpecDefault:
     // Mock repositories
@@ -31,7 +32,7 @@ object ImportServiceImplSpec extends ZIOSpecDefault:
     class MockProcessingStateRepository extends TransactionProcessingStateRepository:
         private var states = Map.empty[TransactionId, TransactionProcessingState]
         
-        def find(query: TransactionProcessingStateQuery): UIO[Seq[TransactionProcessingState]] =
+        def find(query: works.iterative.incubator.budget.domain.query.TransactionProcessingStateQuery): UIO[Seq[TransactionProcessingState]] =
             ZIO.succeed {
                 states.values.filter { state =>
                     query.sourceAccountId.forall(_ == state.transactionId.sourceAccountId) &&
@@ -58,21 +59,45 @@ object ImportServiceImplSpec extends ZIOSpecDefault:
                 id = 1L,
                 name = "Test Account",
                 bankId = "test-bank",
-                accountNumber = "123456789",
-                iban = Some("CZ1234567890123456789012"),
+                accountId = "123456789", // Changed from accountNumber to match the model
                 currency = "CZK",
                 active = true
+                // Removed iban as it's not in the model
             )
         )
         
         def save(key: Long, value: SourceAccount): UIO[Unit] =
             ZIO.succeed { accounts = accounts + (key -> value) }
             
+        // Implement methods from RepositoryWithCreate
+        def load(id: Long): UIO[Option[SourceAccount]] =
+            ZIO.succeed(accounts.get(id))
+            
+        def find(filter: works.iterative.incubator.budget.domain.query.SourceAccountQuery): UIO[Seq[SourceAccount]] =
+            ZIO.succeed(accounts.values.toSeq)
+            
+        // Implement the generic find method from Repository trait
+        def find[Q](query: Q): UIO[Seq[SourceAccount]] =
+            ZIO.succeed(accounts.values.toSeq)
+            
+        // Implement findById from Repository trait
         def findById(id: Long): UIO[Option[SourceAccount]] =
             ZIO.succeed(accounts.get(id))
             
-        def find[Q](query: Q): UIO[Seq[SourceAccount]] =
-            ZIO.succeed(accounts.values.toSeq)
+        def create(value: works.iterative.incubator.budget.domain.model.CreateSourceAccount): UIO[Long] =
+            ZIO.succeed {
+                val nextId = if accounts.isEmpty then 1L else accounts.keys.max + 1
+                val newAccount = SourceAccount(
+                    id = nextId,
+                    accountId = value.accountId,
+                    bankId = value.bankId,
+                    name = value.name,
+                    currency = value.currency,
+                    active = value.active
+                )
+                accounts = accounts + (nextId -> newAccount)
+                nextId
+            }
     end MockSourceAccountRepository
     
     // Event collector for testing
