@@ -132,7 +132,7 @@ case class SubmissionServiceImpl(
                     
                 case Some(state) =>
                     // Load transaction to get details for submission
-                    transactionRepository.findById(transactionId).flatMap {
+                    transactionRepository.load(transactionId).flatMap {
                         case None => 
                             ZIO.succeed(TransactionSubmissionResult(
                                 transactionId = transactionId,

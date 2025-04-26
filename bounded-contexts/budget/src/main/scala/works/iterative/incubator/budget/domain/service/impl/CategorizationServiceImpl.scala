@@ -77,7 +77,7 @@ case class CategorizationServiceImpl(
     ): UIO[Option[TransactionCategorization]] =
         for
             // Get the transaction and its processing state
-            txOpt <- transactionRepository.findById(transactionId)
+            txOpt <- transactionRepository.load(transactionId)
             stateOpt <- processingStateRepository.load(transactionId)
             
             // If both exist, proceed with categorization
@@ -143,7 +143,7 @@ case class CategorizationServiceImpl(
                 case Some(state) =>
                     for
                         // Verify the category exists
-                        categoryOpt <- categoryRepository.findById(categoryId)
+                        categoryOpt <- categoryRepository.load(categoryId)
                         _ <- ZIO.when(categoryOpt.isEmpty) {
                             ZIO.logWarning(s"Attempting to set non-existent category: $categoryId")
                         }
@@ -185,7 +185,7 @@ case class CategorizationServiceImpl(
     ): UIO[Int] =
         for
             // Verify category exists
-            categoryOpt <- categoryRepository.findById(categoryId)
+            categoryOpt <- categoryRepository.load(categoryId)
             _ <- ZIO.when(categoryOpt.isEmpty) {
                 ZIO.logWarning(s"Attempting to bulk update with non-existent category: $categoryId")
             }
@@ -203,7 +203,7 @@ case class CategorizationServiceImpl(
                               filter.transactionType.isDefined then
                 ZIO.foreach(states) { state =>
                     for
-                        txOpt <- transactionRepository.findById(state.transactionId)
+                        txOpt <- transactionRepository.load(state.transactionId)
                     yield txOpt.map(tx => (tx, state))
                 }.map(_.flatten).map { txAndStates =>
                     // Apply additional filters

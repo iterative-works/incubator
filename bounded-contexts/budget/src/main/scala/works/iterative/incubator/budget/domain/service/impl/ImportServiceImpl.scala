@@ -68,7 +68,7 @@ case class ImportServiceImpl(
       * @return True if the transaction already exists, false otherwise
       */
     override def checkForDuplicate(transactionId: TransactionId): UIO[Boolean] =
-        transactionRepository.findById(transactionId).map(_.isDefined)
+        transactionRepository.load(transactionId).map(_.isDefined)
 
     /** Import a single transaction, handling duplicate detection
       *
@@ -90,7 +90,7 @@ case class ImportServiceImpl(
             result <- if isDuplicate then
                 // If duplicate, publish event and return None
                 for
-                    existingTx <- transactionRepository.findById(transactionId).map(_.get)
+                    existingTx <- transactionRepository.load(transactionId).map(_.get)
                     event = DuplicateTransactionDetected(
                         externalId = rawTransaction.externalId,
                         sourceAccountId = sourceAccountId,

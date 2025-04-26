@@ -19,10 +19,14 @@ object ImportServiceImplSpec extends ZIOSpecDefault:
         def save(key: TransactionId, value: Transaction): UIO[Unit] =
             ZIO.succeed { transactions = transactions + (key -> value) }
             
-        def findById(id: TransactionId): UIO[Option[Transaction]] =
+        def load(id: TransactionId): UIO[Option[Transaction]] =
             ZIO.succeed(transactions.get(id))
             
         def find[Q](query: Q): UIO[Seq[Transaction]] = 
+            ZIO.succeed(transactions.values.toSeq)
+            
+        // Add the specific find method with the correct FilterArg type
+        def find(filter: works.iterative.incubator.budget.domain.query.TransactionQuery): UIO[Seq[Transaction]] =
             ZIO.succeed(transactions.values.toSeq)
             
         // Test helper
@@ -69,7 +73,7 @@ object ImportServiceImplSpec extends ZIOSpecDefault:
         def save(key: Long, value: SourceAccount): UIO[Unit] =
             ZIO.succeed { accounts = accounts + (key -> value) }
             
-        // Implement methods from RepositoryWithCreate
+        // Implement methods for Repository interfaces
         def load(id: Long): UIO[Option[SourceAccount]] =
             ZIO.succeed(accounts.get(id))
             
@@ -79,10 +83,6 @@ object ImportServiceImplSpec extends ZIOSpecDefault:
         // Implement the generic find method from Repository trait
         def find[Q](query: Q): UIO[Seq[SourceAccount]] =
             ZIO.succeed(accounts.values.toSeq)
-            
-        // Implement findById from Repository trait
-        def findById(id: Long): UIO[Option[SourceAccount]] =
-            ZIO.succeed(accounts.get(id))
             
         def create(value: works.iterative.incubator.budget.domain.model.CreateSourceAccount): UIO[Long] =
             ZIO.succeed {

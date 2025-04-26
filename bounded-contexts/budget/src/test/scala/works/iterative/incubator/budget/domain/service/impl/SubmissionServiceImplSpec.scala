@@ -34,10 +34,14 @@ object SubmissionServiceImplSpec extends ZIOSpecDefault:
         def save(key: TransactionId, value: Transaction): UIO[Unit] =
             ZIO.succeed { transactions = transactions + (key -> value) }
             
-        def findById(id: TransactionId): UIO[Option[Transaction]] =
+        def load(id: TransactionId): UIO[Option[Transaction]] =
             ZIO.succeed(transactions.get(id))
             
         def find[Q](query: Q): UIO[Seq[Transaction]] = 
+            ZIO.succeed(transactions.values.toSeq)
+            
+        // Add the specific find method with the correct FilterArg type
+        def find(filter: works.iterative.incubator.budget.domain.query.TransactionQuery): UIO[Seq[Transaction]] =
             ZIO.succeed(transactions.values.toSeq)
             
         // Initialize with test data
