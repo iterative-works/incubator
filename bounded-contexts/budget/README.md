@@ -26,11 +26,29 @@ graph TD
     end
 
     subgraph "Domain Services"
+        %% Service interfaces
         IMP[ImportService] --> TX
         IMP --> TXPS
         CAT_SVC[CategorizationService] --> TXPS
         CAT_SVC --> CAT
         SUB[SubmissionService] --> TXPS
+        
+        %% Service implementations
+        IMPI[ImportServiceImpl] -.implements.-> IMP
+        CATI[CategorizationServiceImpl] -.implements.-> CAT_SVC
+        SUBI[SubmissionServiceImpl] -.implements.-> SUB
+        
+        %% Implementation dependencies
+        IMPI --> TXREPO
+        IMPI --> TXPSREPO
+        IMPI --> SAREPO
+        CATI --> TXREPO
+        CATI --> TXPSREPO
+        CATI --> CATREPO
+        CATI --> CAT_STRAT[CategorizationStrategy]
+        SUBI --> TXREPO
+        SUBI --> TXPSREPO
+        SUBI --> YNAB[YnabSubmitter]
     end
     
     subgraph "Domain Events"
@@ -44,6 +62,18 @@ graph TD
         TXSS[TransactionsSubmitted] --> TXPS
         DTD[DuplicateTransactionDetected] --> TX
         SF[SubmissionFailed] --> TXPS
+        
+        %% Event publishing
+        IMPI -.publishes.-> TXI
+        IMPI -.publishes.-> IC
+        IMPI -.publishes.-> DTD
+        CATI -.publishes.-> TXC
+        CATI -.publishes.-> TXCS
+        CATI -.publishes.-> CU
+        CATI -.publishes.-> BCU
+        SUBI -.publishes.-> TXS
+        SUBI -.publishes.-> TXSS
+        SUBI -.publishes.-> SF
     end
     
     subgraph "Repository Interfaces"
@@ -51,12 +81,6 @@ graph TD
         TXPSREPO[TransactionProcessingStateRepository] --> TXPS
         CATREPO[CategoryRepository] --> CAT
         SAREPO[SourceAccountRepository] --> SA
-        
-        IMP --> TXREPO
-        IMP --> TXPSREPO
-        CAT_SVC --> TXPSREPO
-        CAT_SVC --> CATREPO
-        SUB --> TXPSREPO
     end
     
     subgraph "Infrastructure"
@@ -94,13 +118,18 @@ graph TD
 
 ## Domain Services
 
-Service interfaces that define the core business operations:
+Service interfaces and implementations that define the core business operations:
 
 | Service | Location | Purpose | Scenarios Supported | Key Relationships |
 |---------|----------|---------|---------------------|------------------|
-| `ImportService` | `domain/service/ImportService.scala` | Coordinates transaction import workflow | Transaction import, Duplicate detection | Works with `TransactionRepository`, publishes `ImportCompleted` events |
-| `CategorizationService` | `domain/service/CategorizationService.scala` | Manages transaction categorization | Transaction categorization, Manual overrides, Bulk updates | Works with `TransactionProcessingStateRepository` and `CategoryRepository` |
-| `SubmissionService` | `domain/service/SubmissionService.scala` | Handles submission to external systems | Transaction submission, Validation, Statistics | Works with `TransactionProcessingStateRepository`, validates submission requirements |
+| `ImportService` | `domain/service/ImportService.scala` | Defines transaction import workflow | Transaction import, Duplicate detection | Works with `TransactionRepository`, publishes `ImportCompleted` events |
+| `CategorizationService` | `domain/service/CategorizationService.scala` | Defines transaction categorization | Transaction categorization, Manual overrides, Bulk updates | Works with `TransactionProcessingStateRepository` and `CategoryRepository` |
+| `SubmissionService` | `domain/service/SubmissionService.scala` | Defines submission to external systems | Transaction submission, Validation, Statistics | Works with `TransactionProcessingStateRepository`, validates submission requirements |
+| `ImportServiceImpl` | `domain/service/impl/ImportServiceImpl.scala` | Implements transaction import workflow | Transaction import, Duplicate detection | Implements `ImportService` interface with business logic |
+| `CategorizationServiceImpl` | `domain/service/impl/CategorizationServiceImpl.scala` | Implements transaction categorization | Transaction categorization, Manual overrides, Bulk updates | Implements `CategorizationService` interface with business logic |
+| `SubmissionServiceImpl` | `domain/service/impl/SubmissionServiceImpl.scala` | Implements submission to external systems | Transaction submission, Validation, Statistics | Implements `SubmissionService` interface with business logic |
+| `CategorizationStrategy` | `domain/service/impl/CategorizationServiceImpl.scala` | Strategy for categorizing transactions | Transaction categorization | Used by `CategorizationServiceImpl` to allow pluggable categorization algorithms |
+| `YnabSubmitter` | `domain/service/impl/SubmissionServiceImpl.scala` | Interface for YNAB submission | Transaction submission | Used by `SubmissionServiceImpl` to abstract submission details |
 
 ## Domain Events
 
