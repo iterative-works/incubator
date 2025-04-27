@@ -10,7 +10,8 @@ The Budget bounded context is structured according to the Functional Core/Impera
 - **Domain Services:** Define the workflow operations and business logic for core domain processes
 - **Repository Interfaces:** Define data access capabilities without implementation details
 - **Domain Events:** Represent significant state changes and trigger workflows
-- **Infrastructure (Imperative Shell):** Implementations of repository interfaces, providing concrete data access
+- **Port Interfaces:** Define required capabilities from external systems
+- **Infrastructure (Imperative Shell):** Implementations of repository and port interfaces, providing concrete data access and external system integration
 
 ## Component Diagram
 
@@ -42,13 +43,15 @@ graph TD
         IMPI --> TXREPO
         IMPI --> TXPSREPO
         IMPI --> SAREPO
+        IMPI -.uses.-> TXPROV[TransactionProvider]
         CATI --> TXREPO
         CATI --> TXPSREPO
         CATI --> CATREPO
+        CATI -.uses.-> CATPROV[CategorizationProvider]
         CATI --> CAT_STRAT[CategorizationStrategy]
         SUBI --> TXREPO
         SUBI --> TXPSREPO
-        SUBI --> YNAB[YnabSubmitter]
+        SUBI -.uses.-> SUBPORT[TransactionSubmissionPort]
     end
     
     subgraph "Domain Events"
@@ -81,6 +84,12 @@ graph TD
         TXPSREPO[TransactionProcessingStateRepository] --> TXPS
         CATREPO[CategoryRepository] --> CAT
         SAREPO[SourceAccountRepository] --> SA
+    end
+    
+    subgraph "Domain Ports"
+        TXPROV -.external.-> BANK[Bank API]
+        CATPROV -.external.-> AI[AI Service]
+        SUBPORT -.external.-> YNAB[YNAB API]
     end
     
     subgraph "Infrastructure"
@@ -130,6 +139,16 @@ Service interfaces and implementations that define the core business operations:
 | `SubmissionServiceImpl` | `domain/service/impl/SubmissionServiceImpl.scala` | Implements submission to external systems | Transaction submission, Validation, Statistics | Implements `SubmissionService` interface with business logic |
 | `CategorizationStrategy` | `domain/service/impl/CategorizationServiceImpl.scala` | Strategy for categorizing transactions | Transaction categorization | Used by `CategorizationServiceImpl` to allow pluggable categorization algorithms |
 | `YnabSubmitter` | `domain/service/impl/SubmissionServiceImpl.scala` | Interface for YNAB submission | Transaction submission | Used by `SubmissionServiceImpl` to abstract submission details |
+
+## Domain Ports
+
+Port interfaces that define required capabilities from external systems:
+
+| Port | Location | Purpose | Scenarios Supported | Key Relationships |
+|---------|----------|---------|---------------------|------------------|
+| `TransactionProvider` | `domain/port/TransactionProvider.scala` | Interface for external transaction sources | Transaction import workflow, Duplicate detection | Used by `ImportService` to retrieve transactions from banks |
+| `CategorizationProvider` | `domain/port/CategorizationProvider.scala` | Interface for categorization services | Transaction categorization, AI categorization | Used by `CategorizationService` for automatic categorization |
+| `TransactionSubmissionPort` | `domain/port/TransactionSubmissionPort.scala` | Interface for submitting to external systems | Transaction submission, Validation | Used by `SubmissionService` to submit transactions to YNAB |
 
 ## Domain Events
 
@@ -287,3 +306,4 @@ Next steps for this bounded context include:
 - Integration with external banking APIs
 - AI-powered categorization logic
 - Integration with YNAB API for transaction submission
+- Adapter implementations for the port interfaces
