@@ -15,10 +15,10 @@ tags:
 - **Feature File**: [BUDGET-001.feature](./BUDGET-001.feature)
 
 ## Implementation Status
-- **Overall Status**: Not Started
-- **Progress**: 0/13 steps completed
-- **Current Focus**: Step 1 - Core Domain Entities and Value Objects
-- **Last Update**: 2024-06-22
+- **Overall Status**: In Progress
+- **Progress**: 5/13 steps completed
+- **Current Focus**: Step 6 - Domain-Level Test Implementation
+- **Last Update**: 2024-04-27
 
 ## Feature Overview
 A web-based tool that automates the import, categorization, and submission of financial transactions from Fio Bank to the YNAB (You Need A Budget) application using AI for transaction categorization. This integration significantly reduces manual effort in financial data management, improves categorization accuracy through AI assistance, and enables more timely financial reporting and budget management.
@@ -355,70 +355,102 @@ A web-based tool that automates the import, categorization, and submission of fi
 
 ### Step 1: Core Domain Entities and Value Objects
 - **Component**: `Transaction`, `Category`, `TransactionStatus`, `ConfidenceScore` (Entity, Value Object)
-- **Status**: Not Started
-- **Started**: -
-- **Completed**: -
-- **Implementer**: TBD
-- **PR/Branch**: -
-- **Implementation Notes**: Not started yet
-- **Deviations from Plan**: None
+- **Status**: Completed
+- **Started**: 2025-04-25
+- **Completed**: 2025-04-25
+- **Implementer**: Michal,Claude
+- **PR/Branch**: [PR #3](https://github.com/iterative-works/incubator/pull/3), branch: feature/BUDGET-0001-1
+- **Implementation Notes**: Implemented all required domain entities and value objects following the functional core architecture. Created confidence score value object with range validation. Enhanced transaction processing state with confidence tracking and proper status transitions. Added domain events for all key workflow steps. All components have corresponding ZIO tests.
+- **Deviations from Plan**: Added additional domain events beyond those initially specified to fully support all Gherkin scenarios.
 - **Acceptance Review**:
-  - [ ] All domain invariants are enforced through type constraints - Status: Not Started
-  - [ ] Transaction status can only transition according to workflow rules - Status: Not Started
-  - [ ] Confidence score is constrained to valid range - Status: Not Started
-  - [ ] All domain objects are immutable - Status: Not Started
+  - [x] All domain invariants are enforced through type constraints - Status: Completed
+  - [x] Transaction status can only transition according to workflow rules - Status: Completed
+  - [x] Confidence score is constrained to valid range - Status: Completed
+  - [x] All domain objects are immutable - Status: Completed
 - **Blockers**: None
 
 ### Step 2: Domain Services and Repositories Interfaces
-- **Component**: `ImportService`, `CategorizationService`, `SubmissionService`, `TransactionRepository`, `CategoryRepository` (Service Interface, Repository Interface)
-- **Status**: Not Started
-- **Started**: -
-- **Completed**: -
-- **Implementer**: TBD
-- **PR/Branch**: -
-- **Implementation Notes**: Not started yet
-- **Deviations from Plan**: None
+Component**: `ImportService`, `CategorizationService`, `SubmissionService`, `TransactionRepository`, `CategoryRepository` (Service Interface, Repository Interface)
+- **Status**: Completed
+- **Started**: 2025-04-26
+- **Completed**: 2025-04-26
+- **Implementer**: Michal,Claude
+- **PR/Branch**: feature/BUDGET-001-2 (PR #4)
+- **Implementation Notes**:
+  - Implemented service interfaces and their implementations following the Functional Core pattern
+  - Created ImportServiceImpl with transaction import logic and duplicate detection
+  - Created CategorizationServiceImpl with AI categorization and manual override support
+  - Created SubmissionServiceImpl with validation and YNAB submission
+  - Integrated with existing Repository interfaces from core library
+  - Added comprehensive tests for all services
+  - Fixed error handling for validation failures in submission workflow
+- **Deviations from Plan**:
+  - Added concrete service implementations, not just interfaces, to better adhere to Functional Core pattern
+  - Added additional interfaces (CategorizationStrategy, YnabSubmitter) for better abstraction
 - **Acceptance Review**:
-  - [ ] All service interfaces use pure functions with explicit effect types - Status: Not Started
-  - [ ] Repository interfaces support required query patterns - Status: Not Started
-  - [ ] All interfaces align with domain scenarios - Status: Not Started
+  - [x] All service interfaces use pure functions with explicit effect types - Status: Completed
+  - [x] Repository interfaces support required query patterns - Status: Completed
+  - [x] All interfaces align with domain scenarios - Status: Completed
 - **Blockers**: None
 
-### Step 3: Domain Event Implementation
+## Step 3: Domain Event Implementation
 - **Component**: `ImportCompletedEvent`, `TransactionsCategorizedEvent`, `CategoryUpdatedEvent`, `TransactionsSubmittedEvent` (Domain Event)
-- **Status**: Not Started
-- **Started**: -
-- **Completed**: -
-- **Implementer**: TBD
-- **PR/Branch**: -
-- **Implementation Notes**: Not started yet
-- **Deviations from Plan**: None
+- **Status**: Completed
+- **Started**: 2024-04-26
+- **Completed**: 2024-04-26
+- **Implementer**: Michal,Claude
+- **PR/Branch**: N/A (already implemented)
+- **Implementation Notes**: All required domain events were already implemented in the system. These events follow functional programming principles, using immutable case classes that extend the DomainEvent trait. Events include context data relevant to each scenario, timestamps, and are used consistently throughout service implementations.
+- **Deviations from Plan**: None - implementation aligned with plan but discovered events were already implemented
 - **Acceptance Review**:
-  - [ ] Events contain all necessary information for subscribers - Status: Not Started
-  - [ ] Events are immutable and serializable - Status: Not Started
+  - [x] Events contain all necessary information for subscribers - Status: Completed
+  - [x] Events are immutable and serializable - Status: Completed
 - **Blockers**: None
 
 ### Step 4: External Ports Interfaces
 - **Component**: `TransactionProvider`, `CategorizationProvider`, `TransactionSubmissionPort` (Port Interface)
-- **Status**: Not Started
-- **Started**: -
-- **Completed**: -
-- **Implementer**: TBD
+- **Status**: Completed
+- **Started**: 2024-04-26
+- **Completed**: 2024-04-26
+- **Implementer**: Michal, Claude
 - **PR/Branch**: -
-- **Implementation Notes**: Not started yet
-- **Acceptance Review**: Not started
-- **Blockers**: Depends on completion of Step 3
+- **Implementation Notes**:
+  - Implemented all three port interfaces following the Ports and Adapters pattern
+  - Each port defines domain-focused interfaces that abstract external system interactions
+  - Created domain-specific error types for each port using sealed traits
+  - Used ZIO for explicit effect handling and error management
+  - Designed interfaces to support all required scenarios (import, categorization, submission)
+  - Added comprehensive documentation for methods and error types
+- **Acceptance Review**:
+  - [x] Ports clearly define required external capabilities
+  - [x] All external dependencies are abstracted behind interfaces
+  - [x] Port interfaces use domain language and types
+  - [x] Error types reflect domain concerns rather than technical issues
+  - [x] ZIO effects are used appropriately for handling failures
+- **Blockers**: None (implementation proceeded without Step 3 dependency)
 
 ### Step 5: Mock Implementations for Domain Testing
-- **Component**: `InMemoryTransactionRepository`, `InMemoryCategoryRepository`, `MockTransactionProvider`, `MockCategorizationProvider`, `MockTransactionSubmissionPort` (Mock Implementation)
-- **Status**: Not Started
-- **Started**: -
-- **Completed**: -
-- **Implementer**: TBD
-- **PR/Branch**: -
-- **Implementation Notes**: Not started yet
-- **Acceptance Review**: Not started
-- **Blockers**: Depends on completion of Step 4
+- **Component**: `InMemoryTransactionRepository`, `InMemoryCategoryRepository`, `MockTransactionProvider`, `MockCategorizationProvider`, `MockTransactionSubmissionPort`, `MockFactory` (Mock Implementation)
+- **Status**: Completed
+- **Started**: 2024-04-27
+- **Completed**: 2024-04-27
+- **Implementer**: Michal, Claude
+- **PR/Branch**: feature/BUDGET-001-5
+- **Implementation Notes**: 
+  - Implemented all mock classes for domain testing following the Mock Implementation Guide
+  - Created `MockTransactionProvider` with configurable behavior and transaction simulation
+  - Created `MockCategorizationProvider` with rule-based categorization and confidence scoring
+  - Created `MockTransactionSubmissionPort` with validation and configurable responses
+  - Created `MockFactory` for convenient test environment setup with scenario-specific configurations
+  - Added support for duplicate detection, categorization rules, and validation failures
+  - Fixed a bug in duplicate detection by removing an unused externalId parameter
+  - All mocks are thread-safe using ZIO Ref for state management
+- **Acceptance Review**:
+  - [x] All mocks implement their respective interfaces correctly - Status: Completed
+  - [x] Mocks provide configurable behaviors for different test scenarios - Status: Completed
+  - [x] Mocks track method invocations for verification - Status: Completed
+  - [x] MockFactory supports creating preconfigured environments - Status: Completed
+- **Blockers**: None
 
 ### Step 6: Domain-Level Test Implementation
 - **Component**: `ImportServiceSpec`, `CategorizationServiceSpec`, `SubmissionServiceSpec` (Test Suite)
@@ -514,29 +546,35 @@ These requirements were not in the original plan but were discovered during impl
 <!-- No discovered requirements yet -->
 
 ## Questions & Decisions Log
-| Question/Issue | Status | Decision | Date | Participants |
-|----------------|--------|----------|------|-------------|
-| How should we handle Fio Bank API rate limits? | Open | - | - | - |
-| What confidence threshold should trigger manual review? | Open | - | - | - |
-| Should we use ZIO Streams for transaction processing? | Open | - | - | - |
+| Question/Issue                                          | Status | Decision | Date | Participants |
+| ------------------------------------------------------- | ------ | -------- | ---- | ------------ |
+| How should we handle Fio Bank API rate limits?          | Open   | -        | -    | -            |
+| What confidence threshold should trigger manual review? | Open   | -        | -    | -            |
+| Should we use ZIO Streams for transaction processing?   | Open   | -        | -    | -            |
 
 ## Issues & Blockers Tracking
-| Issue | Impact | Status | Resolution | Affected Scenarios |
-|-------|--------|--------|------------|-------------------|
-| YNAB API documentation is unclear about batch submission limits | May affect submission performance | Open | Investigating with YNAB support | Transaction submission workflow |
-| Need test doubles for external APIs | Blocks integration testing | Open | Planning to create mock servers | All integration scenarios |
+| Issue                                                           | Impact                            | Status | Resolution                      | Affected Scenarios              |
+| --------------------------------------------------------------- | --------------------------------- | ------ | ------------------------------- | ------------------------------- |
+| YNAB API documentation is unclear about batch submission limits | May affect submission performance | Open   | Investigating with YNAB support | Transaction submission workflow |
+| Need test doubles for external APIs                             | Blocks integration testing        | Open   | Planning to create mock servers | All integration scenarios       |
 
 ## Daily Progress Updates
 
-<!-- No progress updates yet -->
+### 2024-06-23
+- Completed Step 5: Mock Implementations for Domain Testing
+- Implemented MockTransactionProvider, MockCategorizationProvider, and MockTransactionSubmissionPort
+- Created MockFactory to support scenario-based testing
+- Fixed a bug related to duplicate detection in the mock implementation 
+- Updated README.md with documentation for the mock implementations
+- Ready to proceed with Step 6: Domain-Level Test Implementation
 
 ## Integration Testing Progress
-| Scenario | Status | Notes |
-|----------|--------|-------|
-| System connects successfully to Fio Bank API | Not Started | Awaiting external port interfaces |
-| AI service categorizes transactions with required accuracy | Not Started | Awaiting AI integration |
-| System connects successfully to YNAB API | Not Started | Awaiting external port interfaces |
-| Complete transaction import-categorize-submit workflow | Not Started | Awaiting component implementations |
+| Scenario                                                   | Status      | Notes                              |
+| ---------------------------------------------------------- | ----------- | ---------------------------------- |
+| System connects successfully to Fio Bank API               | Not Started | Awaiting external port interfaces  |
+| AI service categorizes transactions with required accuracy | Not Started | Awaiting AI integration            |
+| System connects successfully to YNAB API                   | Not Started | Awaiting external port interfaces  |
+| Complete transaction import-categorize-submit workflow     | Not Started | Awaiting component implementations |
 
 ## Retrospective Notes
 To be completed once the feature is implemented:

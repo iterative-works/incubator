@@ -201,6 +201,17 @@ Repository implementations:
 | `InMemoryCategoryRepository` | `infrastructure/repository/inmemory/InMemoryCategoryRepository.scala` | In-memory category storage | All category scenarios in dev/test | Implements `CategoryRepository` |
 | `InMemorySourceAccountRepository` | `infrastructure/repository/inmemory/InMemorySourceAccountRepository.scala` | In-memory account storage | All account scenarios in dev/test | Implements `SourceAccountRepository` |
 
+## Mock Implementations
+
+Mock domain port implementations for testing:
+
+| Mock | Location | Purpose | Scenarios Supported | Key Relationships |
+|------|----------|---------|---------------------|------------------|
+| `MockTransactionProvider` | `domain/mock/MockTransactionProvider.scala` | Mock implementation of transaction provider | Transaction import, Duplicate detection | Implements `TransactionProvider` port |
+| `MockCategorizationProvider` | `domain/mock/MockCategorizationProvider.scala` | Mock implementation of categorization provider | Transaction categorization, Confidence scoring | Implements `CategorizationProvider` port |
+| `MockTransactionSubmissionPort` | `domain/mock/MockTransactionSubmissionPort.scala` | Mock implementation of transaction submission | Transaction submission, Validation | Implements `TransactionSubmissionPort` port |
+| `MockFactory` | `domain/mock/MockFactory.scala` | Factory for creating test environments | All domain scenarios | Creates and configures combinations of mocks for scenario-based testing |
+
 ## Service Data Transfer Objects
 
 Data structures used by services for operations:
