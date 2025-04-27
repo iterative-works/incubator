@@ -5,6 +5,7 @@ import java.time.LocalDate
 
 import works.iterative.incubator.budget.domain.model.*
 import works.iterative.incubator.budget.domain.port.*
+import works.iterative.incubator.budget.domain.port.{TransactionProvider, TransactionProviderError}
 
 /** Mock implementation of the TransactionProvider port for testing purposes.
   *
@@ -17,7 +18,7 @@ case class MockTransactionProvider(
     data: Ref[Map[String, List[Transaction]]],
     errors: Ref[MockErrorConfig],
     invocations: Ref[List[ProviderInvocation]]
-):
+) extends TransactionProvider:
     /** Retrieves pre-configured transactions for the given account and date range.
       *
       * @param sourceAccount
@@ -66,7 +67,7 @@ case class MockTransactionProvider(
             _ <- invocations.update(_ :+ ProviderInvocation.TestConnection(sourceAccount))
             result <- config.connectionError match
                 case Some(error) => ZIO.fail(error)
-                case None => ZIO.unit
+                case None        => ZIO.unit
         yield result
 
     // Configuration methods for testing
@@ -129,8 +130,8 @@ case class MockTransactionProvider(
       */
     def reset: UIO[Unit] =
         data.set(Map.empty) *>
-        errors.set(MockErrorConfig()) *>
-        invocations.set(List.empty)
+            errors.set(MockErrorConfig()) *>
+            invocations.set(List.empty)
 end MockTransactionProvider
 
 object MockTransactionProvider:

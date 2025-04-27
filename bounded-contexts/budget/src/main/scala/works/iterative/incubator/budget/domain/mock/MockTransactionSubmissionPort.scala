@@ -4,6 +4,12 @@ import zio.*
 
 import works.iterative.incubator.budget.domain.model.*
 import works.iterative.incubator.budget.domain.port.*
+import works.iterative.incubator.budget.domain.port.{
+    TransactionSubmissionResult,
+    ValidationResult,
+    SubmissionError,
+    TransactionSubmissionPort
+}
 
 /** Mock implementation of the TransactionSubmissionPort port for testing purposes.
   *
@@ -17,7 +23,7 @@ case class MockTransactionSubmissionPort(
     config: Ref[SubmissionConfig],
     submittedTransactions: Ref[Map[TransactionId, String]],
     invocations: Ref[List[SubmissionInvocation]]
-):
+) extends TransactionSubmissionPort:
     /** Validates if transactions are ready for submission based on configuration.
       *
       * @param transaction
@@ -33,7 +39,8 @@ case class MockTransactionSubmissionPort(
     ): ZIO[Any, Nothing, ValidationResult] =
         for
             cfg <- config.get
-            _ <- invocations.update(_ :+ SubmissionInvocation.Validate(transaction, processingState))
+            _ <-
+                invocations.update(_ :+ SubmissionInvocation.Validate(transaction, processingState))
             result <- ZIO.succeed {
                 val validationErrors = List.newBuilder[String]
 
@@ -46,10 +53,12 @@ case class MockTransactionSubmissionPort(
                     validationErrors += s"Amount must be at least ${cfg.minimumAmount}"
 
                 // Check for message/comment length
-                if transaction.message.getOrElse("").isEmpty && 
-                   transaction.comment.getOrElse("").isEmpty && 
-                   cfg.minimumDescriptionLength > 0 then
+                if transaction.message.getOrElse("").isEmpty &&
+                    transaction.comment.getOrElse("").isEmpty &&
+                    cfg.minimumDescriptionLength > 0
+                then
                     validationErrors += s"Message or comment must be at least ${cfg.minimumDescriptionLength} characters"
+                end if
 
                 // Check custom validation
                 cfg.customValidation.foreach { validator =>
@@ -77,31 +86,34 @@ case class MockTransactionSubmissionPort(
     ): ZIO[Any, SubmissionError, TransactionSubmissionResult] =
         for
             cfg <- config.get
-            _ <- invocations.update(_ :+ SubmissionInvocation.SubmitOne(transaction, processingState))
-            
+            _ <- invocations.update(_ :+ SubmissionInvocation.SubmitOne(
+                transaction,
+                processingState
+            ))
+
             // Check if we should fail this submission
             _ <- cfg.singleSubmissionError match
                 case Some(error) => ZIO.fail(error)
-                case None => ZIO.unit
-                
+                case None        => ZIO.unit
+
             // Check if this transaction was already submitted
             alreadySubmitted <- submittedTransactions.get.map(_.contains(transaction.id))
-            
+
             // Generate an external ID for successful submissions
             externalId <- if alreadySubmitted then
                 submittedTransactions.get.map(_.get(transaction.id))
             else
                 ZIO.succeed(Some(s"ext-${scala.util.Random.alphanumeric.take(8).mkString}"))
-                
+
             // Record the submission
             _ <- if !alreadySubmitted && externalId.isDefined then
                 submittedTransactions.update(_ + (transaction.id -> externalId.get))
-            else 
+            else
                 ZIO.unit
-            
+
             // Create the result
             result = (alreadySubmitted, externalId) match
-                case (true, Some(id)) => 
+                case (true, Some(id)) =>
                     TransactionSubmissionResult(
                         transactionId = transaction.id,
                         externalId = Some(id),
@@ -117,7 +129,8 @@ case class MockTransactionSubmissionPort(
                     TransactionSubmissionResult(
                         transactionId = transaction.id,
                         externalId = None,
-                        status = TransactionSubmissionStatus.Failed("Failed to generate external ID")
+                        status =
+                            TransactionSubmissionStatus.Failed("Failed to generate external ID")
                     )
         yield result
 
@@ -134,12 +147,12 @@ case class MockTransactionSubmissionPort(
         for
             cfg <- config.get
             _ <- invocations.update(_ :+ SubmissionInvocation.SubmitBatch(transactions))
-            
+
             // Check if we should fail the batch submission
             _ <- cfg.batchSubmissionError match
                 case Some(error) => ZIO.fail(error)
-                case None => ZIO.unit
-                
+                case None        => ZIO.unit
+
             // Validate the batch first if required
             _ <- if cfg.validateBeforeSubmission then
                 ZIO.foreach(transactions) { case (tx, state) =>
@@ -152,7 +165,7 @@ case class MockTransactionSubmissionPort(
                     }
                 }
             else ZIO.unit
-            
+
             // Process each transaction
             results <- ZIO.foreach(transactions) { case (tx, state) =>
                 submitTransaction(tx, state).catchAll { error =>
@@ -178,7 +191,7 @@ case class MockTransactionSubmissionPort(
             _ <- invocations.update(_ :+ SubmissionInvocation.TestConnection)
             result <- cfg.connectionError match
                 case Some(error) => ZIO.fail(error)
-                case None => ZIO.unit
+                case None        => ZIO.unit
         yield result
 
     // Configuration methods for testing
@@ -312,8 +325,8 @@ case class MockTransactionSubmissionPort(
       */
     def reset: UIO[Unit] =
         config.set(SubmissionConfig.default) *>
-        submittedTransactions.set(Map.empty) *>
-        invocations.set(List.empty)
+            submittedTransactions.set(Map.empty) *>
+            invocations.set(List.empty)
 end MockTransactionSubmissionPort
 
 object MockTransactionSubmissionPort:
@@ -342,11 +355,11 @@ object MockTransactionSubmissionPort:
             _ <- scenarioName match
                 case "successful-submission" =>
                     mock.setValidateBeforeSubmission(true) *>
-                    mock.requireCategory(true)
+                        mock.requireCategory(true)
                 case "validation-failure" =>
                     mock.setValidateBeforeSubmission(true) *>
-                    mock.requireCategory(true) *>
-                    mock.setFailOnValidationError(true)
+                        mock.requireCategory(true) *>
+                        mock.setFailOnValidationError(true)
                 case "connection-failure" =>
                     mock.setConnectionError(
                         SubmissionError.ConnectionFailed("Cannot connect to YNAB API")

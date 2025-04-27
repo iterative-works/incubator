@@ -4,6 +4,11 @@ import zio.*
 
 import works.iterative.incubator.budget.domain.model.*
 import works.iterative.incubator.budget.domain.port.*
+import works.iterative.incubator.budget.domain.port.{
+    CategorizationProvider,
+    TransactionCategorization,
+    CategorizationError
+}
 
 /** Mock implementation of the CategorizationProvider port for testing purposes.
   *
@@ -16,7 +21,7 @@ import works.iterative.incubator.budget.domain.port.*
 case class MockCategorizationProvider(
     config: Ref[CategorizationConfig],
     invocations: Ref[List[CategorizationInvocation]]
-):
+) extends CategorizationProvider:
     /** Categorizes a single transaction based on configured rules.
       *
       * @param transaction
@@ -29,7 +34,8 @@ case class MockCategorizationProvider(
     ): ZIO[Any, CategorizationError, TransactionCategorization] =
         for
             cfg <- config.get
-            _ <- invocations.update(_ :+ CategorizationInvocation.CategorizeTransaction(transaction))
+            _ <-
+                invocations.update(_ :+ CategorizationInvocation.CategorizeTransaction(transaction))
             result <- cfg.categorizeError match
                 case Some(error) => ZIO.fail(error)
                 case None =>
@@ -48,7 +54,9 @@ case class MockCategorizationProvider(
     ): ZIO[Any, CategorizationError, List[TransactionCategorization]] =
         for
             cfg <- config.get
-            _ <- invocations.update(_ :+ CategorizationInvocation.CategorizeTransactions(transactions))
+            _ <- invocations.update(
+                _ :+ CategorizationInvocation.CategorizeTransactions(transactions)
+            )
             result <- cfg.bulkCategorizeError match
                 case Some(error) => ZIO.fail(error)
                 case None =>
@@ -82,7 +90,7 @@ case class MockCategorizationProvider(
             )
             result <- cfg.learnError match
                 case Some(error) => ZIO.fail(error)
-                case None =>
+                case None        =>
                     // In a real implementation, this would update the model
                     // For the mock, we just record the invocation
                     ZIO.unit
@@ -99,15 +107,17 @@ case class MockCategorizationProvider(
             matchingRule <- ZIO.succeed(
                 cfg.rules.find(rule =>
                     transaction.message.exists(_.toLowerCase.contains(rule.keyword.toLowerCase)) ||
-                    transaction.comment.exists(_.toLowerCase.contains(rule.keyword.toLowerCase)) ||
-                    transaction.transactionType.toLowerCase.contains(rule.keyword.toLowerCase)
+                        transaction.comment.exists(
+                            _.toLowerCase.contains(rule.keyword.toLowerCase)
+                        ) ||
+                        transaction.transactionType.toLowerCase.contains(rule.keyword.toLowerCase)
                 )
             )
 
             // Determine category and confidence
             (category, confidence) <- matchingRule match
                 case Some(rule) => ZIO.succeed((rule.category, rule.confidence))
-                case None => ZIO.succeed((cfg.defaultCategory, cfg.defaultConfidence))
+                case None       => ZIO.succeed((cfg.defaultCategory, cfg.defaultConfidence))
 
             // Generate alternatives if configured
             alternatives <- ZIO.succeed(
@@ -240,7 +250,7 @@ case class MockCategorizationProvider(
       */
     def reset: UIO[Unit] =
         config.set(CategorizationConfig.default) *>
-        invocations.set(List.empty)
+            invocations.set(List.empty)
 end MockCategorizationProvider
 
 object MockCategorizationProvider:
@@ -268,17 +278,21 @@ object MockCategorizationProvider:
             _ <- scenarioName match
                 case "successful-categorization" =>
                     mock.addRule("GROCERY", CategoryHelper.create("Groceries")) *>
-                    mock.addRule("RESTAURANT", CategoryHelper.create("Dining Out")) *>
-                    mock.addRule("UBER", CategoryHelper.create("Transportation"))
+                        mock.addRule("RESTAURANT", CategoryHelper.create("Dining Out")) *>
+                        mock.addRule("UBER", CategoryHelper.create("Transportation"))
                 case "ambiguous-transaction" =>
-                    mock.addRule("AMAZON", CategoryHelper.create("Shopping"), ConfidenceScore(0.6)) *>
-                    mock.setAlternativeCategories(
-                        List(
-                            CategoryHelper.create("Entertainment"),
-                            CategoryHelper.create("Home"),
-                            CategoryHelper.create("Gifts")
+                    mock.addRule(
+                        "AMAZON",
+                        CategoryHelper.create("Shopping"),
+                        ConfidenceScore(0.6)
+                    ) *>
+                        mock.setAlternativeCategories(
+                            List(
+                                CategoryHelper.create("Entertainment"),
+                                CategoryHelper.create("Home"),
+                                CategoryHelper.create("Gifts")
+                            )
                         )
-                    )
                 case "categorization-fails" =>
                     mock.setCategorizeError(
                         CategorizationError.ServiceUnavailable("Service is down for maintenance")
@@ -314,7 +328,8 @@ end MockCategorizationProvider
 /** Configuration for the MockCategorizationProvider. */
 case class CategorizationConfig(
     rules: List[CategorizationRule] = List.empty,
-    defaultCategory: Category = works.iterative.incubator.budget.domain.model.Category.Uncategorized,
+    defaultCategory: Category =
+        works.iterative.incubator.budget.domain.model.Category.Uncategorized,
     defaultConfidence: ConfidenceScore = ConfidenceScore(0.5),
     alternativeCategories: List[Category] = List.empty,
     generateAlternatives: Boolean = false,
@@ -340,7 +355,7 @@ case class CategorizationRule(
 object CategoryHelper:
     def create(name: String): Category = Category(
         id = s"mock-${name.toLowerCase.replace(' ', '-')}",
-        name = name, 
+        name = name,
         parentId = None
     )
 end CategoryHelper
