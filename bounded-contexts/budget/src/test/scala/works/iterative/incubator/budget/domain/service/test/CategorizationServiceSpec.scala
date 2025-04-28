@@ -58,9 +58,9 @@ object CategorizationServiceSpec extends ZIOSpecDefault:
                 )
                 
                 // Then transactions should be categorized
-                groceryState <- env.processingStateRepo.findById(groceryTx.id)
-                restaurantState <- env.processingStateRepo.findById(restaurantTx.id)
-                unknownState <- env.processingStateRepo.findById(unknownTx.id)
+                groceryState <- env.processingStateRepo.load(groceryTx.id)
+                restaurantState <- env.processingStateRepo.load(restaurantTx.id)
+                unknownState <- env.processingStateRepo.load(unknownTx.id)
             yield
                 assertTrue(
                     result.categorizedCount == 3, // All transactions should be categorized
@@ -93,7 +93,7 @@ object CategorizationServiceSpec extends ZIOSpecDefault:
                 resultOpt <- service.categorizeTransaction(coffeeTx.id)
                 
                 // Then the categorization should be correct
-                coffeeState <- env.processingStateRepo.findById(coffeeTx.id)
+                coffeeState <- env.processingStateRepo.load(coffeeTx.id)
             yield
                 assertTrue(
                     resultOpt.isDefined,
@@ -147,7 +147,7 @@ object CategorizationServiceSpec extends ZIOSpecDefault:
                 updatedStateOpt <- service.updateCategory(tx.id, newCategoryId, newMemo, newPayee)
                 
                 // Then the override values should be used
-                retrievedStateOpt <- env.processingStateRepo.findById(tx.id)
+                retrievedStateOpt <- env.processingStateRepo.load(tx.id)
             yield
                 assertTrue(
                     updatedStateOpt.isDefined,
@@ -183,7 +183,7 @@ object CategorizationServiceSpec extends ZIOSpecDefault:
                 updatedStateOpt <- service.updateCategory(tx.id, "New Category")
                 
                 // Then the status should transition to Categorized
-                retrievedStateOpt <- env.processingStateRepo.findById(tx.id)
+                retrievedStateOpt <- env.processingStateRepo.load(tx.id)
             yield
                 assertTrue(
                     initialState.status == TransactionStatus.Imported,
@@ -226,11 +226,13 @@ object CategorizationServiceSpec extends ZIOSpecDefault:
                 updatedCount <- service.bulkUpdateCategory(filter, newCategoryId)
                 
                 // Then all matching transactions should be updated
-                states <- ZIO.foreach(txs)(tx => env.processingStateRepo.findById(tx.id))
-                coffeeStates = states.flatten.filter(_.transactionId.externalId.contains("tx-bulk"))
-                    .filter(s => s.transactionId.externalId.endsWith("-1") || 
-                                s.transactionId.externalId.endsWith("-2") || 
-                                s.transactionId.externalId.endsWith("-4"))
+                states <- ZIO.foreach(txs)(tx => env.processingStateRepo.load(tx.id))
+                // Get transactions with "Coffee" in the message
+                coffeeStates = states.flatten.filter(state => 
+                    txs.exists(tx => 
+                        tx.id == state.transactionId && tx.message.exists(_.contains("Coffee"))
+                    )
+                )
             yield
                 assertTrue(
                     updatedCount == 3, // Three coffee-related transactions
@@ -269,9 +271,9 @@ object CategorizationServiceSpec extends ZIOSpecDefault:
                 updatedCount <- service.bulkUpdateCategory(filter, newCategoryId)
                 
                 // Then only the medium payment should be updated
-                mediumStateOpt <- env.processingStateRepo.findById(txs(1).id)
+                mediumStateOpt <- env.processingStateRepo.load(txs(1).id)
                 otherStates <- ZIO.foreach(Seq(txs(0).id, txs(2).id))(id => 
-                    env.processingStateRepo.findById(id)
+                    env.processingStateRepo.load(id)
                 )
             yield
                 assertTrue(
@@ -385,12 +387,35 @@ object CategorizationServiceSpec extends ZIOSpecDefault:
     
     /** Creates the service under test with mock dependencies */
     private def makeCategorizationService(env: MockFactory.MockEnvironment): UIO[CategorizationService] =
+        // Create a categorization strategy that uses the mock categorization provider
+        val categorizationStrategy = new CategorizationStrategy {
+            def categorize(transaction: Transaction): UIO[TransactionCategorization] =
+                // Call the mock provider's categorizeTransaction method and handle errors
+                env.categorizationProvider.categorizeTransaction(transaction)
+                  .fold(
+                    _ => works.iterative.incubator.budget.domain.service.TransactionCategorization(
+                        transactionId = transaction.id,
+                        categoryId = None,
+                        payeeName = None,
+                        memo = None,
+                        confidence = None
+                    ),
+                    categorization => works.iterative.incubator.budget.domain.service.TransactionCategorization(
+                        transactionId = transaction.id,
+                        categoryId = Some(categorization.category.id),
+                        payeeName = transaction.userIdentification,
+                        memo = transaction.message,
+                        confidence = Some(categorization.confidenceScore)
+                    )
+                  )
+        }
+        
         ZIO.succeed(
             new CategorizationServiceImpl(
                 transactionRepository = env.transactionRepo,
                 processingStateRepository = env.processingStateRepo,
                 categoryRepository = env.categoryRepo,
-                categorizationProvider = env.categorizationProvider,
+                categorizationStrategy = categorizationStrategy,
                 eventPublisher = event => ZIO.succeed(()) // No-op event publisher for tests
             )
         )

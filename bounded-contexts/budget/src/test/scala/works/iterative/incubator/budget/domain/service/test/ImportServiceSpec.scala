@@ -78,17 +78,17 @@ object ImportServiceSpec extends ZIOSpecDefault:
                 result <- service.importTransactions(accountId, rawTransactions)
                 (importCount, duplicates) = result
                 // Then we should have all transactions imported and no duplicates
-                savedTransactions <- env.transactionRepo.findAll()
-                createdProcessingStates <- env.processingStateRepo.findAll()
+                allTransactions <- env.transactionRepo.find(works.iterative.incubator.budget.domain.query.TransactionQuery())
+                allProcessingStates <- env.processingStateRepo.find(works.iterative.incubator.budget.domain.query.TransactionProcessingStateQuery())
             yield
                 assertTrue(
                     importCount == 2,
                     duplicates.isEmpty,
-                    savedTransactions.size == 2,
-                    createdProcessingStates.size == 2,
-                    createdProcessingStates.forall(_.status == TransactionStatus.Imported),
-                    savedTransactions.exists(_.message.contains("New Transaction")),
-                    savedTransactions.exists(_.message.contains("Another Transaction"))
+                    allTransactions.size == 2,
+                    allProcessingStates.size == 2,
+                    allProcessingStates.forall(_.status == TransactionStatus.Imported),
+                    allTransactions.exists(_.message.contains("New Transaction")),
+                    allTransactions.exists(_.message.contains("Another Transaction"))
                 )
         },
         
@@ -117,7 +117,7 @@ object ImportServiceSpec extends ZIOSpecDefault:
                 resultOpt <- service.importTransaction(rawTransaction, accountId)
                 // Then a processing state should be created
                 transactionId = TransactionId(accountId, "tx-state-1")
-                processingStateOpt <- env.processingStateRepo.findById(transactionId)
+                processingStateOpt <- env.processingStateRepo.load(transactionId)
             yield
                 assertTrue(
                     resultOpt.isDefined,
@@ -158,7 +158,7 @@ object ImportServiceSpec extends ZIOSpecDefault:
                 resultOpt <- service.importTransaction(rawTransaction, accountId)
                 // Then all fields should be mapped correctly
                 transactionId = TransactionId(accountId, "tx-full-1")
-                savedTransactionOpt <- env.transactionRepo.findById(transactionId)
+                savedTransactionOpt <- env.transactionRepo.load(transactionId)
             yield
                 assertTrue(
                     resultOpt.isDefined,
@@ -280,8 +280,8 @@ object ImportServiceSpec extends ZIOSpecDefault:
             yield
                 assertTrue(
                     event.sourceAccountId == accountId,
-                    event.importedCount == count,
-                    event.timestamp > 0
+                    event.count == count,
+                    event.occurredAt != null
                 )
         }
     )
