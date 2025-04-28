@@ -292,7 +292,16 @@ object ImportServiceSpec extends ZIOSpecDefault:
             for
                 env <- MockFactory.createMockEnvironment
                 service <- makeImportService(env)
+                // Create a valid source account
                 accountId = 4L
+                sourceAccount = SourceAccount(
+                    id = accountId,
+                    accountId = "test-account-4",
+                    bankId = "TEST",
+                    name = "Test Bank Account",
+                    currency = "CZK"
+                )
+                _ <- env.sourceAccountRepo.save(accountId, sourceAccount)
                 // When we import an empty batch
                 result <- service.importTransactions(accountId, Seq.empty)
                 (importCount, duplicates) = result

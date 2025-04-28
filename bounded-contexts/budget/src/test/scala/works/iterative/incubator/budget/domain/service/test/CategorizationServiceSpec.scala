@@ -66,13 +66,13 @@ object CategorizationServiceSpec extends ZIOSpecDefault:
                     result.categorizedCount == 3, // All transactions should be categorized
                     result.failedCount == 0,
                     // Grocery transaction should be categorized as "Groceries"
-                    groceryState.exists(_.suggestedCategory.contains("Groceries")),
+                    groceryState.exists(_.suggestedCategory.contains("mock-groceries")),
                     groceryState.exists(_.status == TransactionStatus.Categorized),
                     // Restaurant transaction should be categorized as "Dining Out"
-                    restaurantState.exists(_.suggestedCategory.contains("Dining Out")),
+                    restaurantState.exists(_.suggestedCategory.contains("mock-dining-out")),
                     restaurantState.exists(_.status == TransactionStatus.Categorized),
                     // Unknown transaction should get the default category
-                    unknownState.exists(_.suggestedCategory.contains("Uncategorized")),
+                    unknownState.exists(_.suggestedCategory.contains("uncategorized")),
                     unknownState.exists(_.status == TransactionStatus.Categorized)
                 )
         },
@@ -97,10 +97,10 @@ object CategorizationServiceSpec extends ZIOSpecDefault:
             yield
                 assertTrue(
                     resultOpt.isDefined,
-                    resultOpt.exists(_.categoryId.contains("Coffee Shops")),
+                    resultOpt.exists(_.categoryId.contains("mock-coffee-shops")),
                     resultOpt.exists(_.confidence.isDefined),
                     coffeeState.isDefined,
-                    coffeeState.exists(_.suggestedCategory.contains("Coffee Shops")),
+                    coffeeState.exists(_.suggestedCategory.contains("mock-coffee-shops")),
                     coffeeState.exists(_.status == TransactionStatus.Categorized)
                 )
         },

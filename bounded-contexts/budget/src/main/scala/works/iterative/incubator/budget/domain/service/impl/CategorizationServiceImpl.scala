@@ -229,7 +229,7 @@ case class CategorizationServiceImpl(
             // Further filter based on transaction content (needs to load actual transactions)
             filteredStates <-
                 if filter.descriptionContains.isDefined || filter.counterPartyContains.isDefined ||
-                    filter.transactionType.isDefined
+                    filter.transactionType.isDefined || filter.minAmount.isDefined || filter.maxAmount.isDefined
                 then
                     ZIO.foreach(states) { state =>
                         for
@@ -249,8 +249,12 @@ case class CategorizationServiceImpl(
                                 ) || tx.counterBankName.exists(_.contains(cp))
                             )
                             val typeMatches = filter.transactionType.forall(_ == tx.transactionType)
+                            
+                            // Add amount filtering
+                            val minAmountMatches = filter.minAmount.forall(min => tx.amount >= min)
+                            val maxAmountMatches = filter.maxAmount.forall(max => tx.amount <= max)
 
-                            descMatches && counterPartyMatches && typeMatches
+                            descMatches && counterPartyMatches && typeMatches && minAmountMatches && maxAmountMatches
                         }.map(_._2)
                     }
                 else
@@ -289,7 +293,11 @@ case class CategorizationServiceImpl(
     ): Option[ConfidenceScore] =
         val confidences = categorizations.flatMap(_.confidence.map(_.value))
         val result = if confidences.isEmpty then None
-        else Some(ConfidenceScore(confidences.sum / confidences.size))
+        else
+            // Round to 1 decimal place to avoid floating-point precision issues
+            val avgValue = BigDecimal(confidences.sum / confidences.size)
+                .setScale(1, BigDecimal.RoundingMode.HALF_UP).toDouble
+            Some(ConfidenceScore(avgValue))
         result
     end calculateAverageConfidence
 end CategorizationServiceImpl

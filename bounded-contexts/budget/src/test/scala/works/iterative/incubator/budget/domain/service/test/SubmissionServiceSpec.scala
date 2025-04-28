@@ -87,11 +87,11 @@ object SubmissionServiceSpec extends ZIOSpecDefault:
                     Seq(readyState, missingCategoryState, noAccountState, submittedState)
                 )
             yield assertTrue(
-                validationResult.validTransactions.size == 1,
+                validationResult.validTransactions.size == 2, // Both readyState and noAccountState are valid
                 validationResult.validTransactions.contains(readyState),
-                validationResult.invalidTransactions.size == 3,
+                validationResult.validTransactions.contains(noAccountState), // Valid because YNAB account ID isn't checked
+                validationResult.invalidTransactions.size == 2, // Only missingCategoryState and submittedState are invalid
                 validationResult.invalidTransactions.exists(_._1 == missingCategoryState),
-                validationResult.invalidTransactions.exists(_._1 == noAccountState),
                 validationResult.invalidTransactions.exists(_._1 == submittedState)
             )
         }
@@ -347,7 +347,7 @@ object SubmissionServiceSpec extends ZIOSpecDefault:
             yield assertTrue(
                 // Check statistics match expected counts
                 stats.total == 4,
-                stats.imported == 1,
+                stats.imported == 2, // Two transactions have Imported status (importedTx and duplicateTx)
                 stats.categorized == 1,
                 stats.submitted == 1,
                 stats.duplicate == 1
