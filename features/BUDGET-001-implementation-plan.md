@@ -150,77 +150,154 @@ tags:
   - Edge cases are handled properly
 - **Implementation Guide**: ZIO Test Implementation Guide
 
-### Step 7: View Models Definition
+### Step 7: UI Scenario Mapping
+- **Component Type**: Documentation
+- **Component Name**: `UIScenarioMap`
+- **Package Location**: `works.iterative.incubator.ynab.presentation.scenarios`
+- **Purpose**: Map Gherkin scenarios to specific UI components and interactions
+- **Key Behaviors**:
+  - Document UI states for each scenario step
+  - Map UI components needed for each scenario
+  - Define data requirements for each UI state
+  - Create workflow diagrams for key user journeys
+- **Dependencies**:
+  - Domain model (Steps 1-6)
+  - Scenario analysis document
+- **Acceptance Criteria**:
+  - All UI scenarios have clear component mappings
+  - UI states are documented for each scenario step
+  - Data requirements are identified for each state
+- **Implementation Guide**: BDD-Driven UI Mapping Guide
+
+### Step 8: UI Design and Prototyping
+- **Component Type**: Design Artifacts
+- **Component Name**: `UIPrototypes`
+- **Package Location**: `works.iterative.incubator.ynab.presentation.design`
+- **Purpose**: Create initial UI designs that satisfy scenario requirements
+- **Key Behaviors**:
+  - Design key UI layouts and components
+  - Create wireframes/prototypes for main workflows
+  - Validate designs against scenario requirements
+- **Dependencies**:
+  - UI Scenario Mapping
+  - Domain model
+- **Acceptance Criteria**:
+  - Designs address all scenario requirements
+  - Prototypes demonstrate key workflows
+  - Component structure is clearly defined
+- **Implementation Guide**: UI Prototype Development Guide
+
+### Step 9: View Models Definition
 - **Component Type**: View Model
 - **Component Name**: `DashboardViewModel`, `TransactionTableViewModel`, `ImportViewModel`, `CategoryViewModel`
 - **Package Location**: `works.iterative.incubator.ynab.presentation.viewmodel`
-- **Purpose**: Define the data models for UI presentation
+- **Purpose**: Define data models for UI presentation based on scenario and UI design needs
 - **Key Behaviors**:
   - Transform domain objects to presentation format
-  - Support UI state management
+  - Support UI state management for identified scenarios
   - Handle user input validation
 - **Dependencies**:
+  - UI Design and Prototyping
   - Domain model
 - **Acceptance Criteria**:
   - View models contain all data needed for UI rendering
+  - Models support all UI states identified in scenarios
   - Clear separation from domain models
 - **Implementation Guide**: View Model Pattern Guide
 
-### Step 8: UI Components Implementation
+### Step 10: UI Components Implementation
 - **Component Type**: UI Component
 - **Component Name**: `DashboardView`, `TransactionTable`, `ImportDialog`, `CategoryDropdown`
 - **Package Location**: `works.iterative.incubator.ynab.presentation.component`
-- **Purpose**: Implement the user interface components
+- **Purpose**: Implement UI components based on designs and view models
 - **Key Behaviors**:
   - Render view models as HTML/HTMX
-  - Handle user interactions
+  - Handle user interactions defined in scenarios
   - Support responsive display
 - **Dependencies**:
   - View models
-  - Mock service implementations
+  - UI Design and Prototyping
 - **Acceptance Criteria**:
   - Components render correctly with mock data
-  - Interactive elements function properly
+  - Interactive elements function as specified in scenarios
   - Layout is responsive
 - **Implementation Guide**: Scalatags + HTMX Guide
 
-### Step 9: UI Controller Implementation
-- **Component Type**: Controller
-- **Component Name**: `DashboardController`, `TransactionController`, `ImportController`
-- **Package Location**: `works.iterative.incubator.ynab.presentation.controller`
-- **Purpose**: Coordinate between UI and domain services
+### Step 11: Presenter/Service Implementation
+- **Component Type**: Presenter/Service
+- **Component Name**: `DashboardService`, `TransactionService`, `ImportService`
+- **Package Location**: `works.iterative.incubator.ynab.presentation.service`
+- **Purpose**: Connect UI components to domain services with mock implementations
 - **Key Behaviors**:
-  - Handle HTTP requests
+  - Transform between domain and view models
   - Delegate to domain services
-  - Prepare view models for rendering
+  - Handle UI-specific business logic
 - **Dependencies**:
   - Domain services
   - View models
+  - UI components
 - **Acceptance Criteria**:
-  - Controllers properly delegate to domain services
-  - Controllers transform domain results to view models
-  - Error handling is implemented
-- **Implementation Guide**: HTTP Controller Pattern Guide
+  - Services transform domain data to view models
+  - Services handle all user interactions in scenarios
+  - Proper error handling is implemented
+- **Implementation Guide**: Presenter Pattern Guide
 
-### Step 10: UI-Level Test Implementation
+### Step 12: Module Implementation
+- **Component Type**: Module
+- **Component Name**: `DashboardModule`, `TransactionModule`, `ImportModule`
+- **Package Location**: `works.iterative.incubator.ynab.presentation.module`
+- **Purpose**: Compose UI components and services with HTTP routes
+- **Key Behaviors**:
+  - Wire together components, services, and routes
+  - Define HTTP endpoints for all UI operations
+  - Support complete user workflows
+- **Dependencies**:
+  - UI components
+  - Presenter/Services
+- **Acceptance Criteria**:
+  - All scenario workflows are accessible via HTTP
+  - Module composition follows Functional MVP pattern
+  - Complete UI workflows function with mock implementations
+- **Implementation Guide**: Functional MVP Module Guide
+
+### Step 13: User Experience Validation
+- **Component Type**: Testing/Validation
+- **Component Name**: `UserFeedback`
+- **Package Location**: N/A (process step)
+- **Purpose**: Validate UI implementation with stakeholders or real users
+- **Key Behaviors**:
+  - Create scenario-based testing scripts
+  - Conduct user testing sessions
+  - Document feedback and usability findings
+  - Refine UI based on feedback
+- **Dependencies**:
+  - Complete UI implementation with mock services
+- **Acceptance Criteria**:
+  - All scenario workflows are validated by users
+  - UI refinements are identified and prioritized
+  - Critical UX issues are addressed before infrastructure implementation
+- **Implementation Guide**: User Experience Testing Guide
+
+### Step 14: UI-Level Test Implementation
 - **Component Type**: Test Suite
 - **Component Name**: `DashboardViewSpec`, `TransactionTableSpec`, `ImportDialogSpec`
 - **Package Location**: `works.iterative.incubator.ynab.presentation.component.test`
 - **Purpose**: Verify UI behavior and rendering
 - **Key Behaviors**:
   - Test UI rendering with different view models
-  - Test UI interactions
+  - Test UI interactions defined in scenarios
   - Verify controller integration
 - **Dependencies**:
   - UI components
-  - Mock service implementations
+  - Presenter/Services
+  - Modules
 - **Acceptance Criteria**:
   - All @ui scenarios are covered by tests
   - UI components render correctly
   - User interactions work as expected
 - **Implementation Guide**: UI Testing Guide
 
-### Step 11: External System Adapters Implementation
+### Step 15: External System Adapters Implementation
 - **Component Type**: Adapter
 - **Component Name**: `FioBankAdapter`, `OpenAIAdapter`, `YNABAdapter`
 - **Package Location**: `works.iterative.incubator.ynab.infrastructure.adapter`
@@ -238,7 +315,7 @@ tags:
   - Proper authentication management
 - **Implementation Guide**: External System Integration Guide
 
-### Step 12: Persistent Repository Implementation
+### Step 16: Persistent Repository Implementation
 - **Component Type**: Repository Implementation
 - **Component Name**: `PostgreSQLTransactionRepository`, `PostgreSQLCategoryRepository`
 - **Package Location**: `works.iterative.incubator.ynab.infrastructure.repository`
@@ -256,7 +333,7 @@ tags:
   - Proper error handling for database failures
 - **Implementation Guide**: Mangum Repository Guide
 
-### Step 13: Integration and E2E Test Implementation
+### Step 17: Integration and E2E Test Implementation
 - **Component Type**: Test Suite
 - **Component Name**: `TransactionRepositoryIntegrationSpec`, `FioBankAdapterIntegrationSpec`, `YNABAdapterIntegrationSpec`, `E2EWorkflowSpec`
 - **Package Location**: `works.iterative.incubator.ynab.it`
@@ -273,12 +350,6 @@ tags:
   - All @e2e scenarios are covered
   - Performance requirements are verified
 - **Implementation Guide**: Integration Testing Guide
-
-## Bounded Context Integration
-- **Primary Bounded Context**: Transaction Processing
-- **Related Bounded Contexts**:
-  - Source Account Management: Provides account information for transaction import via context map
-  - YNAB Integration: Consumes transaction data via downstream integration
 
 ## Environment Composition
 - **Required ZIO Services**:
@@ -325,34 +396,41 @@ tags:
   - System calculates and displays transaction statistics correctly
 
 ## Implementation Schedule
-- **Estimated Total Time**: 80 hours
+- **Estimated Total Time**: 120 hours
 - **Step Dependencies**:
   1. Step 1 → Step 2, Step 3
   2. Step 2, Step 3 → Step 4
   3. Step 4 → Step 5
   4. Step 1-5 → Step 6
-  5. Step 1-6 → Step 7, Step 11
+  5. Step 1-6 → Step 7
   6. Step 7 → Step 8
-  7. Step 2, Step 7 → Step 9
-  8. Step 8, Step 9 → Step 10
-  9. Step 2, Step 4 → Step 12
-  10. All previous steps → Step 13
+  7. Steps 1-6, 7 → Step 9
+  8. Steps 8, 9 → Step 10
+  9. Steps 2, 9, 10 → Step 11
+  10. Steps 10, 11 → Step 12
+  11. Steps 10-12 → Step 13, Step 14
+  12. Steps 2, 4 → Step 15, Step 16
+  13. All previous steps → Step 17
 
 | Step | Description | Est. Time | Prerequisites | Developer |
 |------|-------------|-----------|--------------|-----------|
 | 1 | Core Domain Entities and Value Objects | 8h | None | TBD |
-| 2 | Domain Services and Repository Interfaces | 6h | Step 1 | TBD |
+| 2 | Domain Services and Repositories Interfaces | 6h | Step 1 | TBD |
 | 3 | Domain Event Implementation | 4h | Step 1 | TBD |
 | 4 | External Ports Interfaces | 4h | Steps 2, 3 | TBD |
 | 5 | Mock Implementations for Domain Testing | 8h | Step 4 | TBD |
 | 6 | Domain-Level Test Implementation | 10h | Steps 1-5 | TBD |
-| 7 | View Models Definition | 4h | Steps 1-6 | TBD |
-| 8 | UI Components Implementation | 12h | Step 7 | TBD |
-| 9 | UI Controller Implementation | 6h | Steps 2, 7 | TBD |
-| 10 | UI-Level Test Implementation | 6h | Steps 8, 9 | TBD |
-| 11 | External System Adapters Implementation | 10h | Steps 1-6 | TBD |
-| 12 | Persistent Repository Implementation | 8h | Steps 2, 4 | TBD |
-| 13 | Integration and E2E Test Implementation | 12h | All previous steps | TBD |
+| 7 | UI Scenario Mapping | 3h | Steps 1-6 | TBD |
+| 8 | UI Design and Prototyping | 6h | Step 7 | TBD |
+| 9 | View Models Definition | 4h | Steps 1-6, 7 | TBD |
+| 10 | UI Components Implementation | 12h | Steps 8, 9 | TBD |
+| 11 | Presenter/Service Implementation | 6h | Steps 2, 9, 10 | TBD |
+| 12 | Module Implementation | 8h | Steps 10, 11 | TBD |
+| 13 | User Experience Validation | 4h | Steps 10-12 | TBD |
+| 14 | UI-Level Test Implementation | 6h | Steps 10-12 | TBD |
+| 15 | External System Adapters Implementation | 10h | Steps 2, 4 | TBD |
+| 16 | Persistent Repository Implementation | 8h | Steps 2, 4 | TBD |
+| 17 | Integration and E2E Test Implementation | 13h | All previous steps | TBD |
 
 ## Risk Assessment
 - **Technical Risks**:
