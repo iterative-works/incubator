@@ -50,7 +50,7 @@ tags:
 ### Step 1: Core Domain Entities and Value Objects
 - **Component Type**: Entity, Value Object
 - **Component Name**: `Transaction`, `Category`, `TransactionStatus`, `ConfidenceScore`
-- **Package Location**: `works.iterative.incubator.ynab.domain.model`
+- **Package Location**: `works.iterative.incubator.budget.domain.model`
 - **Purpose**: Define the core domain model representing financial transactions and their properties
 - **Key Behaviors**:
   - Transaction entity with immutable properties and status tracking
@@ -69,7 +69,7 @@ tags:
 ### Step 2: Domain Services and Repositories Interfaces
 - **Component Type**: Service Interface, Repository Interface
 - **Component Name**: `ImportService`, `CategorizationService`, `SubmissionService`, `TransactionRepository`, `CategoryRepository`
-- **Package Location**: `works.iterative.incubator.ynab.domain.service`, `works.iterative.incubator.ynab.domain.repository`
+- **Package Location**: `works.iterative.incubator.budget.domain.service`, `works.iterative.incubator.budget.domain.repository`
 - **Purpose**: Define the service interfaces that will coordinate domain operations
 - **Key Behaviors**:
   - ImportService: Coordinate transaction import workflow
@@ -88,7 +88,7 @@ tags:
 ### Step 3: Domain Event Implementation
 - **Component Type**: Domain Event
 - **Component Name**: `ImportCompletedEvent`, `TransactionsCategorizedEvent`, `CategoryUpdatedEvent`, `TransactionsSubmittedEvent`
-- **Package Location**: `works.iterative.incubator.ynab.domain.event`
+- **Package Location**: `works.iterative.incubator.budget.domain.event`
 - **Purpose**: Define the domain events that signal important state changes
 - **Key Behaviors**:
   - Event publication when domain actions complete
@@ -103,7 +103,7 @@ tags:
 ### Step 4: External Ports Interfaces
 - **Component Type**: Port Interface
 - **Component Name**: `TransactionProvider`, `CategorizationProvider`, `TransactionSubmissionPort`
-- **Package Location**: `works.iterative.incubator.ynab.domain.port`
+- **Package Location**: `works.iterative.incubator.budget.domain.port`
 - **Purpose**: Define the interfaces for external system interactions
 - **Key Behaviors**:
   - TransactionProvider: Interface for external transaction sources
@@ -119,7 +119,7 @@ tags:
 ### Step 5: Mock Implementations for Domain Testing
 - **Component Type**: Mock Implementation
 - **Component Name**: `InMemoryTransactionRepository`, `InMemoryCategoryRepository`, `MockTransactionProvider`, `MockCategorizationProvider`, `MockTransactionSubmissionPort`
-- **Package Location**: `works.iterative.incubator.ynab.domain.mock`
+- **Package Location**: `works.iterative.incubator.budget.domain.mock`
 - **Purpose**: Create in-memory implementations for testing domain logic
 - **Key Behaviors**:
   - In-memory storage of domain objects
@@ -136,7 +136,7 @@ tags:
 ### Step 6: Domain-Level Test Implementation
 - **Component Type**: Test Suite
 - **Component Name**: `ImportServiceSpec`, `CategorizationServiceSpec`, `SubmissionServiceSpec`
-- **Package Location**: `works.iterative.incubator.ynab.domain.service.test`
+- **Package Location**: `works.iterative.incubator.budget.domain.service.test`
 - **Purpose**: Verify domain logic through comprehensive tests
 - **Key Behaviors**:
   - Test all domain scenarios from scenario analysis
@@ -153,7 +153,7 @@ tags:
 ### Step 7: UI Scenario Mapping
 - **Component Type**: Documentation
 - **Component Name**: `UIScenarioMap`
-- **Package Location**: `works.iterative.incubator.ynab.presentation.scenarios`
+- **Package Location**: `works.iterative.incubator.budget.presentation.scenarios`
 - **Purpose**: Map Gherkin scenarios to specific UI components and interactions
 - **Key Behaviors**:
   - Document UI states for each scenario step
@@ -172,7 +172,7 @@ tags:
 ### Step 8: UI Design and Prototyping
 - **Component Type**: Design Artifacts
 - **Component Name**: `UIPrototypes`
-- **Package Location**: `works.iterative.incubator.ynab.presentation.design`
+- **Package Location**: `works.iterative.incubator.budget.presentation.design`
 - **Purpose**: Create initial UI designs that satisfy scenario requirements
 - **Key Behaviors**:
   - Design key UI layouts and components
@@ -190,7 +190,7 @@ tags:
 ### Step 9: View Models Definition
 - **Component Type**: View Model
 - **Component Name**: `DashboardViewModel`, `TransactionTableViewModel`, `ImportViewModel`, `CategoryViewModel`
-- **Package Location**: `works.iterative.incubator.ynab.presentation.viewmodel`
+- **Package Location**: `works.iterative.incubator.budget.presentation.viewmodel`
 - **Purpose**: Define data models for UI presentation based on scenario and UI design needs
 - **Key Behaviors**:
   - Transform domain objects to presentation format
@@ -208,7 +208,7 @@ tags:
 ### Step 10: UI Components Implementation
 - **Component Type**: UI Component
 - **Component Name**: `DashboardView`, `TransactionTable`, `ImportDialog`, `CategoryDropdown`
-- **Package Location**: `works.iterative.incubator.ynab.presentation.component`
+- **Package Location**: `works.iterative.incubator.budget.presentation.component`
 - **Purpose**: Implement UI components based on designs and view models
 - **Key Behaviors**:
   - Render view models as HTML/HTMX
@@ -226,7 +226,7 @@ tags:
 ### Step 11: Presenter/Service Implementation
 - **Component Type**: Presenter/Service
 - **Component Name**: `DashboardService`, `TransactionService`, `ImportService`
-- **Package Location**: `works.iterative.incubator.ynab.presentation.service`
+- **Package Location**: `works.iterative.incubator.budget.presentation.service`
 - **Purpose**: Connect UI components to domain services with mock implementations
 - **Key Behaviors**:
   - Transform between domain and view models
@@ -245,7 +245,7 @@ tags:
 ### Step 12: Module Implementation
 - **Component Type**: Module
 - **Component Name**: `DashboardModule`, `TransactionModule`, `ImportModule`
-- **Package Location**: `works.iterative.incubator.ynab.presentation.module`
+- **Package Location**: `works.iterative.incubator.budget.presentation.module`
 - **Purpose**: Compose UI components and services with HTTP routes
 - **Key Behaviors**:
   - Wire together components, services, and routes
@@ -281,7 +281,7 @@ tags:
 ### Step 14: UI-Level Test Implementation
 - **Component Type**: Test Suite
 - **Component Name**: `DashboardViewSpec`, `TransactionTableSpec`, `ImportDialogSpec`
-- **Package Location**: `works.iterative.incubator.ynab.presentation.component.test`
+- **Package Location**: `works.iterative.incubator.budget.presentation.component.test`
 - **Purpose**: Verify UI behavior and rendering
 - **Key Behaviors**:
   - Test UI rendering with different view models
@@ -300,7 +300,7 @@ tags:
 ### Step 15: External System Adapters Implementation
 - **Component Type**: Adapter
 - **Component Name**: `FioBankAdapter`, `OpenAIAdapter`, `YNABAdapter`
-- **Package Location**: `works.iterative.incubator.ynab.infrastructure.adapter`
+- **Package Location**: `works.iterative.incubator.budget.infrastructure.adapter`
 - **Purpose**: Implement the concrete adapters for external systems
 - **Key Behaviors**:
   - Connect to external APIs
@@ -318,7 +318,7 @@ tags:
 ### Step 16: Persistent Repository Implementation
 - **Component Type**: Repository Implementation
 - **Component Name**: `PostgreSQLTransactionRepository`, `PostgreSQLCategoryRepository`
-- **Package Location**: `works.iterative.incubator.ynab.infrastructure.repository`
+- **Package Location**: `works.iterative.incubator.budget.infrastructure.repository`
 - **Purpose**: Implement persistent storage for domain entities
 - **Key Behaviors**:
   - Map between domain objects and database schema
@@ -336,7 +336,7 @@ tags:
 ### Step 17: Integration and E2E Test Implementation
 - **Component Type**: Test Suite
 - **Component Name**: `TransactionRepositoryIntegrationSpec`, `FioBankAdapterIntegrationSpec`, `YNABAdapterIntegrationSpec`, `E2EWorkflowSpec`
-- **Package Location**: `works.iterative.incubator.ynab.it`
+- **Package Location**: `works.iterative.incubator.budget.it`
 - **Purpose**: Verify integration between components and end-to-end workflows
 - **Key Behaviors**:
   - Test repository with real database
