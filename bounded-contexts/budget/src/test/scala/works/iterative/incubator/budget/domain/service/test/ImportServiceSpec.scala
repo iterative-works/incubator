@@ -10,20 +10,17 @@ import works.iterative.incubator.budget.domain.service.*
 import works.iterative.incubator.budget.domain.service.impl.*
 import works.iterative.incubator.budget.domain.event.*
 import works.iterative.incubator.budget.domain.mock.MockFactory
-import works.iterative.incubator.budget.domain.repository.*
-import works.iterative.incubator.budget.domain.port.TransactionProvider
-import works.iterative.incubator.budget.infrastructure.repository.inmemory.*
 
 /** Test suite for ImportService domain logic.
   *
   * Tests verify the behavior of the transaction import workflow, including:
-  * - Transaction import from source accounts
-  * - Duplicate detection
-  * - Event publication for imported transactions
-  * - Error handling
+  *   - Transaction import from source accounts
+  *   - Duplicate detection
+  *   - Event publication for imported transactions
+  *   - Error handling
   */
 object ImportServiceSpec extends ZIOSpecDefault:
-    def spec = 
+    def spec =
         suite("ImportServiceSpec")(
             // Group tests by functional areas
             importTransactionsTests,
@@ -31,7 +28,7 @@ object ImportServiceSpec extends ZIOSpecDefault:
             eventPublicationTests,
             errorHandlingTests
         )
-    
+
     // Tests for importing transactions
     val importTransactionsTests = suite("Import Transactions")(
         test("should successfully import valid transactions") {
@@ -78,20 +75,22 @@ object ImportServiceSpec extends ZIOSpecDefault:
                 result <- service.importTransactions(accountId, rawTransactions)
                 (importCount, duplicates) = result
                 // Then we should have all transactions imported and no duplicates
-                allTransactions <- env.transactionRepo.find(works.iterative.incubator.budget.domain.query.TransactionQuery())
-                allProcessingStates <- env.processingStateRepo.find(works.iterative.incubator.budget.domain.query.TransactionProcessingStateQuery())
-            yield
-                assertTrue(
-                    importCount == 2,
-                    duplicates.isEmpty,
-                    allTransactions.size == 2,
-                    allProcessingStates.size == 2,
-                    allProcessingStates.forall(_.status == TransactionStatus.Imported),
-                    allTransactions.exists(_.message.contains("New Transaction")),
-                    allTransactions.exists(_.message.contains("Another Transaction"))
+                allTransactions <- env.transactionRepo.find(
+                    works.iterative.incubator.budget.domain.query.TransactionQuery()
                 )
+                allProcessingStates <- env.processingStateRepo.find(
+                    works.iterative.incubator.budget.domain.query.TransactionProcessingStateQuery()
+                )
+            yield assertTrue(
+                importCount == 2,
+                duplicates.isEmpty,
+                allTransactions.size == 2,
+                allProcessingStates.size == 2,
+                allProcessingStates.forall(_.status == TransactionStatus.Imported),
+                allTransactions.exists(_.message.contains("New Transaction")),
+                allTransactions.exists(_.message.contains("Another Transaction"))
+            )
         },
-        
         test("should create processing state for each imported transaction") {
             for
                 env <- MockFactory.createMockEnvironment
@@ -118,19 +117,17 @@ object ImportServiceSpec extends ZIOSpecDefault:
                 // Then a processing state should be created
                 transactionId = TransactionId(accountId, "tx-state-1")
                 processingStateOpt <- env.processingStateRepo.load(transactionId)
-            yield
-                assertTrue(
-                    resultOpt.isDefined,
-                    processingStateOpt.isDefined,
-                    processingStateOpt.exists(_.status == TransactionStatus.Imported),
-                    processingStateOpt.exists(ps => 
-                        ps.transactionId == transactionId && 
-                        !ps.isDuplicate && 
+            yield assertTrue(
+                resultOpt.isDefined,
+                processingStateOpt.isDefined,
+                processingStateOpt.exists(_.status == TransactionStatus.Imported),
+                processingStateOpt.exists(ps =>
+                    ps.transactionId == transactionId &&
+                        !ps.isDuplicate &&
                         ps.suggestedCategory.isEmpty
-                    )
                 )
+            )
         },
-        
         test("should import data with all transaction details") {
             // Verify all transaction fields are properly mapped from raw transaction
             for
@@ -159,12 +156,11 @@ object ImportServiceSpec extends ZIOSpecDefault:
                 // Then all fields should be mapped correctly
                 transactionId = TransactionId(accountId, "tx-full-1")
                 savedTransactionOpt <- env.transactionRepo.load(transactionId)
-            yield
-                assertTrue(
-                    resultOpt.isDefined,
-                    savedTransactionOpt.isDefined,
-                    savedTransactionOpt.exists(t =>
-                        t.id == transactionId &&
+            yield assertTrue(
+                resultOpt.isDefined,
+                savedTransactionOpt.isDefined,
+                savedTransactionOpt.exists(t =>
+                    t.id == transactionId &&
                         t.date == java.time.LocalDate.of(2024, 5, 15) &&
                         t.amount == BigDecimal(1299.99) &&
                         t.currency == "CZK" &&
@@ -178,11 +174,11 @@ object ImportServiceSpec extends ZIOSpecDefault:
                         t.message == Some("Invoice payment") &&
                         t.transactionType == "TRANSFER" &&
                         t.comment == Some("Monthly service")
-                    )
                 )
+            )
         }
     )
-    
+
     // Tests for duplicate detection
     val duplicateDetectionTests = suite("Duplicate Detection")(
         test("should detect duplicate transactions") {
@@ -209,13 +205,11 @@ object ImportServiceSpec extends ZIOSpecDefault:
                 // When we try to import a duplicate transaction
                 isDuplicate <- service.checkForDuplicate(TransactionId(accountId, "tx-dup-1"))
                 importResult <- service.importTransaction(rawTransaction, accountId)
-            yield
-                assertTrue(
-                    isDuplicate,  // Should detect duplicate
-                    importResult.isEmpty // Should not import duplicate transaction
-                )
+            yield assertTrue(
+                isDuplicate, // Should detect duplicate
+                importResult.isEmpty // Should not import duplicate transaction
+            )
         },
-        
         test("should report duplicate IDs when batch importing") {
             for
                 env <- MockFactory.createForScenario("duplicate-detection")
@@ -258,15 +252,14 @@ object ImportServiceSpec extends ZIOSpecDefault:
                 // When we batch import with a mix of new and duplicate transactions
                 result <- service.importTransactions(accountId, rawTransactions)
                 (importCount, duplicates) = result
-            yield
-                assertTrue(
-                    importCount == 1,  // Only one transaction should be imported
-                    duplicates.size == 1,  // One duplicate detected
-                    duplicates.contains("tx-dup-1")  // The duplicate ID is reported
-                )
+            yield assertTrue(
+                importCount == 1, // Only one transaction should be imported
+                duplicates.size == 1, // One duplicate detected
+                duplicates.contains("tx-dup-1") // The duplicate ID is reported
+            )
         }
     )
-    
+
     // Tests for event publication
     val eventPublicationTests = suite("Event Publication")(
         test("should create and publish ImportCompleted event") {
@@ -277,15 +270,14 @@ object ImportServiceSpec extends ZIOSpecDefault:
                 count = 5
                 // When we create an import completed event
                 event <- service.createImportCompletedEvent(accountId, count)
-            yield
-                assertTrue(
-                    event.sourceAccountId == accountId,
-                    event.count == count,
-                    event.occurredAt != null
-                )
+            yield assertTrue(
+                event.sourceAccountId == accountId,
+                event.count == count,
+                event.occurredAt != null
+            )
         }
     )
-    
+
     // Tests for error handling
     val errorHandlingTests = suite("Error Handling")(
         test("should handle empty transaction batch gracefully") {
@@ -305,16 +297,15 @@ object ImportServiceSpec extends ZIOSpecDefault:
                 // When we import an empty batch
                 result <- service.importTransactions(accountId, Seq.empty)
                 (importCount, duplicates) = result
-            yield
-                assertTrue(
-                    importCount == 0,
-                    duplicates.isEmpty
-                )
+            yield assertTrue(
+                importCount == 0,
+                duplicates.isEmpty
+            )
         }
     )
-    
+
     // Helper to create the service under test with mock dependencies
-    private def makeImportService(env: MockFactory.MockEnvironment): UIO[ImportService] = 
+    private def makeImportService(env: MockFactory.MockEnvironment): UIO[ImportService] =
         // Create an implementation of ImportService with the mock repositories
         ZIO.succeed(
             new ImportServiceImpl(

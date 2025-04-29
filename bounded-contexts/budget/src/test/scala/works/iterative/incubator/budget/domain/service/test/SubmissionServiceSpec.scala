@@ -2,17 +2,12 @@ package works.iterative.incubator.budget.domain.service.test
 
 import zio.*
 import zio.test.*
-import zio.test.Assertion.*
 import zio.test.TestAspect.*
 
 import works.iterative.incubator.budget.domain.model.*
 import works.iterative.incubator.budget.domain.service.*
 import works.iterative.incubator.budget.domain.service.impl.*
-import works.iterative.incubator.budget.domain.event.*
 import works.iterative.incubator.budget.domain.mock.MockFactory
-import works.iterative.incubator.budget.domain.repository.*
-import works.iterative.incubator.budget.domain.port.TransactionSubmissionPort
-import works.iterative.incubator.budget.infrastructure.repository.inmemory.*
 
 /** Test suite for SubmissionService domain logic.
   *
@@ -89,7 +84,9 @@ object SubmissionServiceSpec extends ZIOSpecDefault:
             yield assertTrue(
                 validationResult.validTransactions.size == 2, // Both readyState and noAccountState are valid
                 validationResult.validTransactions.contains(readyState),
-                validationResult.validTransactions.contains(noAccountState), // Valid because YNAB account ID isn't checked
+                validationResult.validTransactions.contains(
+                    noAccountState
+                ), // Valid because YNAB account ID isn't checked
                 validationResult.invalidTransactions.size == 2, // Only missingCategoryState and submittedState are invalid
                 validationResult.invalidTransactions.exists(_._1 == missingCategoryState),
                 validationResult.invalidTransactions.exists(_._1 == submittedState)
