@@ -308,6 +308,13 @@ Tests are written using ZIO Test, focusing on:
 - Basic workflow validation
 - Service behavior verification through test implementations
 
+| Test Type | Location | Purpose | Components Tested |
+|-----------|----------|---------|------------------|
+| **Domain Service Tests** | `domain/service/test/ImportServiceSpec.scala` | Verify import workflow and duplicate detection | `ImportService` |
+| **Domain Service Tests** | `domain/service/test/CategorizationServiceSpec.scala` | Verify categorization logic and manual overrides | `CategorizationService` |
+| **Domain Service Tests** | `domain/service/test/SubmissionServiceSpec.scala` | Verify submission workflow and validation | `SubmissionService` |
+| **Entity Tests** | `domain/model/*Spec.scala` | Validate entity behavior and invariants | Domain entities and value objects |
+
 ## Future Development
 
 Next steps for this bounded context include:
