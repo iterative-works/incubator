@@ -11,6 +11,7 @@ The Budget bounded context is structured according to the Functional Core/Impera
 - **Repository Interfaces:** Define data access capabilities without implementation details
 - **Domain Events:** Represent significant state changes and trigger workflows
 - **Port Interfaces:** Define required capabilities from external systems
+- **Presentation Layer:** UI components and interaction flows driven by BDD scenarios
 - **Infrastructure (Imperative Shell):** Implementations of repository and port interfaces, providing concrete data access and external system integration
 
 ## Component Diagram
@@ -212,6 +213,14 @@ Mock domain port implementations for testing:
 | `MockTransactionSubmissionPort` | `domain/mock/MockTransactionSubmissionPort.scala` | Mock implementation of transaction submission | Transaction submission, Validation | Implements `TransactionSubmissionPort` port |
 | `MockFactory` | `domain/mock/MockFactory.scala` | Factory for creating test environments | All domain scenarios | Creates and configures combinations of mocks for scenario-based testing |
 
+## Presentation Layer Components
+
+UI component specifications and scenario mappings:
+
+| Component | Type | Location | Purpose | Scenarios Supported | Key Relationships |
+|-----------|------|----------|---------|---------------------|------------------|
+| `UIScenarioMap` | Documentation | `presentation/scenarios/UIScenarioMap.md` | Maps Gherkin scenarios to UI components | All UI scenarios | Bridges domain model to UI implementation |
+
 ## Service Data Transfer Objects
 
 Data structures used by services for operations:
@@ -265,6 +274,38 @@ This bounded context implements the core domain model for these scenarios:
 
 8. **Transaction status statistics are calculated correctly**
    - Supports metrics calculation across transaction statuses
+
+### UI Scenarios
+
+The presentation layer implements these UI-focused scenarios:
+
+1. **Dashboard displays transaction summary statistics**
+   - Shows transaction counts by status
+   - Provides import and submission actions
+   - Displays transaction table with status indicators
+
+2. **User can initiate transaction import with date range**
+   - Import dialog with date range selection
+   - Shows loading indicator during import
+   - Updates transaction table after import
+
+3. **Transaction list provides sorting and filtering**
+   - Supports column sorting
+   - Provides text-based filtering
+
+4. **User can edit transaction category via dropdown**
+   - Interactive category cell editing
+   - Category selection from dropdown
+   - Success confirmation
+
+5. **Bulk selection and submission of transactions**
+   - Multiple transaction selection
+   - Batch submission to YNAB
+   - Status updates after submission
+
+6. **Error messages are displayed for validation failures**
+   - Validation for uncategorized transactions
+   - Error messages for validation failures
 
 ## Key Domain Workflows
 
