@@ -8,22 +8,22 @@ The scenarios have been grouped by UI area or functionality to identify shared U
 
 ### 1.1. UI Scenario Groups
 
-| Group | Scenarios | Priority | Dependencies |
-|-------|-----------|----------|--------------|
-| Dashboard View | UI-1: Dashboard statistics | High | None |
-| Import Functionality | UI-2: Transaction import with date range | High | Dashboard View |
-| Transaction Management | UI-3: Transaction sorting and filtering<br>UI-4: Transaction category editing<br>UI-5: Bulk selection and submission | Medium | Dashboard View |
-| Error Handling | UI-6: Validation failures and error messages | Low | Transaction Management |
+| Group                  | Scenarios                                                                                                            | Priority | Dependencies           |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------- |
+| Dashboard View         | UI-1: Dashboard statistics                                                                                           | High     | None                   |
+| Import Functionality   | UI-2: Transaction import with date range                                                                             | High     | Dashboard View         |
+| Transaction Management | UI-3: Transaction sorting and filtering<br>UI-4: Transaction category editing<br>UI-5: Bulk selection and submission | Medium   | Dashboard View         |
+| Error Handling         | UI-6: Validation failures and error messages                                                                         | Low      | Transaction Management |
 
 ### 1.2. Shared UI Components Across Scenarios
 
-| UI Component | Scenarios | Shared Responsibility |
-|--------------|-----------|------------------------|
-| TransactionTable | UI-1, UI-3, UI-4, UI-5, UI-6 | Displaying transaction data |
-| ImportDialog | UI-2 | Configuring transaction imports |
-| CategoryDropdown | UI-4 | Selecting transaction categories |
-| DashboardView | UI-1, UI-2, UI-3, UI-4, UI-5, UI-6 | Main application dashboard |
-| NotificationComponent | UI-2, UI-4, UI-5, UI-6 | User feedback and alerts |
+| UI Component          | Scenarios                          | Shared Responsibility            |
+| --------------------- | ---------------------------------- | -------------------------------- |
+| TransactionTable      | UI-1, UI-3, UI-4, UI-5, UI-6       | Displaying transaction data      |
+| ImportDialog          | UI-2                               | Configuring transaction imports  |
+| CategoryDropdown      | UI-4                               | Selecting transaction categories |
+| DashboardView         | UI-1, UI-2, UI-3, UI-4, UI-5, UI-6 | Main application dashboard       |
+| NotificationComponent | UI-2, UI-4, UI-5, UI-6             | User feedback and alerts         |
 
 ### 1.3. Dependencies Between Scenarios
 
@@ -43,93 +43,93 @@ This section maps specific UI components to scenario steps, identifying the comp
 
 ### 2.1. UI Component Inventory
 
-| Component | Type | Purpose | Scenario Steps |
-|-----------|------|---------|---------------|
-| DashboardView | Container | Main dashboard page | UI-1.1, UI-2.1, UI-3.1, UI-4.1, UI-5.1, UI-6.1 |
-| StatisticsPanel | Display | Show transaction statistics | UI-1.2 |
-| ImportButton | Action Button | Trigger import workflow | UI-1.4, UI-2.2 |
-| TransactionTable | Interactive Table | Display and interact with transactions | UI-1.5, UI-3.2-3.5, UI-4.2-4.5, UI-5.2-5.5, UI-6.2-6.4 |
-| StatusIndicator | Visual Indicator | Display transaction status | UI-1.5, UI-5.5 |
-| ImportDialog | Modal Dialog | Configure and initiate imports | UI-2.3-2.6 |
-| DatePicker | Form Control | Select date ranges | UI-2.4, UI-2.7 |
-| LoadingIndicator | Visual Indicator | Show processing status | UI-2.9 |
-| NotificationComponent | Alert | Show success/error messages | UI-2.10, UI-4.5, UI-5.4, UI-6.3 |
-| CategoryDropdown | Form Control | Select transaction categories | UI-4.3-4.4 |
-| SelectionControls | Checkbox Group | Select multiple transactions | UI-5.2 |
-| SubmitButton | Action Button | Submit transactions to YNAB | UI-5.3 |
+| Component             | Type              | Purpose                                | Scenario Steps                                         |
+| --------------------- | ----------------- | -------------------------------------- | ------------------------------------------------------ |
+| DashboardView         | Container         | Main dashboard page                    | UI-1.1, UI-2.1, UI-3.1, UI-4.1, UI-5.1, UI-6.1         |
+| StatisticsPanel       | Display           | Show transaction statistics            | UI-1.2                                                 |
+| ImportButton          | Action Button     | Trigger import workflow                | UI-1.4, UI-2.2                                         |
+| TransactionTable      | Interactive Table | Display and interact with transactions | UI-1.5, UI-3.2-3.5, UI-4.2-4.5, UI-5.2-5.5, UI-6.2-6.4 |
+| StatusIndicator       | Visual Indicator  | Display transaction status             | UI-1.5, UI-5.5                                         |
+| ImportDialog          | Modal Dialog      | Configure and initiate imports         | UI-2.3-2.6                                             |
+| DatePicker            | Form Control      | Select date ranges                     | UI-2.4, UI-2.7                                         |
+| LoadingIndicator      | Visual Indicator  | Show processing status                 | UI-2.9                                                 |
+| NotificationComponent | Alert             | Show success/error messages            | UI-2.10, UI-4.5, UI-5.4, UI-6.3                        |
+| CategoryDropdown      | Form Control      | Select transaction categories          | UI-4.3-4.4                                             |
+| SelectionControls     | Checkbox Group    | Select multiple transactions           | UI-5.2                                                 |
+| SubmitButton          | Action Button     | Submit transactions to YNAB            | UI-5.3                                                 |
 
 ### 2.2. Component Mapping to Scenarios
 
 #### UI-1: Dashboard displays transaction summary statistics
 
-| Scenario Step | Components | Responsibility |
-|--------------|------------|----------------|
-| User navigates to the dashboard | DashboardView | Display main application interface |
-| Dashboard displays summary statistics | StatisticsPanel | Fetch and display transaction statistics |
-| Dashboard contains Import button | ImportButton | Provide access to import functionality |
+| Scenario Step                                               | Components                        | Responsibility                                |
+| ----------------------------------------------------------- | --------------------------------- | --------------------------------------------- |
+| User navigates to the dashboard                             | DashboardView                     | Display main application interface            |
+| Dashboard displays summary statistics                       | StatisticsPanel                   | Fetch and display transaction statistics      |
+| Dashboard contains Import button                            | ImportButton                      | Provide access to import functionality        |
 | Dashboard displays transaction table with status indicators | TransactionTable, StatusIndicator | Display transactions and their current status |
 
 #### UI-2: User can initiate a new transaction import with date range
 
-| Scenario Step | Components | Responsibility |
-|--------------|------------|----------------|
-| User is on dashboard screen | DashboardView | Display main application interface |
-| User clicks Import button | ImportButton | Trigger import dialog |
-| Import dialog appears | ImportDialog | Configure import parameters |
-| Dialog contains date fields | DatePicker (2x) | Allow date range selection |
-| Dialog contains Import button | ImportButton | Initiate import process |
-| User selects date range | DatePicker (2x) | Capture date range parameters |
-| User clicks import dialog Import button | ImportButton | Submit import request |
-| System delegates to domain service | (Non-UI) | Backend processing |
-| User sees loading indicator | LoadingIndicator | Indicate processing in progress |
-| User notified when import complete | NotificationComponent | Show completion status |
-| Transaction table updates | TransactionTable | Refresh with new transactions |
+| Scenario Step                           | Components            | Responsibility                     |
+| --------------------------------------- | --------------------- | ---------------------------------- |
+| User is on dashboard screen             | DashboardView         | Display main application interface |
+| User clicks Import button               | ImportButton          | Trigger import dialog              |
+| Import dialog appears                   | ImportDialog          | Configure import parameters        |
+| Dialog contains date fields             | DatePicker (2x)       | Allow date range selection         |
+| Dialog contains Import button           | ImportButton          | Initiate import process            |
+| User selects date range                 | DatePicker (2x)       | Capture date range parameters      |
+| User clicks import dialog Import button | ImportButton          | Submit import request              |
+| System delegates to domain service      | (Non-UI)              | Backend processing                 |
+| User sees loading indicator             | LoadingIndicator      | Indicate processing in progress    |
+| User notified when import complete      | NotificationComponent | Show completion status             |
+| Transaction table updates               | TransactionTable      | Refresh with new transactions      |
 
 #### UI-3: Transaction list provides sorting and filtering
 
-| Scenario Step | Components | Responsibility |
-|--------------|------------|----------------|
-| User is on dashboard screen | DashboardView | Display main application interface |
-| Transaction table contains transactions | TransactionTable | Display transaction data |
-| User clicks column header | TransactionTable | Trigger sorting action |
-| Transactions are sorted | TransactionTable | Update display order |
-| User enters filter text | TransactionTable | Capture filter criteria |
-| Transactions are filtered | TransactionTable | Apply filter and update display |
+| Scenario Step                           | Components       | Responsibility                     |
+| --------------------------------------- | ---------------- | ---------------------------------- |
+| User is on dashboard screen             | DashboardView    | Display main application interface |
+| Transaction table contains transactions | TransactionTable | Display transaction data           |
+| User clicks column header               | TransactionTable | Trigger sorting action             |
+| Transactions are sorted                 | TransactionTable | Update display order               |
+| User enters filter text                 | TransactionTable | Capture filter criteria            |
+| Transactions are filtered               | TransactionTable | Apply filter and update display    |
 
 #### UI-4: User can edit transaction category via dropdown
 
-| Scenario Step | Components | Responsibility |
-|--------------|------------|----------------|
-| User is on dashboard screen | DashboardView | Display main application interface |
-| Transaction table contains transactions | TransactionTable | Display transaction data |
-| User clicks category cell | TransactionTable | Trigger category edit mode |
-| Dropdown with categories appears | CategoryDropdown | Display category options |
-| User selects different category | CategoryDropdown | Capture category selection |
-| Transaction category updated | TransactionTable | Update displayed category |
-| User sees confirmation message | NotificationComponent | Confirm successful update |
+| Scenario Step                           | Components            | Responsibility                     |
+| --------------------------------------- | --------------------- | ---------------------------------- |
+| User is on dashboard screen             | DashboardView         | Display main application interface |
+| Transaction table contains transactions | TransactionTable      | Display transaction data           |
+| User clicks category cell               | TransactionTable      | Trigger category edit mode         |
+| Dropdown with categories appears        | CategoryDropdown      | Display category options           |
+| User selects different category         | CategoryDropdown      | Capture category selection         |
+| Transaction category updated            | TransactionTable      | Update displayed category          |
+| User sees confirmation message          | NotificationComponent | Confirm successful update          |
 
 #### UI-5: Bulk selection and submission of transactions
 
-| Scenario Step | Components | Responsibility |
-|--------------|------------|----------------|
-| User is on dashboard screen | DashboardView | Display main application interface |
-| Transaction table contains categorized transactions | TransactionTable | Display transaction data |
-| User selects multiple transactions | SelectionControls, TransactionTable | Enable multi-selection |
-| User clicks Submit to YNAB button | SubmitButton | Trigger submission process |
-| Transactions submitted to YNAB | (Non-UI) | Backend processing |
-| User sees success message | NotificationComponent | Confirm successful submission |
-| Transaction status indicators update | StatusIndicator, TransactionTable | Update transaction status |
+| Scenario Step                                       | Components                          | Responsibility                     |
+| --------------------------------------------------- | ----------------------------------- | ---------------------------------- |
+| User is on dashboard screen                         | DashboardView                       | Display main application interface |
+| Transaction table contains categorized transactions | TransactionTable                    | Display transaction data           |
+| User selects multiple transactions                  | SelectionControls, TransactionTable | Enable multi-selection             |
+| User clicks Submit to YNAB button                   | SubmitButton                        | Trigger submission process         |
+| Transactions submitted to YNAB                      | (Non-UI)                            | Backend processing                 |
+| User sees success message                           | NotificationComponent               | Confirm successful submission      |
+| Transaction status indicators update                | StatusIndicator, TransactionTable   | Update transaction status          |
 
 #### UI-6: Error messages are displayed for validation failures
 
-| Scenario Step | Components | Responsibility |
-|--------------|------------|----------------|
-| User is on dashboard screen | DashboardView | Display main application interface |
-| Transaction table contains uncategorized transactions | TransactionTable | Display transaction data |
-| User selects those transactions | SelectionControls, TransactionTable | Enable multi-selection |
-| User clicks Submit to YNAB button | SubmitButton | Trigger submission process |
-| User sees error message | NotificationComponent | Display validation error |
-| Transactions remain unsubmitted | TransactionTable, StatusIndicator | Maintain current status |
+| Scenario Step                                         | Components                          | Responsibility                     |
+| ----------------------------------------------------- | ----------------------------------- | ---------------------------------- |
+| User is on dashboard screen                           | DashboardView                       | Display main application interface |
+| Transaction table contains uncategorized transactions | TransactionTable                    | Display transaction data           |
+| User selects those transactions                       | SelectionControls, TransactionTable | Enable multi-selection             |
+| User clicks Submit to YNAB button                     | SubmitButton                        | Trigger submission process         |
+| User sees error message                               | NotificationComponent               | Display validation error           |
+| Transactions remain unsubmitted                       | TransactionTable, StatusIndicator   | Maintain current status            |
 
 ## 3. UI State Mapping
 
@@ -137,68 +137,68 @@ This section defines the different states each component can be in, driven by sc
 
 ### 3.1. DashboardView States
 
-| State ID | Description | Triggered By | UI Elements | Scenario Step |
-|----------|-------------|--------------|-------------|---------------|
-| DV-1 | Initial Render | Application start | Complete dashboard with initial data | UI-1.1 |
-| DV-2 | Error | Failed data load | Error message | Error case |
+| State ID | Description    | Triggered By      | UI Elements                          | Scenario Step |
+| -------- | -------------- | ----------------- | ------------------------------------ | ------------- |
+| DV-1     | Initial Render | Application start | Complete dashboard with initial data | UI-1.1        |
+| DV-2     | Error          | Failed data load  | Error message                        | Error case    |
 
 > **Note**: With our Scalatags (server-rendered) and HTMX architecture, the "Loading" state is typically handled by HTMX's built-in indicators during requests rather than explicitly rendered states. The initial page load includes complete data.
 
 ### 3.2. StatisticsPanel States
 
-| State ID | Description | Triggered By | UI Elements | Scenario Step |
-|----------|-------------|--------------|-------------|---------------|
-| SP-1 | Initial Render | Dashboard render | Statistics display | UI-1.2 |
-| SP-2 | Updated | HTMX trigger after import/categorize/submit | Refreshed statistics | After UI-2.11, UI-4.6, UI-5.7 |
-| SP-3 | Error | Failed statistics load | Error indicator | Error case |
+| State ID | Description    | Triggered By                                | UI Elements          | Scenario Step                 |
+| -------- | -------------- | ------------------------------------------- | -------------------- | ----------------------------- |
+| SP-1     | Initial Render | Dashboard render                            | Statistics display   | UI-1.2                        |
+| SP-2     | Updated        | HTMX trigger after import/categorize/submit | Refreshed statistics | After UI-2.11, UI-4.6, UI-5.7 |
+| SP-3     | Error          | Failed statistics load                      | Error indicator      | Error case                    |
 
 > **Note**: With Scalatags and HTMX, the statistics panel would typically be server-rendered with initial data and then partially updated via HTMX requests after operations that change statistics (like imports or submissions).
 
 ### 3.3. TransactionTable States
 
-| State ID | Description | Triggered By | UI Elements | Scenario Step |
-|----------|-------------|--------------|-------------|---------------|
-| TT-1 | Initial Render | Dashboard render | Populated table | UI-1.5 |
-| TT-2 | Sorted | HTMX request after column header click | Refreshed table with sort indicator | UI-3.4 |
-| TT-3 | Filtered | HTMX request after filter input | Refreshed table with filter results | UI-3.6 |
-| TT-4 | Category Edit Mode | HTMX request after cell click | Rendered dropdown in place of cell | UI-4.3 |
-| TT-5 | Selection Active | Client-side checkbox toggle (HTMX boost) | Checked rows, selection count | UI-5.2 |
-| TT-6 | Submission Complete | HTMX response after submission | Refreshed table with updated status | UI-5.7 |
-| TT-7 | Submission Error | HTMX response after failed submission | Error message | UI-6.5 |
+| State ID | Description         | Triggered By                             | UI Elements                         | Scenario Step |
+| -------- | ------------------- | ---------------------------------------- | ----------------------------------- | ------------- |
+| TT-1     | Initial Render      | Dashboard render                         | Populated table                     | UI-1.5        |
+| TT-2     | Sorted              | HTMX request after column header click   | Refreshed table with sort indicator | UI-3.4        |
+| TT-3     | Filtered            | HTMX request after filter input          | Refreshed table with filter results | UI-3.6        |
+| TT-4     | Category Edit Mode  | HTMX request after cell click            | Rendered dropdown in place of cell  | UI-4.3        |
+| TT-5     | Selection Active    | Client-side checkbox toggle (HTMX boost) | Checked rows, selection count       | UI-5.2        |
+| TT-6     | Submission Complete | HTMX response after submission           | Refreshed table with updated status | UI-5.7        |
+| TT-7     | Submission Error    | HTMX response after failed submission    | Error message                       | UI-6.5        |
 
 > **Note**: With Scalatags and HTMX, operations like sorting, filtering, and category editing would trigger HTMX requests to the server, which would return updated HTML fragments that replace portions of the page. Loading indicators during these operations would be handled automatically by HTMX.
 
 ### 3.4. ImportDialog States
 
-| State ID | Description | Triggered By | UI Elements | Scenario Step |
-|----------|-------------|--------------|-------------|---------------|
-| ID-1 | Hidden | Initial state | Not present in DOM | Before UI-2.3 |
-| ID-2 | Visible | HTMX request after Import button click | Dialog with empty fields | UI-2.3 |
-| ID-3 | Configured | Client-side date selections | Dialog with selected dates | UI-2.7 |
-| ID-4 | Success Response | HTMX response after import completes | Success notification | UI-2.10 |
-| ID-5 | Error Response | HTMX response after import failure | Error message | Error case |
+| State ID | Description      | Triggered By                           | UI Elements                | Scenario Step |
+| -------- | ---------------- | -------------------------------------- | -------------------------- | ------------- |
+| ID-1     | Hidden           | Initial state                          | Not present in DOM         | Before UI-2.3 |
+| ID-2     | Visible          | HTMX request after Import button click | Dialog with empty fields   | UI-2.3        |
+| ID-3     | Configured       | Client-side date selections            | Dialog with selected dates | UI-2.7        |
+| ID-4     | Success Response | HTMX response after import completes   | Success notification       | UI-2.10       |
+| ID-5     | Error Response   | HTMX response after import failure     | Error message              | Error case    |
 
 > **Note**: With Scalatags+HTMX, the import dialog would be a server-rendered component that appears after an HTMX request. The form submission would use HTMX to process the request and show results without full page reloads. HTMX's built-in indicators would show loading state during the import operation.
 
 ### 3.5. CategoryDropdown States
 
-| State ID | Description | Triggered By | UI Elements | Scenario Step |
-|----------|-------------|--------------|-------------|---------------|
-| CD-1 | Not Rendered | Initial state | Not present in DOM | Before UI-4.3 |
-| CD-2 | Rendered | HTMX request after category cell click | Server-rendered dropdown | UI-4.3 |
-| CD-3 | Success Response | HTMX response after selection | Updated cell with new category | UI-4.5 |
-| CD-4 | Error Response | HTMX response after failure | Error message | Error case |
+| State ID | Description      | Triggered By                           | UI Elements                    | Scenario Step |
+| -------- | ---------------- | -------------------------------------- | ------------------------------ | ------------- |
+| CD-1     | Not Rendered     | Initial state                          | Not present in DOM             | Before UI-4.3 |
+| CD-2     | Rendered         | HTMX request after category cell click | Server-rendered dropdown       | UI-4.3        |
+| CD-3     | Success Response | HTMX response after selection          | Updated cell with new category | UI-4.5        |
+| CD-4     | Error Response   | HTMX response after failure            | Error message                  | Error case    |
 
 > **Note**: With Scalatags+HTMX, the category dropdown would typically be loaded via an HTMX request that replaces the cell content with a server-rendered dropdown. After selection, another HTMX request would submit the change and receive the updated cell content.
 
 ### 3.6. NotificationComponent States
 
-| State ID | Description | Triggered By | UI Elements | Scenario Step |
-|----------|-------------|--------------|-------------|---------------|
-| NC-1 | Not Present | Initial state or no notification | Not in DOM or empty placeholder | Default state |
-| NC-2 | Success | HTMX response including notification | Success message | UI-2.10, UI-4.5, UI-5.4 |
-| NC-3 | Error | HTMX response including notification | Error message | UI-6.3 |
-| NC-4 | Info | HTMX response including notification | Info message | Various |
+| State ID | Description | Triggered By                         | UI Elements                     | Scenario Step           |
+| -------- | ----------- | ------------------------------------ | ------------------------------- | ----------------------- |
+| NC-1     | Not Present | Initial state or no notification     | Not in DOM or empty placeholder | Default state           |
+| NC-2     | Success     | HTMX response including notification | Success message                 | UI-2.10, UI-4.5, UI-5.4 |
+| NC-3     | Error       | HTMX response including notification | Error message                   | UI-6.3                  |
+| NC-4     | Info        | HTMX response including notification | Info message                    | Various                 |
 
 > **Note**: With Scalatags+HTMX, notifications would typically be included in the server response HTML after operations and could use HTMX's `hx-swap-oob` for out-of-band updates to insert notifications into a designated area of the page. Client-side JS could handle auto-dismissal.
 
@@ -210,69 +210,69 @@ This section defines the data required by each component to render its various s
 
 #### 4.1.1. DashboardViewModel
 
-| Property | Type | Source | Purpose | Scenarios |
-|----------|------|--------|---------|-----------|
-| statisticsViewModel | StatisticsViewModel | Domain statistics | Display transaction statistics | UI-1 |
-| transactionTableViewModel | TransactionTableViewModel | Domain transactions | Display transaction list | UI-1, UI-3, UI-4, UI-5, UI-6 |
-| isLoading | Boolean | UI state | Show loading state | All |
-| errorMessage | Option[String] | Domain errors | Display error messages | All error cases |
+| Property                  | Type                      | Source              | Purpose                        | Scenarios                    |
+| ------------------------- | ------------------------- | ------------------- | ------------------------------ | ---------------------------- |
+| statisticsViewModel       | StatisticsViewModel       | Domain statistics   | Display transaction statistics | UI-1                         |
+| transactionTableViewModel | TransactionTableViewModel | Domain transactions | Display transaction list       | UI-1, UI-3, UI-4, UI-5, UI-6 |
+| isLoading                 | Boolean                   | UI state            | Show loading state             | All                          |
+| errorMessage              | Option[String]            | Domain errors       | Display error messages         | All error cases              |
 
 #### 4.1.2. StatisticsViewModel
 
-| Property | Type | Source | Purpose | Scenarios |
-|----------|------|--------|---------|-----------|
-| totalCount | Int | Transaction repository query | Display total transaction count | UI-1 |
-| categorizedCount | Int | Transaction processing state query | Display categorized count | UI-1 |
-| submittedCount | Int | Transaction processing state query | Display submitted count | UI-1 |
-| percentCategorized | Double | Calculated from counts | Display completion percentage | UI-1 |
-| percentSubmitted | Double | Calculated from counts | Display submission percentage | UI-1 |
+| Property           | Type   | Source                             | Purpose                         | Scenarios |
+| ------------------ | ------ | ---------------------------------- | ------------------------------- | --------- |
+| totalCount         | Int    | Transaction repository query       | Display total transaction count | UI-1      |
+| categorizedCount   | Int    | Transaction processing state query | Display categorized count       | UI-1      |
+| submittedCount     | Int    | Transaction processing state query | Display submitted count         | UI-1      |
+| percentCategorized | Double | Calculated from counts             | Display completion percentage   | UI-1      |
+| percentSubmitted   | Double | Calculated from counts             | Display submission percentage   | UI-1      |
 
 #### 4.1.3. TransactionTableViewModel
 
-| Property | Type | Source | Purpose | Scenarios |
-|----------|------|--------|---------|-----------|
-| transactions | Seq[TransactionRowViewModel] | Transaction and processing state | Core table data | UI-1, UI-3, UI-4, UI-5, UI-6 |
-| sortColumn | Option[String] | UI state | Current sort column | UI-3 |
-| sortDirection | Option[SortDirection] | UI state | Current sort direction | UI-3 |
-| filterText | Option[String] | UI state | Current filter text | UI-3 |
-| selectedTransactionIds | Set[String] | UI state | Selected transaction IDs | UI-5, UI-6 |
-| isSubmitting | Boolean | UI state | Whether submission in progress | UI-5 |
-| canSubmit | Boolean | Derived from selection | Enable/disable submit button | UI-5, UI-6 |
+| Property               | Type                         | Source                           | Purpose                        | Scenarios                    |
+| ---------------------- | ---------------------------- | -------------------------------- | ------------------------------ | ---------------------------- |
+| transactions           | Seq[TransactionRowViewModel] | Transaction and processing state | Core table data                | UI-1, UI-3, UI-4, UI-5, UI-6 |
+| sortColumn             | Option[String]               | UI state                         | Current sort column            | UI-3                         |
+| sortDirection          | Option[SortDirection]        | UI state                         | Current sort direction         | UI-3                         |
+| filterText             | Option[String]               | UI state                         | Current filter text            | UI-3                         |
+| selectedTransactionIds | Set[String]                  | UI state                         | Selected transaction IDs       | UI-5, UI-6                   |
+| isSubmitting           | Boolean                      | UI state                         | Whether submission in progress | UI-5                         |
+| canSubmit              | Boolean                      | Derived from selection           | Enable/disable submit button   | UI-5, UI-6                   |
 
 #### 4.1.4. TransactionRowViewModel
 
-| Property | Type | Source | Purpose | Scenarios |
-|----------|------|--------|---------|-----------|
-| id | String | Transaction.id | Unique identifier | All |
-| date | LocalDate | Transaction.date | Transaction date | UI-1, UI-3 |
-| description | String | Transaction.description | Transaction description | UI-1, UI-3 |
-| amount | BigDecimal | Transaction.amount | Transaction amount | UI-1, UI-3 |
-| formattedAmount | String | Formatted Transaction.amount | Formatted display | UI-1, UI-3 |
-| categoryId | Option[String] | ProcessingState.categoryId | Current category ID | UI-4 |
-| categoryName | Option[String] | Category lookup | Current category name | UI-4 |
-| status | TransactionStatus | ProcessingState.status | Transaction status | UI-1, UI-5 |
-| statusClass | String | Derived from status | CSS class for status | UI-1, UI-5 |
-| isSelected | Boolean | UI state | Selection state | UI-5, UI-6 |
-| isEditable | Boolean | Derived from status | Whether category can be edited | UI-4 |
+| Property        | Type              | Source                       | Purpose                        | Scenarios  |
+| --------------- | ----------------- | ---------------------------- | ------------------------------ | ---------- |
+| id              | String            | Transaction.id               | Unique identifier              | All        |
+| date            | LocalDate         | Transaction.date             | Transaction date               | UI-1, UI-3 |
+| description     | String            | Transaction.description      | Transaction description        | UI-1, UI-3 |
+| amount          | BigDecimal        | Transaction.amount           | Transaction amount             | UI-1, UI-3 |
+| formattedAmount | String            | Formatted Transaction.amount | Formatted display              | UI-1, UI-3 |
+| categoryId      | Option[String]    | ProcessingState.categoryId   | Current category ID            | UI-4       |
+| categoryName    | Option[String]    | Category lookup              | Current category name          | UI-4       |
+| status          | TransactionStatus | ProcessingState.status       | Transaction status             | UI-1, UI-5 |
+| statusClass     | String            | Derived from status          | CSS class for status           | UI-1, UI-5 |
+| isSelected      | Boolean           | UI state                     | Selection state                | UI-5, UI-6 |
+| isEditable      | Boolean           | Derived from status          | Whether category can be edited | UI-4       |
 
 #### 4.1.5. ImportDialogViewModel
 
-| Property | Type | Source | Purpose | Scenarios |
-|----------|------|--------|---------|-----------|
-| startDate | Option[LocalDate] | UI state | Selected start date | UI-2 |
-| endDate | Option[LocalDate] | UI state | Selected end date | UI-2 |
-| isValid | Boolean | Derived from dates | Enable/disable import | UI-2 |
-| isSubmitting | Boolean | UI state | Show submission state | UI-2 |
-| errorMessage | Option[String] | Domain errors | Display validation errors | UI-2 error case |
+| Property     | Type              | Source             | Purpose                   | Scenarios       |
+| ------------ | ----------------- | ------------------ | ------------------------- | --------------- |
+| startDate    | Option[LocalDate] | UI state           | Selected start date       | UI-2            |
+| endDate      | Option[LocalDate] | UI state           | Selected end date         | UI-2            |
+| isValid      | Boolean           | Derived from dates | Enable/disable import     | UI-2            |
+| isSubmitting | Boolean           | UI state           | Show submission state     | UI-2            |
+| errorMessage | Option[String]    | Domain errors      | Display validation errors | UI-2 error case |
 
 #### 4.1.6. CategoryDropdownViewModel
 
-| Property | Type | Source | Purpose | Scenarios |
-|----------|------|--------|---------|-----------|
-| transactionId | String | Transaction being edited | Target transaction | UI-4 |
-| categories | Seq[CategoryViewModel] | Category repository | Available categories | UI-4 |
-| selectedCategoryId | Option[String] | Current category | Pre-selected value | UI-4 |
-| isLoading | Boolean | UI state | Loading state | UI-4 |
+| Property           | Type                   | Source                   | Purpose              | Scenarios |
+| ------------------ | ---------------------- | ------------------------ | -------------------- | --------- |
+| transactionId      | String                 | Transaction being edited | Target transaction   | UI-4      |
+| categories         | Seq[CategoryViewModel] | Category repository      | Available categories | UI-4      |
+| selectedCategoryId | Option[String]         | Current category         | Pre-selected value   | UI-4      |
+| isLoading          | Boolean                | UI state                 | Loading state        | UI-4      |
 
 ### 4.2. Data Transformations
 
@@ -365,10 +365,7 @@ sequenceDiagram
 
     Server->>Server: Process Import via ImportService
     Server->>Server: Generate Response HTML
-    Server-->>HTMX: Return HTML with:
-        - Success notification 
-        - Updated transaction table
-        - Updated statistics
+    Server-->>HTMX: Return HTML with:<br> - Success notification <br>- Updated transaction table<br> - Updated statistics
 
     HTMX->>Browser: Update UI with server response (UI-2.10, UI-2.11)
     HTMX->>Browser: Close Import Dialog
@@ -402,9 +399,7 @@ sequenceDiagram
     
     Server->>Server: Process via CategorizationService
     Server->>Server: Generate Response HTML
-    Server-->>HTMX: Return HTML with:
-        - Updated cell content
-        - OOB notification element
+    Server-->>HTMX: Return HTML with:<br> - Updated cell content<br> - OOB notification element
         
     HTMX->>Browser: Update Cell Display (UI-4.5)
     HTMX->>Browser: Insert Notification (UI-4.5)
@@ -437,10 +432,7 @@ sequenceDiagram
     
     alt Success
         Server->>Server: Generate Success Response HTML
-        Server-->>HTMX: Return HTML with:
-            - Updated transaction rows
-            - Updated statistics
-            - Success notification
+        Server-->>HTMX: Return HTML with:<br> - Updated transaction rows<br> - Updated statistics<br> - Success notification
         HTMX->>Browser: Update UI Components (UI-5.4, UI-5.7)
     else Validation Failure
         Server->>Server: Generate Error Response HTML
@@ -878,14 +870,14 @@ routes
 
 ## 9. Traceability Matrix
 
-| UI Component | Domain Component | Scenarios | Events |
-|--------------|------------------|-----------|--------|
-| DashboardView | - | UI-1, UI-2, UI-3, UI-4, UI-5, UI-6 | - |
-| StatisticsPanel | SubmissionService | UI-1 | TransactionsSubmitted, TransactionsCategorized |
-| ImportButton | - | UI-2 | - |
-| TransactionTable | TransactionRepository | UI-1, UI-3, UI-4, UI-5, UI-6 | TransactionImported, ImportCompleted |
-| StatusIndicator | TransactionProcessingState | UI-1, UI-5 | TransactionSubmitted, TransactionCategorized |
-| ImportDialog | ImportService | UI-2 | ImportCompleted |
-| CategoryDropdown | CategoryRepository, CategorizationService | UI-4 | CategoryUpdated |
-| NotificationComponent | - | UI-2, UI-4, UI-5, UI-6 | Various |
-| SubmitButton | SubmissionService | UI-5, UI-6 | TransactionsSubmitted, SubmissionFailed |
+| UI Component          | Domain Component                          | Scenarios                          | Events                                         |
+| --------------------- | ----------------------------------------- | ---------------------------------- | ---------------------------------------------- |
+| DashboardView         | -                                         | UI-1, UI-2, UI-3, UI-4, UI-5, UI-6 | -                                              |
+| StatisticsPanel       | SubmissionService                         | UI-1                               | TransactionsSubmitted, TransactionsCategorized |
+| ImportButton          | -                                         | UI-2                               | -                                              |
+| TransactionTable      | TransactionRepository                     | UI-1, UI-3, UI-4, UI-5, UI-6       | TransactionImported, ImportCompleted           |
+| StatusIndicator       | TransactionProcessingState                | UI-1, UI-5                         | TransactionSubmitted, TransactionCategorized   |
+| ImportDialog          | ImportService                             | UI-2                               | ImportCompleted                                |
+| CategoryDropdown      | CategoryRepository, CategorizationService | UI-4                               | CategoryUpdated                                |
+| NotificationComponent | -                                         | UI-2, UI-4, UI-5, UI-6             | Various                                        |
+| SubmitButton          | SubmissionService                         | UI-5, UI-6                         | TransactionsSubmitted, SubmissionFailed        |
