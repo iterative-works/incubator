@@ -2,7 +2,6 @@ package works.iterative.incubator.budget.domain.service.test
 
 import zio.*
 import zio.test.*
-import zio.test.Assertion.*
 import zio.test.TestAspect.*
 
 import works.iterative.incubator.budget.domain.model.*
