@@ -15,57 +15,87 @@ This ensures all UI state is managed by the server, making our application more 
 
 ## Dashboard States
 
+In our server-rendered architecture, the Dashboard has several logical states that the server manages and renders accordingly:
+
 ```plantuml
 @startuml
 
 state "Dashboard" as dashboard {
-  state "Loading" as loading : Initial load state
-  state "Empty" as empty : No transactions
-  state "Populated" as populated : Transactions loaded
-  state "Filtered" as filtered : Filtered transactions
-  state "Selection Active" as selection : One or more rows selected
+  state "Initial Page Load" as initial : Complete page rendered by server
+  state "Empty" as empty : No transactions (rendered server-side)
+  state "Populated" as populated : Transactions loaded (rendered server-side)
+  state "Filtered" as filtered : Server-filtered transactions
+  state "Selection Active" as selection : Selection state tracked on server
+  state "Import In Progress" as importing : Import request being processed
 }
 
-[*] --> loading
-loading --> empty : No transactions
-loading --> populated : Transactions found
-populated --> filtered : User applies filter
-filtered --> populated : User clears filter
-populated --> selection : User selects transactions
-selection --> populated : User deselects all
-empty --> loading : User initiates import
-populated --> loading : User initiates import
+[*] --> initial
+initial --> empty : Server determines no transactions exist
+initial --> populated : Server includes transactions in initial render
+populated --> filtered : User filters (hx-get to /api/transactions/filter)
+filtered --> populated : User clears filter (hx-get to /api/transactions)
+populated --> selection : User selects transactions (hx-post to /api/transactions/select)
+selection --> populated : User deselects all (hx-post to /api/transactions/select)
+empty --> importing : User initiates import (hx-post to /api/import)
+populated --> importing : User initiates import (hx-post to /api/import)
+importing --> populated : Import completes (server returns updated HTML)
+importing --> empty : Import fails or returns no transactions
 
 @enduml
 ```
 
+**Note on Loading States in Server-Rendered HTMX Architecture:**
+
+In our HTMX architecture, "loading" isn't a distinct server-side state but rather is handled through:
+
+1. **Initial Page Load**: The server renders the complete page initially
+   
+2. **HTMX Loading Indicators**: When subsequent requests are made, HTMX shows loading indicators using:
+   ```html
+   <div class="htmx-indicator">Loading...</div>
+   ```
+   
+3. **Targeted Updates**: The server processes the request and returns only the HTML fragment needed to update the specific part of the page
+
+This approach differs from SPA frameworks where loading states are explicitly managed in client-side state.
+
 ## Import Dialog States
+
+In our server-rendered HTMX architecture, modals and dialogs are HTML fragments loaded from the server and injected into the DOM:
 
 ```plantuml
 @startuml
 
-state "Import Workflow" as import {
-  state "Dialog Closed" as closed
-  state "Dialog Open" as open
-  state "Validating" as validating
-  state "Import Processing" as processing
-  state "Import Success" as success
-  state "Import Error" as error
+state "Import Dialog" as import {
+  state "Not Present in DOM" as notPresent : Dialog HTML not in page
+  state "Present in DOM" as present : Dialog HTML inserted
+  state "Server-Side Validation" as validating : Server validates form data
+  state "Processing Import" as processing : Import in progress with indicator
 }
 
-[*] --> closed
-closed --> open : User clicks Import button
-open --> validating : User submits form
-validating --> open : Validation fails
-validating --> processing : Valid form submitted
-processing --> success : Import completes successfully
-processing --> error : Import fails
-success --> closed : Dialog closes automatically
-error --> open : Error displayed, form preserved
-open --> closed : User cancels
+[*] --> notPresent
+notPresent --> present : User clicks Import button\n(hx-get to /api/import-dialog)
+present --> validating : User submits form\n(hx-post to /api/import)
+validating --> present : Validation fails\n(server returns form with errors)
+validating --> processing : Valid form submitted\n(server starts import)
+processing --> notPresent : Import completes\n(server returns updated transaction table)
+present --> notPresent : User cancels\n(hx-get to /api/cancel-import)
 
 @enduml
 ```
+
+**Server-Side Rendering Approach:**
+
+1. When the Import button is clicked, HTMX requests the dialog HTML from the server
+2. The server renders the dialog using Scalatags and TailwindCSS
+3. HTMX inserts the dialog HTML into the target container
+4. Form submission is handled by HTMX, sending data to the server
+5. All validation happens server-side
+6. The server determines the appropriate response:
+   - Form with error messages if validation fails
+   - Updated transaction table HTML if import succeeds
+   - Error notification if import fails
+7. The dialog is removed from the DOM when the operation completes or is canceled
 
 ## Transaction Row States
 
