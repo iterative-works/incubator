@@ -1,6 +1,17 @@
 # UI State Diagrams
 
-This document outlines the state transitions and interactive behaviors of key UI components in the Budget feature.
+This document outlines the state transitions and interactive behaviors of key UI components in the Budget feature. All state management happens on the server-side following our server-rendered Scalatags + HTMX architecture, with TailwindCSS providing the styling.
+
+## HTMX-Driven State Management
+
+All state transitions in our application are implemented through HTMX attributes that trigger server requests. When a state change occurs:
+
+1. HTMX sends a request to the server with the relevant data
+2. The server processes the request and determines the new state
+3. The server renders a new HTML fragment using Scalatags with TailwindCSS classes
+4. HTMX replaces the targeted DOM element with the new HTML
+
+This ensures all UI state is managed by the server, making our application more robust and easier to reason about.
 
 ## Dashboard States
 
@@ -64,22 +75,30 @@ open --> closed : User cancels
 state "Transaction Row" as row {
   state "Normal" as normal : Default display
   state "Selected" as selected : Checkbox checked
-  state "Hover" as hover : Mouse over row
+  state "Hover" as hover : TailwindCSS hover state
   state "Editing Category" as editing : Category dropdown open
-  state "Updating" as updating : Category update in progress
+  state "Updating" as updating : Category update in progress (hx-indicator shown)
 }
 
 [*] --> normal
-normal --> hover : Mouse over
-hover --> normal : Mouse out
-normal --> selected : User checks checkbox
-selected --> normal : User unchecks checkbox
-normal --> editing : User clicks category
-editing --> updating : User selects new category
-updating --> normal : Update complete
+normal --> hover : Mouse over (CSS only, no server request)
+hover --> normal : Mouse out (CSS only, no server request)
+normal --> selected : User checks checkbox (hx-post to /api/transactions/select)
+selected --> normal : User unchecks checkbox (hx-post to /api/transactions/select)
+normal --> editing : User clicks category (hx-get to /api/transactions/{id}/edit-category)
+editing --> updating : User selects new category (hx-post to /api/transactions/{id}/categorize)
+updating --> normal : Update complete (Server returns updated HTML)
 
 @enduml
 ```
+
+Note: In our server-rendered architecture, most state changes involve:
+1. HTMX sends request to the server
+2. Server processes the request
+3. Server renders a new HTML fragment with Scalatags + TailwindCSS
+4. HTMX updates the DOM with the new HTML
+
+Pure CSS states like hover are handled client-side through TailwindCSS hover: classes without server requests.
 
 ## Transaction Submission States
 
@@ -220,3 +239,78 @@ endif
 
 @enduml
 ```
+
+## Server-Rendered Architecture Implementation
+
+Our UI state diagrams represent logical state transitions, but the technical implementation leverages our server-rendered Scalatags + HTMX + TailwindCSS architecture.
+
+### Technical Implementation
+
+```plantuml
+@startuml
+title Server-Rendered State Transition
+
+actor User
+participant "Browser UI" as UI
+participant HTMX
+participant "Server (Http4s)" as Server
+participant "Tapir Endpoint" as Endpoint
+participant "Service" as Service
+participant "View Renderer\n(Scalatags)" as Renderer
+
+User -> UI: User interaction (click, select, etc.)
+activate UI
+
+UI -> HTMX: Triggers HTMX request
+activate HTMX
+
+HTMX -> Server: HTTP request (GET/POST)
+activate Server
+
+Server -> Endpoint: Route to endpoint
+activate Endpoint
+
+Endpoint -> Service: Call service method
+activate Service
+
+Service -> Service: Process request,\nupdate state
+Service --> Endpoint: Return updated data
+deactivate Service
+
+Endpoint -> Renderer: Pass data to view renderer
+activate Renderer
+
+Renderer -> Renderer: Generate HTML with\nScalatags + TailwindCSS
+Renderer --> Endpoint: Return HTML fragment
+deactivate Renderer
+
+Endpoint --> Server: Return HTML response
+deactivate Endpoint
+
+Server --> HTMX: HTTP response with HTML
+deactivate Server
+
+HTMX -> UI: Update targeted DOM element
+deactivate HTMX
+
+UI --> User: Display updated UI state
+deactivate UI
+
+@enduml
+```
+
+### Key Aspects of Our Architecture
+
+1. **Server-Side State**: All application state is maintained on the server
+2. **HTML Over the Wire**: State changes are communicated as HTML fragments, not JSON
+3. **Targeted Updates**: HTMX only updates the specific DOM elements that need to change
+4. **Progressive Enhancement**: The application works without JavaScript, but is enhanced with HTMX
+5. **TailwindCSS Styling**: Visual presentation is handled by TailwindCSS utility classes
+6. **Type-Safe Templates**: Scalatags provides type-safe HTML generation on the server
+
+This architecture provides several benefits:
+- Simpler client-side code with less JavaScript
+- Consistent state management on the server
+- More robust progressive enhancement
+- Improved performance through smaller, targeted updates
+- Type safety through Scala's type system
