@@ -47,107 +47,11 @@ lazy val budget = (project in file("bounded-contexts/budget"))
     .settings(commonDependencies)
     .dependsOn(core)
 
-// Transaction Management Context
-lazy val transactions = (project in file("bounded-contexts/transactions"))
-    .settings(name := "transactions")
-    .enablePlugins(IWScalaProjectPlugin)
-    .settings(
-        commonDependencies,
-        scalacOptions ++= Seq("-Xmax-inlines", "64"),
-        IWDeps.zioJson,
-        IWDeps.magnumZIO,
-        IWDeps.magnumPG,
-        IWDeps.http4sBlazeServer,
-        IWDeps.scalatags,
-        IWDeps.chimney,
-        support.supportLib("sqldb")
-    )
-    .dependsOn(core, budget, webUi)
-
-lazy val `transactions-it` = (project in file("bounded-contexts/transactions/it")).settings(
-    name := "transactions-it"
+lazy val `budget-it` = (project in file("bounded-contexts/budget/it")).settings(
+    name := "budget-it"
 ).settings(IWDeps.useZIO(), IWDeps.logbackClassic, support.supportLib("sqldb-testing")).dependsOn(
-    transactions
+    budget
 )
-
-// YNAB Integration Context
-lazy val ynab = (project in file("bounded-contexts/ynab"))
-    .settings(name := "ynab")
-    .settings(
-        commonDependencies,
-        IWDeps.zioJson,
-        IWDeps.sttpClient4Core,
-        IWDeps.sttpClient4Lib("zio")
-    )
-    .dependsOn(core, budget, transactions)
-
-lazy val `ynab-it` = (project in file("bounded-contexts/ynab/it"))
-    .settings(name := "ynab-it")
-    .settings(IWDeps.useZIO())
-    .dependsOn(ynab)
-
-// Fio Bank Context
-lazy val fio = (project in file("bounded-contexts/fio"))
-    .settings(name := "fio")
-    .enablePlugins(IWScalaProjectPlugin)
-    .settings(
-        commonDependencies,
-        IWDeps.zioJson,
-        IWDeps.sttpClient4Core,
-        IWDeps.sttpClient4Lib("zio"),
-        IWDeps.magnumZIO,
-        IWDeps.magnumPG,
-        IWDeps.chimney,
-        IWDeps.logbackClassic
-    )
-    .dependsOn(core, budget, transactions)
-
-lazy val `fio-it` = (project in file("bounded-contexts/fio/it"))
-    .settings(name := "fio-it")
-    .settings(IWDeps.useZIO())
-    .dependsOn(fio)
-
-// AI Categorization Context (Skeleton)
-lazy val categorization = (project in file("bounded-contexts/categorization"))
-    .settings(name := "categorization")
-    .enablePlugins(IWScalaProjectPlugin)
-    .settings(commonDependencies)
-    .settings(
-        libraryDependencies += "com.softwaremill.sttp.openai" %% "zio" % "0.3.4"
-    )
-    .dependsOn(core, budget, transactions)
-
-lazy val `categorization-it` = (project in file("bounded-contexts/categorization/it"))
-    .settings(name := "categorization-it")
-    .settings(IWDeps.useZIO())
-    .dependsOn(categorization)
-
-// Import Module Context
-lazy val imports = (project in file("bounded-contexts/imports"))
-    .settings(name := "imports")
-    .enablePlugins(IWScalaProjectPlugin)
-    .settings(
-        commonDependencies,
-        IWDeps.zioJson,
-        IWDeps.http4sBlazeServer,
-        IWDeps.scalatags
-    )
-    .dependsOn(core, budget, transactions, fio)
-
-lazy val `imports-it` = (project in file("bounded-contexts/imports/it"))
-    .settings(name := "imports-it")
-    .settings(IWDeps.useZIO())
-    .dependsOn(imports)
-
-// User Management Context (Skeleton)
-lazy val auth = (project in file("bounded-contexts/auth"))
-    .settings(name := "auth")
-    .enablePlugins(IWScalaProjectPlugin)
-    .settings(
-        commonDependencies,
-        IWDeps.zioJson
-    )
-    .dependsOn(core)
 
 lazy val root = (project in file("."))
     .settings(name := "iw-incubator")
@@ -199,5 +103,5 @@ lazy val root = (project in file("."))
             "1"
         )
     )
-    .dependsOn(transactions, ynab, fio, imports, categorization)
-    .aggregate(webUi, core, budget, transactions, ynab, fio, categorization, auth, imports)
+    .dependsOn(budget, webUi)
+    .aggregate(webUi, core, budget)
