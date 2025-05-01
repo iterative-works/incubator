@@ -265,7 +265,7 @@ The system will follow a three-tier architecture with a Scala backend using ZIO,
 
 - **HTTP Layer**:
   - Purpose: Handle web requests and serve HTML/HTMX interface
-  - Responsibilities: API endpoints, Scalatags templating, HTMX integration
+  - Responsibilities: API endpoints, Scalatags templating, HTMX integration, TailwindCSS integration
 
 - **Integration Services**:
   - Purpose: Connect with external systems (Fio Bank, YNAB, OpenAI)
@@ -280,7 +280,6 @@ The system will follow a three-tier architecture with a Scala backend using ZIO,
   - Responsibilities: Import scheduling, categorization, submission to YNAB
 
 ### Implementation Recommendations
-- Use a feature flag system to enable gradual rollout and testing of components
 - Implement robust error handling and logging, especially for external API interactions
 - Create a separate service for AI categorization to allow independent scaling and evolution
 - Use database transactions to ensure data consistency during critical operations
@@ -298,17 +297,18 @@ The system will follow a three-tier architecture with a Scala backend using ZIO,
 ## Approval and Sign-off
 
 ### Product Approval
-- **Product Owner**: TBD
-- **Approval Date**: [TBD]
-- **Comments**: [TBD]
+- **Product Owner**: Michal Příhoda
+- **Approval Date**: 2025-05-01
+- **Comments**: Let's go.
 
 ### Technical Approval
-- **Tech Lead/Architect**: TBD
-- **Approval Date**: [TBD]
-- **Comments**: [TBD]
+- **Tech Lead/Architect**: Michal Příhoda
+- **Approval Date**: 2025-05-01
+- **Comments**: I'm in.
 
 ## Document History
 
 | Version | Date | Changes | Author |
 | ----------- | -------- | ------------- | ---------- |
 | 0.1 | 2025-04-18 | Initial draft | AI |
+| 0.2 | 2025-05-01 | Human review | Michal Příhoda |
