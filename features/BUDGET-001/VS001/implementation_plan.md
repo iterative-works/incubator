@@ -83,17 +83,44 @@ Scenario: Error during import from Fio Bank
    - Shows error messages when applicable
    - Provides retry button when errors occur
 
+#### Tailwind CSS Implementation
+1. **Component Theming**
+   - Create consistent color scheme based on YNAB branding
+   - Define reusable utility classes for component styles
+   - Apply responsive design principles with Tailwind breakpoints
+
+2. **Custom Components**
+   - Style DateRangeSelector with Tailwind's form classes
+   - Create custom button styles with different states (enabled, disabled, loading)
+   - Design alert components for success/error states
+   - Implement loading animations using Tailwind's animation utilities
+
+3. **Responsive Layout**
+   - Mobile-first design using Tailwind's container and flex utilities
+   - Responsive adaptations for different screen sizes
+   - Consistent spacing and padding using Tailwind's spacing scale
+
 ### 2. UI Testing
 
 1. **Component Tests**
    - Test date range selector validation
    - Test button state changes based on form validity
    - Test status indicator for different states
+   - Verify responsive behavior of components using Tailwind breakpoints
+   - Test Tailwind transitions and animations
 
 2. **User Flow Tests**
    - Test complete happy path scenario
    - Test error scenario handling
    - Test empty results scenario
+   - Verify consistent styling across all user flows
+   - Test behavior on different viewport sizes
+
+3. **Accessibility Testing**
+   - Verify color contrast meets WCAG standards
+   - Test keyboard navigation through form elements
+   - Verify screen reader compatibility
+   - Check that Tailwind focus states are properly applied
 
 ### 3. User Experience Validation
 
@@ -172,6 +199,43 @@ Scenario: Error during import from Fio Bank
    ```
 
 ### 5. Infrastructure Implementation
+
+#### Tailwind CSS Configuration
+
+1. **Project Setup**
+   - Install Tailwind CSS via npm/yarn
+   - Configure `tailwind.config.js` with project-specific settings:
+     ```js
+     // Example configuration
+     module.exports = {
+       content: [
+         './src/**/*.scala',
+         './src/**/*.html',
+       ],
+       theme: {
+         extend: {
+           colors: {
+             'ynab-blue': '#1E88E5',
+             'ynab-green': '#2E7D32',
+             'ynab-red': '#D32F2F',
+             'ynab-gray': '#757575',
+           },
+           animation: {
+            'spin-slow': 'spin 3s linear infinite',
+           }
+         },
+       },
+       plugins: [
+         require('@tailwindcss/forms'),
+       ],
+     }
+     ```
+   - Set up PostCSS for processing
+   - Configure build system to include Tailwind in the asset pipeline
+
+2. **HTMX Integration**
+   - Configure HTMX to work with Tailwind transitions
+   - Set up appropriate CSS classes for HTMX state transitions
 
 #### Repository Implementations
 
@@ -258,10 +322,12 @@ Scenario: Error during import from Fio Bank
 ## Implementation Tasks
 
 1. **UI Implementation (3 days)**
-   - [ ] Create DateRangeSelector component
-   - [ ] Implement ImportButton with state management
-   - [ ] Build StatusIndicator component
-   - [ ] Develop ResultsPanel component
+   - [ ] Set up Tailwind CSS configuration
+   - [ ] Create Tailwind CSS utility classes for component themes
+   - [ ] Create DateRangeSelector component with Tailwind styling
+   - [ ] Implement ImportButton with state management and Tailwind transitions
+   - [ ] Build StatusIndicator component with Tailwind animations
+   - [ ] Develop ResultsPanel component with responsive Tailwind layout
    - [ ] Integrate components into ImportPage
    - [ ] Implement UI-level validation
    - [ ] Create mock data providers for testing
@@ -280,6 +346,8 @@ Scenario: Error during import from Fio Bank
    - [ ] Write domain-level tests
 
 4. **Infrastructure Implementation (3 days)**
+   - [ ] Set up Tailwind CSS build pipeline
+   - [ ] Configure Tailwind theme with YNAB brand colors
    - [ ] Create database schema migrations
    - [ ] Implement PostgreSQL repositories
    - [ ] Develop FioBankApiClient
@@ -302,6 +370,8 @@ Scenario: Error during import from Fio Bank
 | Complex data mapping | Medium | Medium | Create mapping utility class; unit test edge cases |
 | Performance with large imports | Low | High | Implement paging; background processing |
 | Transaction data integrity | Low | High | Database constraints; validation checks |
+| Tailwind CSS integration with Scala | Low | Medium | Create utility functions for class composition; document best practices |
+| Consistent styling across components | Medium | Medium | Create reusable styling patterns; implement style guides |
 
 ## Dependencies
 
@@ -310,6 +380,8 @@ Scenario: Error during import from Fio Bank
 - Database access configuration
 - ZIO framework knowledge
 - Scala 3 syntax familiarity
+- Tailwind CSS framework
+- HTMX for interactive UI components
 
 ## Deliverables
 
@@ -322,9 +394,11 @@ Scenario: Error during import from Fio Bank
 
 ## Next Steps
 
-1. Begin UI prototype development for the DateRangeSelector component
-2. Set up mock data providers for testing
-3. Schedule initial user feedback session
+1. Set up Tailwind CSS configuration for the project
+2. Begin UI prototype development for the DateRangeSelector component
+3. Create Tailwind utility classes for component styling
+4. Set up mock data providers for testing
+5. Schedule initial user feedback session
 
 ## Document Information
 

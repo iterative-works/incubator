@@ -10,24 +10,24 @@ Based on the business value assessment, we will implement the vertical slices in
 
 ### Phase 1: Core Functionality
 
-1. **VS-001: Basic Transaction Import**
-2. **VS-003: AI-Powered Categorization**
-3. **VS-004: Category Review & Modification**
-4. **VS-005: YNAB Submission**
+1. **VS001: Basic Transaction Import**
+2. **VS003: AI-Powered Categorization**
+3. **VS004: Category Review & Modification**
+4. **VS005: YNAB Submission**
 
 ### Phase 2: Enhanced Functionality
 
-5. **VS-002: Transaction Management UI**
-6. **VS-006: Duplicate Prevention**
+5. **VS002: Transaction Management UI**
+6. **VS006: Duplicate Prevention**
 
 ### Phase 3: Optional Enhancements
 
-7. **VS-007: Transaction Rules Creation**
-8. **VS-008: Transaction Tags Support**
+7. **VS007: Transaction Rules Creation**
+8. **VS008: Transaction Tags Support**
 
 ## Detailed Slice Plans
 
-### VS-001: Basic Transaction Import
+### VS001: Basic Transaction Import
 
 **Description**: This slice enables the system to connect to Fio Bank API, retrieve transactions for a specified date range, and store them in the local database.
 
@@ -95,7 +95,7 @@ Scenario: Error during import from Fio Bank
 - Cache transaction data during import process
 - Create comprehensive test suite with mocked API responses
 
-### VS-003: AI-Powered Categorization
+### VS003: AI-Powered Categorization
 
 **Description**: This slice enables automatic categorization of imported transactions using AI (OpenAI API) to analyze transaction descriptions and assign appropriate YNAB categories.
 
@@ -144,7 +144,7 @@ Scenario: Batch categorization performance
 - Rate limiting and batching mechanism
 
 **Dependencies**:
-- VS-001 (Basic Transaction Import)
+- VS001 (Basic Transaction Import)
 - OpenAI API credentials
 - YNAB category list
 
@@ -160,7 +160,7 @@ Scenario: Batch categorization performance
 - Create fallback categorization rules
 - Batch processing to optimize API usage
 
-### VS-004: Category Review & Modification
+### VS004: Category Review & Modification
 
 **Description**: This slice enables users to review AI-assigned categories and manually modify them if necessary before submission to YNAB.
 
@@ -211,8 +211,8 @@ Scenario: Filter transactions by confidence score
 - History of user category changes
 
 **Dependencies**:
-- VS-001 (Basic Transaction Import)
-- VS-003 (AI-Powered Categorization)
+- VS001 (Basic Transaction Import)
+- VS003 (AI-Powered Categorization)
 - Complete list of YNAB categories
 
 **Estimated Effort**: 6 person-days
@@ -227,7 +227,7 @@ Scenario: Filter transactions by confidence score
 - Use optimistic UI updates
 - Create comprehensive UI tests
 
-### VS-005: YNAB Submission
+### VS005: YNAB Submission
 
 **Description**: This slice enables the system to submit categorized transactions to YNAB via the YNAB API, ensuring they appear in the correct account and budget.
 
@@ -278,8 +278,8 @@ Scenario: Mapping transaction data to YNAB format
 - Error handling and retry logic
 
 **Dependencies**:
-- VS-001 (Basic Transaction Import)
-- VS-004 (Category Review & Modification)
+- VS001 (Basic Transaction Import)
+- VS004 (Category Review & Modification)
 - YNAB API credentials
 - YNAB budget and account IDs
 
@@ -299,14 +299,14 @@ Scenario: Mapping transaction data to YNAB format
 
 ```mermaid
 graph TD
-    VS001[VS-001: Basic Transaction Import] --> VS003[VS-003: AI-Powered Categorization]
-    VS001 --> VS002[VS-002: Transaction Management UI]
-    VS003 --> VS004[VS-004: Category Review & Modification]
-    VS004 --> VS005[VS-005: YNAB Submission]
-    VS001 --> VS006[VS-006: Duplicate Prevention]
+    VS001[VS001: Basic Transaction Import] --> VS003[VS003: AI-Powered Categorization]
+    VS001 --> VS002[VS002: Transaction Management UI]
+    VS003 --> VS004[VS004: Category Review & Modification]
+    VS004 --> VS005[VS005: YNAB Submission]
+    VS001 --> VS006[VS006: Duplicate Prevention]
     VS006 --> VS005
-    VS003 --> VS007[VS-007: Transaction Rules Creation]
-    VS004 --> VS008[VS-008: Transaction Tags Support]
+    VS003 --> VS007[VS007: Transaction Rules Creation]
+    VS004 --> VS008[VS008: Transaction Tags Support]
     VS008 --> VS005
 
     style VS001 fill:#f9d5e5,stroke:#333,stroke-width:2px
@@ -321,35 +321,35 @@ graph TD
 
 ## UI Wireframes
 
-Initial wireframes for the first vertical slice (VS-001: Basic Transaction Import) will be created as part of the UI prototype specification document.
+Initial wireframes for the first vertical slice (VS001: Basic Transaction Import) will be created as part of the UI prototype specification document.
 
 ## Domain Model Evolution
 
 The domain model will evolve with each vertical slice:
 
-1. **VS-001**: Establish core Transaction and ImportBatch entities
-2. **VS-003**: Add Category entity and categorization logic
-3. **VS-004**: Extend with user-specific categorization preferences
-4. **VS-005**: Add submission tracking and YNAB integration concepts
-5. **VS-006**: Incorporate duplicate detection mechanisms
-6. **VS-007**: Add rule-based categorization concepts
-8. **VS-008**: Extend with tag support
+1. **VS001**: Establish core Transaction and ImportBatch entities
+2. **VS003**: Add Category entity and categorization logic
+3. **VS004**: Extend with user-specific categorization preferences
+4. **VS005**: Add submission tracking and YNAB integration concepts
+5. **VS006**: Incorporate duplicate detection mechanisms
+6. **VS007**: Add rule-based categorization concepts
+8. **VS008**: Extend with tag support
 
 ## User Feedback Touchpoints
 
 To ensure we're building the right solution, we'll gather user feedback at these key points:
 
-1. After VS-001: Validate the import process and transaction display
-2. After VS-003: Evaluate AI categorization accuracy
-3. After VS-004: Test the category review and modification experience
-4. After VS-005: Verify end-to-end workflow with YNAB submission
+1. After VS001: Validate the import process and transaction display
+2. After VS003: Evaluate AI categorization accuracy
+3. After VS004: Test the category review and modification experience
+4. After VS005: Verify end-to-end workflow with YNAB submission
 
 ## Next Steps
 
-1. Create UI prototype specification for VS-001 (Basic Transaction Import)
-2. Develop Gherkin scenarios for VS-001 in detail
-3. Implement UI prototype for VS-001 following the UI-First approach
-4. Schedule user feedback session for VS-001 validation
+1. Create UI prototype specification for VS001 (Basic Transaction Import)
+2. Develop Gherkin scenarios for VS001 in detail
+3. Implement UI prototype for VS001 following the UI-First approach
+4. Schedule user feedback session for VS001 validation
 
 ## Document Information
 
