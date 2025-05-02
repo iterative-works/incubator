@@ -48,6 +48,19 @@ export default defineConfig(({ mode }) => {
           { pattern: /^text-/ },
           { pattern: /^bg-/ },
         ],
+        theme: {
+          extend: {
+            colors: {
+              'ynab-blue': '#1E88E5',
+              'ynab-green': '#2E7D32',
+              'ynab-red': '#D32F2F',
+              'ynab-gray': '#757575',
+            },
+            animation: {
+              'spin-slow': 'spin 3s linear infinite',
+            }
+          },
+        },
         plugins: [typography, forms],
       }),
       viteStaticCopy({
