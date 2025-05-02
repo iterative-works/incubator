@@ -8,6 +8,12 @@ We follow a disciplined development process. This is important. We complete only
 
 If you encounter a problem that proves difficult to resolve after an initial attempt, do not continue struggling alone. Reach out for assistance. Remember that you have experienced developers as colleagues who can provide guidance. Always ask for help when facing unclear or complicated solutions rather than attempting to solve challenging problems by yourself.
 
+We are working according to principles in [principles.md](./ai-context/principles/principles.md).
+
+You can find the description of our architecture in [architecture.md](./ai-context/architecture/architecture.md).
+
+Be sure to read both of these files before starting to work on coding tasks.
+
 ## Build & Test Commands
 
 We usually use metals for development. It is useful to run sbt server separately in a console, and than access the server using `sbtn`.
