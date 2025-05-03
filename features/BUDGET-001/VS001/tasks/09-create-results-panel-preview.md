@@ -33,12 +33,21 @@
    - Add the module instance to the registry
    - Create the appropriate adapter
    - Add the module to the list of modules to be registered
+   
+4. Add the component to the SidebarNavigation:
+   - Add it to the "Budget" category in SidebarNavigation.scala
+   - Ensure it has a descriptive name and the correct path
 
-4. Verify the implementation:
+5. Add the component to the HomePreviewModule:
+   - Add it to the "Available Components" list in HomePreviewModule.scala
+   - Include a brief description of its purpose
+
+6. Verify the implementation:
    - Compile the code with `sbtn preview/compile`
    - Start the preview server with `sbtn preview/reStart`
    - Check the component preview in the browser at `http://localhost:8080/preview/budget/results-panel`
    - Verify all states render correctly and navigation works as expected
+   - Confirm component appears in both sidebar navigation and home page
 
 ## Output Format
 1. Preview Module implementation:
@@ -56,7 +65,7 @@
    end ResultsPanelPreviewModule
    ```
 
-2. PreviewModuleRegistry updates:
+2. PreviewModuleRegistry, SidebarNavigation, and HomePreviewModule updates:
    ```scala
    // PreviewModuleRegistry.scala additions
    // Add to private val declarations
@@ -74,6 +83,20 @@
        // existing modules...
        resultsPanelWebModule
    )
+   
+   // SidebarNavigation.scala - Add to Budget category
+   NavCategory("Budget", List(
+       NavItem("Import Button", "/preview/budget/import-button"),
+       NavItem("Results Panel", "/preview/budget/results-panel")
+       // Add more budget components as they're implemented
+   ))
+   
+   // HomePreviewModule.scala - Add to Available Components list
+   li(a(
+       href := "/preview/budget/results-panel",
+       cls := "text-blue-600 hover:underline",
+       "ResultsPanel - Display panel for transaction import results"
+   ))
    ```
 
 ## Constraints

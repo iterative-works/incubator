@@ -7,15 +7,15 @@ import works.iterative.incubator.budget.ui.transaction_import.models.ImportButto
 import works.iterative.incubator.budget.ui.transaction_import.components.ImportButton
 import java.time.LocalDate
 
-/** Preview module for the ImportButton component.
-  * Shows the component in various states for testing and development.
+/** Preview module for the ImportButton component. Shows the component in various states for testing
+  * and development.
   */
 class ImportButtonPreviewModule(
     val appShell: PreviewAppShell,
     val baseUri: BaseUri
 ) extends ComponentStatePreviewModule[ImportButtonViewModel]:
 
-    override def basePath: List[String] = List("budget", "import-button")
+    override def basePath: List[String] = List("transaction-import", "import-button")
     override def title: String = "Import Button"
 
     // Create various states for the import button

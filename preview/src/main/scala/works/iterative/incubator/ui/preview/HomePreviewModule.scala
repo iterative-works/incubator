@@ -60,9 +60,14 @@ class HomePreviewModule(
                                 "DateRangeSelector - Date selection for transaction imports"
                             )),
                             li(a(
-                                href := "/preview/budget/import-button",
+                                href := "/preview/transaction-import/import-button",
                                 cls := "text-blue-600 hover:underline",
                                 "ImportButton - Button for triggering transaction imports"
+                            )),
+                            li(a(
+                                href := "/preview/transaction-import/results-panel",
+                                cls := "text-blue-600 hover:underline",
+                                "ResultsPanel - Display panel for transaction import results"
                             ))
                             // Add more components as they are implemented
                         )

@@ -78,6 +78,7 @@ trait ComponentStatePreviewModule[VM] extends PreviewModule:
     /** All endpoints for documentation */
     override lazy val endpoints =
         val stateEndpoints = states.map(state => stateEndpoint(state.name))
+        scala.Console.println(s"stateEndpoints: $stateEndpoints")
         listStatesEndpoint :: stateEndpoints
 
     /** All server endpoints for routing - using lazy val to avoid initialization order issues */
