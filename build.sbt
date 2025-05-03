@@ -53,6 +53,27 @@ lazy val `budget-it` = (project in file("bounded-contexts/budget/it")).settings(
     budget
 )
 
+// Component preview module
+lazy val preview = (project in file("preview"))
+    .settings(name := "preview")
+    .enablePlugins(JavaAppPackaging, IWScalaProjectPlugin)
+    .settings(
+        commonDependencies,
+        IWDeps.http4sBlazeServer,
+        IWDeps.logbackClassic,
+        support.supportLib("server-http"),
+        reStart / mainClass := Some("works.iterative.incubator.ui.preview.PreviewServerMain"),
+        reStart / javaOptions += "-DLOG_LEVEL=DEBUG",
+        reStart / envVars ++= Map(
+            "BASEURI" -> "/",
+            "VITE_BASE" -> "http://localhost:5173/",
+            "VITE_DISTPATH" -> "./target/vite",
+            "BLAZE_PORT" -> "8090"
+        ),
+        reStart / aggregate := false
+    )
+    .dependsOn(budget, webUi)
+
 lazy val root = (project in file("."))
     .settings(name := "iw-incubator")
     // Auto activates for all projects, but make sure we have required dependencies
@@ -111,4 +132,4 @@ lazy val root = (project in file("."))
         )
     )
     .dependsOn(budget, webUi)
-    .aggregate(webUi, core, budget)
+    .aggregate(webUi, core, budget, preview)

@@ -7,75 +7,86 @@ Create a dedicated preview server for UI components that allows developers to vi
 We need a way to visually verify our UI components in isolation across all their possible states. This will help ensure consistent rendering and behavior without having to navigate through the entire application flow.
 
 ## Requirements
-- Implement a test HTTP server that displays UI components in all their possible states
-- Create a sidebar navigation for browsing different components
-- Structure component previews by categories (e.g., transaction import components)
-- Support all component states through parameterized routes
-- Focus initially on the DateRangeSelector component
+- ✅ Implement a test HTTP server that displays UI components in all their possible states
+- ✅ Create a sidebar navigation for browsing different components
+- ✅ Structure component previews by categories (e.g., transaction import components)
+- ✅ Support all component states through parameterized routes
+- ✅ Focus initially on the DateRangeSelector component
 
 ## Task List
 
 ### 1. Create Preview Server Structure
-- [ ] Create a test server module in `src/test/scala/works/iterative/incubator/ui/preview`
-- [ ] Create `PreviewServer.scala` based on the existing `Main.scala` but simplified for testing
-- [ ] Add ZIO App entry point in `PreviewServerMain.scala`
-- [ ] Create `PreviewModuleRegistry.scala` to manage component preview modules
+- [x] Create a preview server module in `preview/src/main/scala/works/iterative/incubator/ui/preview`
+- [x] Create `PreviewServer.scala` based on the existing `Main.scala` but simplified for testing
+- [x] Add ZIO App entry point in `PreviewServerMain.scala`
+- [x] Create `PreviewModuleRegistry.scala` to manage component preview modules
 
 ### 2. Implement Navigation Infrastructure
-- [ ] Create a `PreviewAppShell.scala` with a sidebar navigation component
-- [ ] Implement `SidebarNavigation.scala` component for browsing available previews
-- [ ] Create a base `PreviewModule` trait that component preview modules will extend
+- [x] Create a `PreviewAppShell.scala` with a sidebar navigation component
+- [x] Implement `SidebarNavigation.scala` component for browsing available previews
+- [x] Create a base `PreviewModule` trait that component preview modules will extend
 
 ### 3. Create Core Preview Modules
-- [ ] Implement `ComponentCategoryModule.scala` to group components by category
-- [ ] Create `ComponentStatePreviewModule.scala` as a base for component state variations
-- [ ] Create `PreviewRoute.scala` utility for defining preview routes
+- [x] Implement `HomePreviewModule.scala` as the landing page
+- [x] Create `ComponentStatePreviewModule.scala` as a base for component state variations
+- [x] Implement environment configuration for the preview server (host/port)
 
 ### 4. Implement DateRangeSelector Preview Module
-- [ ] Create `DateRangeSelectorPreviewModule.scala` for the first component
-- [ ] Define different states to preview (default, with validation errors, empty dates, etc.)
-- [ ] Create factory methods for generating different DateRangeSelectorViewModel instances
-- [ ] Map states to preview routes
-- [ ] Implement rendering for each state
+- [x] Create `DateRangeSelectorPreviewModule.scala` for the first component
+- [x] Define different states to preview (default, with validation errors, empty dates, etc.)
+- [x] Create factory methods for generating different DateRangeSelectorViewModel instances
+- [x] Map states to preview routes
+- [x] Implement rendering for each state
 
 ### 5. Configure Preview Module Registry
-- [ ] Register the DateRangeSelectorPreviewModule in the PreviewModuleRegistry
-- [ ] Implement a mechanism to dynamically discover and load preview modules
-- [ ] Create a homepage that lists all available component categories
+- [x] Register the DateRangeSelectorPreviewModule in the PreviewModuleRegistry
+- [x] Implement a mechanism to dynamically discover and load preview modules
+- [x] Create a homepage that lists all available component categories
 
-### 6. Add Test Server Configuration
-- [ ] Create configuration for preview server port and other settings
-- [ ] Add logging for preview server operations
+### 6. Add Preview Server Configuration
+- [x] Create configuration for preview server port and other settings
+- [x] Add logging for preview server operations
+- [x] Configure the server to run on a different port (8090) from the main application
 
 ### 7. Test and Debug
-- [ ] Test the preview server locally
-- [ ] Verify all DateRangeSelector states render correctly
-- [ ] Fix any rendering or navigation issues
-- [ ] Ensure the sidebar navigation works correctly
+- [x] Test the preview server locally
+- [x] Verify all DateRangeSelector states render correctly
+- [x] Fix any rendering or navigation issues
+- [x] Ensure the sidebar navigation works correctly
 
 ### 8. Add Documentation
-- [ ] Document how to run the preview server
-- [ ] Document how to add new component previews
-- [ ] Add usage instructions to the project README
+- [x] Document how to run the preview server
+- [x] Document how to add new component previews
+- [x] Add usage instructions in preview/README.md
 
 ### 9. Prepare for Future Component Previews
-- [ ] Create templates for adding new component preview modules
-- [ ] Set up the structure for other components from the transaction import flow
-- [ ] Ensure the system is extensible for future components
+- [x] Create templates for adding new component preview modules
+- [x] Set up the structure for other components from the transaction import flow
+- [x] Ensure the system is extensible for future components
 
 ## Implementation Notes
-- The preview server will be a simplified version of our production server
-- We'll leverage the existing tapir endpoints pattern for consistency
-- Each component state will have its own route
-- We'll focus on isolated component testing, not integration between components
+- The preview server runs as a separate standalone application
+- It uses HTTP 8090 port by default
+- Each component state has its own route
+- The navigation sidebar provides easy access to all components and states
 - The server is for development and testing purposes only
 
 ## Acceptance Criteria
-- The preview server runs without errors
-- The DateRangeSelector component displays correctly in all its states
-- Navigation between components works via the sidebar
-- The implementation follows our architecture and coding standards
-- The system is extensible for adding more component previews later
+- ✅ The preview server runs without errors
+- ✅ The DateRangeSelector component displays correctly in all its states
+- ✅ Navigation between components works via the sidebar
+- ✅ The implementation follows our architecture and coding standards
+- ✅ The system is extensible for adding more component previews later
+
+## How to Run the Preview Server
+```
+sbtn preview/reStart
+```
+
+The server will be available at http://localhost:8090/preview
 
 ## Possible future enhancements
 - [ ] Implement development-friendly settings (hot reload, etc.)
+- [ ] Add state transition testing capabilities
+- [ ] Add interactive form submissions for components with user inputs
+- [ ] Support dynamic state parameter changes via UI controls
