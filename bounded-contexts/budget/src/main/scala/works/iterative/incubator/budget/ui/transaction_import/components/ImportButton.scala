@@ -21,27 +21,38 @@ object ImportButton:
         val startDateParam = viewModel.startDate.format(dateFormat)
         val endDateParam = viewModel.endDate.format(dateFormat)
 
-        // Button styling classes based on state
-        val baseClasses =
-            "px-4 py-2 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2"
-        val enabledClasses = "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500"
-        val disabledClasses = "bg-gray-300 text-gray-500 cursor-not-allowed"
+        // Button styling classes - using Tailwind's disabled: variant for consistent styling
+        val buttonClasses =
+            "px-4 py-2 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 " +
+                "flex items-center justify-center " +
+                "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 " +
+                "disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:hover:bg-gray-300"
 
-        val buttonClasses = if viewModel.isDisabled then
-            s"$baseClasses $disabledClasses"
-        else
-            s"$baseClasses $enabledClasses"
+        // SVG spinner definition
+        val spinnerSvg = raw("""<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    |  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    |  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    |</svg>""".stripMargin)
+
+        // Placeholder spinner (invisible, for balanced layout)
+        val placeholderSpinner =
+            span(
+                cls := "invisible w-4 h-4 mr-2"
+            )(
+                // Empty placeholder with same dimensions as the spinner
+                raw(
+                    """<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"></svg>"""
+                )
+            )
 
         // Loading spinner (visible when button has htmx-request class)
         val loadingSpinner =
             span(
-                cls := "inline-block animate-spin ml-2 htmx-indicator"
+                id := "loading-spinner",
+                cls := "inline-block animate-spin mr-2 htmx-indicator"
             )(
                 // SVG spinner icon
-                raw("""<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    |  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    |  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    |</svg>""".stripMargin)
+                spinnerSvg
             )
 
         // Main button element with conditional disabled attribute
@@ -52,18 +63,23 @@ object ImportButton:
                 "hx-post"
             ) := s"/transactions/import?startDate=$startDateParam&endDate=$endDateParam",
             attr("hx-target") := "#results-panel-container",
-            attr("hx-swap") := "innerHTML"
+            attr("hx-swap") := "innerHTML",
+            // Disable button during request
+            attr("hx-disabled-elt") := "this",
+            // Add htmx classes for styling during request
+            attr("hx-indicator") := "#loading-spinner"
         )
 
-        // Add disabled attribute only if disabled
+        // Add disabled attribute only if initially disabled
         val finalAttrs = if viewModel.isDisabled then
             buttonAttrs :+ (attr("disabled") := "disabled")
         else
             buttonAttrs
 
         button(finalAttrs*)(
+            loadingSpinner,
             viewModel.buttonText,
-            loadingSpinner
+            placeholderSpinner
         )
     end render
 end ImportButton
