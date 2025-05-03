@@ -44,7 +44,7 @@ lazy val core = (project in file("bounded-contexts/core"))
 lazy val budget = (project in file("bounded-contexts/budget"))
     .settings(name := "budget")
     .enablePlugins(IWScalaProjectPlugin)
-    .settings(commonDependencies)
+    .settings(commonDependencies, support.supportLib("server-http"))
     .dependsOn(core, webUi)
 
 lazy val `budget-it` = (project in file("bounded-contexts/budget/it")).settings(
