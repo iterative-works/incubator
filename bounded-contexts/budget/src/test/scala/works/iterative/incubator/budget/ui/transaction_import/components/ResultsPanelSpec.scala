@@ -26,7 +26,6 @@ object ResultsPanelSpec extends ZIOSpecDefault:
             // Then it should be empty
             assert(rendered.trim)(equalTo(""))
         },
-        
         test("renders a panel with date range information") {
             // Given a view model with visible results panel
             val startDate = LocalDate.of(2025, 3, 1)
@@ -49,7 +48,6 @@ object ResultsPanelSpec extends ZIOSpecDefault:
             // Then it should include the date range
             assert(rendered)(containsString("Date range: March 1, 2025 to March 31, 2025"))
         },
-        
         test("renders correctly for successful import with transactions") {
             // Given a successful import with 15 transactions
             val viewModel = ResultsPanelViewModel(
@@ -75,7 +73,6 @@ object ResultsPanelSpec extends ZIOSpecDefault:
             val result5 = assert(rendered)(containsString("View Transactions"))
             result1 && result2 && result3 && result4 && result5
         },
-        
         test("renders correctly for successful import with single transaction") {
             // Given a successful import with 1 transaction
             val viewModel = ResultsPanelViewModel(
@@ -96,7 +93,6 @@ object ResultsPanelSpec extends ZIOSpecDefault:
             // Then it should show singular transaction message
             assert(rendered)(containsString("1 transaction successfully imported"))
         },
-        
         test("renders correctly for import with no transactions") {
             // Given a successful import but with zero transactions
             val viewModel = ResultsPanelViewModel(
@@ -115,12 +111,13 @@ object ResultsPanelSpec extends ZIOSpecDefault:
             val rendered = ResultsPanel.render(viewModel).render
 
             // Then it should show no transactions message
-            val result1 = assert(rendered)(containsString("No transactions found for the selected date range"))
+            val result1 = assert(rendered)(
+                containsString("No transactions found for the selected date range")
+            )
             val result2 = assert(rendered)(containsString("Import Successful"))
             val result3 = assert(rendered)(containsString("bg-green-100"))
             result1 && result2 && result3
         },
-        
         test("renders correctly for failed import with error message") {
             // Given a failed import with error message
             val viewModel = ResultsPanelViewModel(
@@ -140,13 +137,14 @@ object ResultsPanelSpec extends ZIOSpecDefault:
 
             // Then it should show error styling and message
             val result1 = assert(rendered)(containsString("Import Failed"))
-            val result2 = assert(rendered)(containsString("Unable to connect to Fio Bank. Please try again later."))
+            val result2 = assert(rendered)(
+                containsString("Unable to connect to Fio Bank. Please try again later.")
+            )
             val result3 = assert(rendered)(containsString("bg-red-100 text-red-800"))
             val result4 = assert(rendered)(containsString("Error code: IMPORT-"))
             val result5 = assert(rendered)(containsString("Retry Import"))
             result1 && result2 && result3 && result4 && result5
         },
-        
         test("includes 'View Transactions' button only for successful imports") {
             // Given a successful and failed import
             val successViewModel = ResultsPanelViewModel(
@@ -160,7 +158,7 @@ object ResultsPanelSpec extends ZIOSpecDefault:
                 startDate = LocalDate.of(2025, 3, 1),
                 endDate = LocalDate.of(2025, 3, 31)
             )
-            
+
             val errorViewModel = ResultsPanelViewModel(
                 importResults = Some(ImportResults(
                     transactionCount = 0,
@@ -182,7 +180,6 @@ object ResultsPanelSpec extends ZIOSpecDefault:
             val result2 = assert(errorRendered)(not(containsString("View Transactions")))
             result1 && result2
         },
-        
         test("includes 'Retry Import' button only for failed imports") {
             // Given a successful and failed import
             val successViewModel = ResultsPanelViewModel(
@@ -196,7 +193,7 @@ object ResultsPanelSpec extends ZIOSpecDefault:
                 startDate = LocalDate.of(2025, 3, 1),
                 endDate = LocalDate.of(2025, 3, 31)
             )
-            
+
             val errorViewModel = ResultsPanelViewModel(
                 importResults = Some(ImportResults(
                     transactionCount = 0,
@@ -218,7 +215,6 @@ object ResultsPanelSpec extends ZIOSpecDefault:
             val result2 = assert(errorRendered)(containsString("Retry Import"))
             result1 && result2
         },
-        
         test("includes HTMX attributes on retry button") {
             // Given a failed import
             val startDate = LocalDate.of(2025, 3, 1)
@@ -246,7 +242,6 @@ object ResultsPanelSpec extends ZIOSpecDefault:
             val result5 = assert(rendered)(containsString(s"endDate=2025-03-31"))
             result1 && result2 && result3 && result4 && result5
         },
-        
         test("includes proper accessibility attributes") {
             // Given a visible results panel
             val viewModel = ResultsPanelViewModel(

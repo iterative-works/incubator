@@ -4,8 +4,8 @@ import works.iterative.incubator.budget.ui.transaction_import.models.StatusIndic
 import works.iterative.incubator.budget.ui.transaction_import.models.ImportStatus
 import scalatags.Text.all.*
 
-/** Component for displaying the current status of transaction import operations.
-  * Shows appropriate styling and icons based on the current status.
+/** Component for displaying the current status of transaction import operations. Shows appropriate
+  * styling and icons based on the current status.
   */
 object StatusIndicator:
     /** Renders a status indicator component.
@@ -83,5 +83,6 @@ object StatusIndicator:
                 raw(s"""<svg class="$svgBaseClasses text-red-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     |  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
                     |</svg>""".stripMargin)
+        end match
     end renderIcon
 end StatusIndicator
