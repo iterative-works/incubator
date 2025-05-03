@@ -23,7 +23,7 @@ class ScalatagsAppShell(viteSupport: ScalatagsViteSupport)
                 viteSupport.mainCss,
                 // Include the entry point specific assets
                 // TODO: module-based entry points?
-                viteSupport.preambleFor("ynab-importer/web/src/main/static/js/main.js")
+                viteSupport.preambleFor("main.js")
             ),
             body(cls := "h-full", contentFrag)
         )

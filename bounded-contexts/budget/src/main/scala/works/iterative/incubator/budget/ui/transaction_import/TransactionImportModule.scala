@@ -6,6 +6,9 @@ import sttp.tapir.*
 import java.time.LocalDate
 import zio.*
 import sttp.tapir.ztapir.*
+import works.iterative.incubator.components.ScalatagsAppShell
+import scalatags.Text.Frag
+import scalatags.Text.all.raw
 
 /** Tapir module for transaction import functionality.
   *
@@ -16,11 +19,13 @@ class TransactionImportModule(
     transactionImportView: TransactionImportView
 ) extends TapirEndpointModule[TransactionImportService]:
 
+    val fragBody = htmlBodyUtf8.map[Frag](raw)(_.render)
+
     /** Base endpoint for transaction import with common path prefix and error handling */
     private val baseEndpoint = endpoint
         .in("transactions" / "import")
-        .errorOut(htmlBodyUtf8)
-        .out(htmlBodyUtf8)
+        .errorOut(stringBody)
+        .out(fragBody)
 
     /** GET endpoint for the main import page */
     val importPageEndpoint = baseEndpoint
@@ -57,7 +62,7 @@ class TransactionImportModule(
         .in("status")
 
     /** Implementation for the main import page */
-    private def getImportPage: ZIO[TransactionImportService, String, String] =
+    private def getImportPage: ZIO[TransactionImportService, String, Frag] =
         for
             viewModel <- TransactionImportService.getImportViewModel()
         yield transactionImportView.renderImportPage(viewModel)
@@ -66,7 +71,7 @@ class TransactionImportModule(
     private def validateDates(
         startDateStr: String,
         endDateStr: String
-    ): ZIO[TransactionImportService, String, String] =
+    ): ZIO[TransactionImportService, String, Frag] =
         for
             startDate <- ZIO.attempt(LocalDate.parse(startDateStr))
                 .orElseFail("Invalid start date format")
@@ -80,7 +85,7 @@ class TransactionImportModule(
     private def importTransactions(
         startDateStr: String,
         endDateStr: String
-    ): ZIO[TransactionImportService, String, String] =
+    ): ZIO[TransactionImportService, String, Frag] =
         for
             startDate <- ZIO.attempt(LocalDate.parse(startDateStr))
                 .orElseFail("Invalid start date format")
@@ -94,7 +99,7 @@ class TransactionImportModule(
         yield transactionImportView.renderImportResults(results, startDate, endDate)
 
     /** Implementation for import status check */
-    private def getImportStatus: ZIO[TransactionImportService, String, String] =
+    private def getImportStatus: ZIO[TransactionImportService, String, Frag] =
         for
             status <- TransactionImportService.getImportStatus()
         yield transactionImportView.renderImportStatus(status)
@@ -137,8 +142,8 @@ object TransactionImportModule:
       * @return
       *   A new TransactionImportModule instance
       */
-    def apply(baseUri: BaseUri): TransactionImportModule =
+    def apply(appShell: ScalatagsAppShell, baseUri: BaseUri): TransactionImportModule =
         given BaseUri = baseUri
-        new TransactionImportModule(new TransactionImportView())
+        new TransactionImportModule(new TransactionImportView(appShell))
     end apply
 end TransactionImportModule

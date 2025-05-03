@@ -6,19 +6,20 @@ import works.iterative.tapir.BaseUri
 import scalatags.Text.all.*
 import java.time.LocalDate
 import scala.annotation.unused
+import works.iterative.scalatags.components.ScalatagsAppShell
 
 /** View class for rendering the transaction import UI. Composes UI from individual components with
   * proper layout.
   */
-class TransactionImportView(using @unused baseUri: BaseUri):
+class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: BaseUri):
     /** Render the main import page.
       *
       * @param viewModel
       *   The view model containing all data needed for the page
       * @return
-      *   HTML content as a string
+      *   HTML content
       */
-    def renderImportPage(viewModel: ImportPageViewModel): String =
+    def renderImportPage(viewModel: ImportPageViewModel): Frag =
         // Create component view models from the page view model
         val dateRangeSelectorViewModel = DateRangeSelectorViewModel(
             startDate = viewModel.startDate,
@@ -45,76 +46,57 @@ class TransactionImportView(using @unused baseUri: BaseUri):
             endDate = viewModel.endDate
         )
 
-        html(
-            head(
-                meta(charset := "utf-8"),
-                meta(
-                    name := "viewport",
-                    content := "width=device-width, initial-scale=1, shrink-to-fit=no"
+        appShell.wrap(
+            pageTitle = "Transaction Import",
+            content = div(
+                cls := "container mx-auto px-4 py-8",
+                h1(
+                    cls := "text-2xl font-bold text-gray-800 mb-6",
+                    "Import Transactions from Fio Bank"
                 ),
-                tag("title")("Transaction Import - Budget Management"),
-                link(
-                    rel := "stylesheet",
-                    href := "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-                ),
-                script(
-                    src := "https://unpkg.com/htmx.org@1.8.0",
-                    integrity := "sha384-cZuAZ+ZbwkNRnrKi05G/fjBX+azI9DNOkNYysZ0I/X5ZFgsmMiBXgDZof30F5ofc",
-                    crossorigin := "anonymous"
-                )
-            ),
-            body(
-                cls := "bg-gray-100 min-h-screen",
                 div(
-                    cls := "container mx-auto px-4 py-8",
-                    h1(
-                        cls := "text-2xl font-bold text-gray-800 mb-6",
-                        "Import Transactions from Fio Bank"
+                    cls := "bg-white rounded-lg shadow-md p-6",
+                    // Description
+                    p(
+                        cls := "text-gray-600 mb-6",
+                        "Select a date range to import transactions from your Fio Bank account. " +
+                            "The date range cannot exceed 90 days due to Fio Bank API limitations."
                     ),
+                    // Date range selector
+                    div(cls := "mb-6", DateRangeSelector.render(dateRangeSelectorViewModel)),
+                    // Import action panel with button and status
                     div(
-                        cls := "bg-white rounded-lg shadow-md p-6",
-                        // Description
-                        p(
-                            cls := "text-gray-600 mb-6",
-                            "Select a date range to import transactions from your Fio Bank account. " +
-                                "The date range cannot exceed 90 days due to Fio Bank API limitations."
-                        ),
-                        // Date range selector
-                        div(cls := "mb-6", DateRangeSelector.render(dateRangeSelectorViewModel)),
-                        // Import action panel with button and status
+                        cls := "flex flex-col space-y-4",
+                        // Import button
                         div(
-                            cls := "flex flex-col space-y-4",
-                            // Import button
-                            div(
-                                id := "import-button-container",
-                                cls := "flex justify-center",
-                                ImportButton.render(importButtonViewModel)
-                            ),
-                            // Status indicator
-                            div(
-                                id := "status-indicator-container",
-                                cls := "mt-4",
-                                StatusIndicator.render(statusIndicatorViewModel)
-                            )
+                            id := "import-button-container",
+                            cls := "flex justify-center",
+                            ImportButton.render(importButtonViewModel)
                         ),
-                        // Results panel (only visible after import)
+                        // Status indicator
                         div(
-                            id := "results-panel-container",
-                            cls := "mt-6",
-                            ResultsPanel.render(resultsPanelViewModel)
+                            id := "status-indicator-container",
+                            cls := "mt-4",
+                            StatusIndicator.render(statusIndicatorViewModel)
                         )
                     ),
-                    // Help text
+                    // Results panel (only visible after import)
                     div(
-                        cls := "mt-6 text-sm text-gray-500",
-                        p(
-                            "Note: This will import all transactions from the selected period. " +
-                                "Transactions will be categorized using predefined rules."
-                        )
+                        id := "results-panel-container",
+                        cls := "mt-6",
+                        ResultsPanel.render(resultsPanelViewModel)
+                    )
+                ),
+                // Help text
+                div(
+                    cls := "mt-6 text-sm text-gray-500",
+                    p(
+                        "Note: This will import all transactions from the selected period. " +
+                            "Transactions will be categorized using predefined rules."
                     )
                 )
             )
-        ).render
+        )
     end renderImportPage
 
     /** Render just the import status component for HTMX updates.
@@ -122,11 +104,11 @@ class TransactionImportView(using @unused baseUri: BaseUri):
       * @param status
       *   The current import status
       * @return
-      *   HTML content as a string
+      *   HTML content
       */
-    def renderImportStatus(status: ImportStatus): String =
+    def renderImportStatus(status: ImportStatus): Frag =
         val viewModel = StatusIndicatorViewModel(status = status, isVisible = true)
-        StatusIndicator.render(viewModel).render
+        StatusIndicator.render(viewModel)
     end renderImportStatus
 
     /** Render just the results panel for HTMX updates.
@@ -138,20 +120,20 @@ class TransactionImportView(using @unused baseUri: BaseUri):
       * @param endDate
       *   The end date used for the import
       * @return
-      *   HTML content as a string
+      *   HTML content
       */
     def renderImportResults(
         results: ImportResults,
         startDate: LocalDate,
         endDate: LocalDate
-    ): String =
+    ): Frag =
         val viewModel = ResultsPanelViewModel(
             importResults = Some(results),
             isVisible = true,
             startDate = startDate,
             endDate = endDate
         )
-        ResultsPanel.render(viewModel).render
+        ResultsPanel.render(viewModel)
     end renderImportResults
 
     /** Render the validation error message for date range.
@@ -163,18 +145,18 @@ class TransactionImportView(using @unused baseUri: BaseUri):
       * @param endDate
       *   The end date that was validated
       * @return
-      *   HTML content as a string
+      *   HTML content
       */
     def renderDateValidationResult(
         errorMessage: Option[String],
         startDate: LocalDate,
         endDate: LocalDate
-    ): String =
+    ): Frag =
         val viewModel = DateRangeSelectorViewModel(
             startDate = startDate,
             endDate = endDate,
             validationError = errorMessage
         )
-        DateRangeSelector.render(viewModel).render
+        DateRangeSelector.render(viewModel)
     end renderDateValidationResult
 end TransactionImportView

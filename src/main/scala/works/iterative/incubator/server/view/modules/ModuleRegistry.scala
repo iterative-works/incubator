@@ -25,7 +25,8 @@ class ModuleRegistry(
     private val helloWorldModule = HelloWorldModule
     private val assetsModule = AssetsModule(viteConfig)
 
-    private val transactionImportModule: TransactionImportModule = TransactionImportModule(baseUri)
+    private val transactionImportModule: TransactionImportModule =
+        TransactionImportModule(appShell, baseUri)
 
     private val transactionImportWebModule =
         TapirWebModuleAdapter.adapt[TransactionImportService](
