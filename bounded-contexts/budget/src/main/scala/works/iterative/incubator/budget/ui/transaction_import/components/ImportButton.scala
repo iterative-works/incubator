@@ -114,7 +114,7 @@ object ImportButton:
                     }
                     
                     // Show the appropriate icon
-                    document.querySelectorAll('[data-icon]').forEach(icon => {
+                    document.querySelectorAll('#status-indicator [data-icon]').forEach(icon => {
                       if (icon.getAttribute('data-icon') === 'in-progress' && newStatus === 'InProgress') {
                         icon.classList.remove('opacity-0');
                         icon.classList.add('opacity-100');
