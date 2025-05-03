@@ -100,3 +100,6 @@ out/
 
 # Local settings
 .envrc.local
+
+**/.claude/settings.local.json
+.zed/settings.json
