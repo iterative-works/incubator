@@ -39,8 +39,9 @@ object DateRangeSelector:
 
         div(
             cls := "p-4 bg-white rounded-lg shadow-md",
-            attr("hx-target") := "this",
-            attr("hx-swap") := "innerHTML"
+            id := "date-range-selector",
+            attr("hx-target") := "#date-range-selector",
+            attr("hx-swap") := "outerHTML"
         )(
             div(cls := "mb-4")(
                 label(`for` := "start-date", cls := labelClasses)("Start Date"),
@@ -52,6 +53,7 @@ object DateRangeSelector:
                     value := startDateValue,
                     attr("hx-post") := "/transactions/import/validate-dates",
                     attr("hx-trigger") := "change",
+                    attr("hx-include") := "#end-date",
                     attr("max") := today
                 )
             ),
@@ -65,6 +67,7 @@ object DateRangeSelector:
                     value := endDateValue,
                     attr("hx-post") := "/transactions/import/validate-dates",
                     attr("hx-trigger") := "change",
+                    attr("hx-include") := "#start-date",
                     attr("max") := today
                 )
             ),

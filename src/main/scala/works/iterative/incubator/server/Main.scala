@@ -11,7 +11,6 @@ import zio.config.typesafe.TypesafeConfigProvider
 import view.modules.*
 import works.iterative.server.http.ScalatagsViteSupport
 import works.iterative.server.http.WebFeatureModule
-import works.iterative.incubator.budget.ui.transaction_import.MockTransactionImportService
 
 object Main extends ZIOAppDefault:
 

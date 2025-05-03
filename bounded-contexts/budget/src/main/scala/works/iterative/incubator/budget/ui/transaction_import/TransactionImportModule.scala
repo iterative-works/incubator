@@ -40,8 +40,7 @@ class TransactionImportModule(
         .post
         .in("validate-dates")
         .in(
-            query[String]("startDate")
-                .and(query[String]("endDate"))
+            formBody[Map[String, String]] // Use the specific form body codec
         )
 
     /** POST endpoint for initiating transaction import */
@@ -67,11 +66,13 @@ class TransactionImportModule(
             viewModel <- TransactionImportService.getImportViewModel()
         yield transactionImportView.renderImportPage(viewModel)
 
-    /** Implementation for date validation */
+    /** Implementation for date validation - handles form data */
     private def validateDates(
-        startDateStr: String,
-        endDateStr: String
+        formData: Map[String, String]
     ): ZIO[TransactionImportService, String, Frag] =
+        val startDateStr = formData.getOrElse("startDate", "")
+        val endDateStr = formData.getOrElse("endDate", "")
+
         for
             startDate <- ZIO.attempt(LocalDate.parse(startDateStr))
                 .orElseFail("Invalid start date format")
@@ -80,6 +81,8 @@ class TransactionImportModule(
             validationResult <- TransactionImportService.validateDateRange(startDate, endDate)
             errorMessage = validationResult.left.toOption
         yield transactionImportView.renderDateValidationResult(errorMessage, startDate, endDate)
+        end for
+    end validateDates
 
     /** Implementation for transaction import */
     private def importTransactions(
@@ -107,8 +110,8 @@ class TransactionImportModule(
     // Server endpoint implementations
     val importPageServerEndpoint = importPageEndpoint.zServerLogic(_ => getImportPage)
     val validateDatesServerEndpoint =
-        validateDatesEndpoint.zServerLogic { case (startDate, endDate) =>
-            validateDates(startDate, endDate)
+        validateDatesEndpoint.zServerLogic { formData =>
+            validateDates(formData)
         }
     val importTransactionsServerEndpoint =
         importTransactionsEndpoint.zServerLogic { case (startDate, endDate) =>
