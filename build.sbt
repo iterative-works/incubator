@@ -71,7 +71,14 @@ lazy val root = (project in file("."))
             "PG_USERNAME" -> "incubator"
         ),
         reStart / aggregate := false,
-        Test / fork := true
+        Test / fork := true,
+        Test / envVars ++= Map(
+            "BASEURI" -> "/",
+            "VITE_BASE" -> "http://localhost:5173/",
+            "VITE_DISTPATH" -> "./target/vite",
+            "PG_URL" -> "jdbc:postgresql://storage:5432/incubator",
+            "PG_USERNAME" -> "incubator"
+        )
     )
     .settings(
         // Docker configuration
