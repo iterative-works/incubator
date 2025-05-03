@@ -30,7 +30,8 @@ object SidebarNavigation:
                         "/preview/transaction-import/date-range-selector"
                     ),
                     NavItem("Import Button", "/preview/transaction-import/import-button"),
-                    NavItem("Results Panel", "/preview/transaction-import/results-panel")
+                    NavItem("Results Panel", "/preview/transaction-import/results-panel"),
+                    NavItem("Status Indicator", "/preview/transaction-import/status-indicator")
                     // Add more components as they're implemented
                 )
             )

@@ -28,6 +28,7 @@ class PreviewModuleRegistry(
     private val dateRangeSelectorPreviewModule = DateRangeSelectorPreviewModule(appShell, baseUri)
     private val importButtonPreviewModule = ImportButtonPreviewModule(appShell, baseUri)
     private val resultsPanelPreviewModule = ResultsPanelPreviewModule(appShell, baseUri)
+    private val statusIndicatorPreviewModule = StatusIndicatorPreviewModule(appShell, baseUri)
 
     // Create web module adapters
     private val homeWebModule =
@@ -59,6 +60,12 @@ class PreviewModuleRegistry(
             options = Http4sServerOptions.default,
             module = resultsPanelPreviewModule
         )
+        
+    private val statusIndicatorWebModule =
+        TapirWebModuleAdapter.adapt[PreviewEnv](
+            options = Http4sServerOptions.default,
+            module = statusIndicatorPreviewModule
+        )
 
     // List of all modules to be registered
     val modules: List[WebFeatureModule[RIO[PreviewEnv, *]]] = List(
@@ -66,7 +73,8 @@ class PreviewModuleRegistry(
         navigationWebModule,
         dateRangeSelectorWebModule,
         importButtonWebModule,
-        resultsPanelWebModule
+        resultsPanelWebModule,
+        statusIndicatorWebModule
     )
 end PreviewModuleRegistry
 

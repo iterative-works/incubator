@@ -17,7 +17,7 @@
 1. Create a new preview module named `StatusIndicatorPreviewModule` that:
    - Extends the `ComponentStatePreviewModule` trait
    - Uses the `StatusIndicatorViewModel` as its type parameter
-   - Defines a logical base path for the component (e.g., `List("budget", "status-indicator")`)
+   - Defines a logical base path for the component (e.g., `List("transaction-import", "status-indicator")`)
    - Sets an appropriate title for display
    - Creates 3-5 different component states demonstrating all important variations
    - Implements all required methods correctly
@@ -27,15 +27,15 @@
    - InProgress state showing the animated loading spinner
    - Completed state showing the success checkmark
    - Error state showing the error icon
-   - Hidden state (not visible) 
+   - Hidden state (not visible)
 
 3. Register the preview module in the PreviewModuleRegistry:
    - Add the module instance to the registry
    - Create the appropriate adapter
    - Add the module to the list of modules to be registered
-   
+
 4. Add the component to the SidebarNavigation:
-   - Add it to the "Budget" category in SidebarNavigation.scala
+   - Add it to the "Transaction Import" category in SidebarNavigation.scala
    - Ensure it has a descriptive name and the correct path
 
 5. Add the component to the HomePreviewModule:
@@ -45,7 +45,7 @@
 6. Verify the implementation:
    - Compile the code with `sbtn preview/compile`
    - Start the preview server with `sbtn preview/reStart`
-   - Check the component preview in the browser at `http://localhost:8080/preview/budget/status-indicator`
+   - Check the component preview in the browser at `http://localhost:8080/preview/transaction-import/status-indicator`
    - Verify all states render correctly and navigation works as expected
    - Confirm component appears in both sidebar navigation and home page
 
@@ -54,9 +54,9 @@
    ```scala
    // StatusIndicatorPreviewModule.scala in preview/src/main/scala/works/iterative/incubator/ui/preview/
    package works.iterative.incubator.ui.preview
-   
+
    // imports...
-   
+
    class StatusIndicatorPreviewModule(
        val appShell: PreviewAppShell,
        val baseUri: BaseUri
@@ -70,20 +70,20 @@
    // PreviewModuleRegistry.scala additions
    // Add to private val declarations
    private val statusIndicatorPreviewModule = StatusIndicatorPreviewModule(appShell, baseUri)
-   
+
    // Add adapter
    private val statusIndicatorWebModule =
        TapirWebModuleAdapter.adapt[PreviewEnv](
            options = Http4sServerOptions.default,
            module = statusIndicatorPreviewModule
        )
-       
+
    // Add to modules list
    val modules: List[WebFeatureModule[RIO[PreviewEnv, *]]] = List(
        // existing modules...
        statusIndicatorWebModule
    )
-   
+
    // SidebarNavigation.scala - Add to Budget category
    NavCategory("Budget", List(
        NavItem("Import Button", "/preview/budget/import-button"),
@@ -91,7 +91,7 @@
        NavItem("Status Indicator", "/preview/budget/status-indicator")
        // Add more budget components as they're implemented
    ))
-   
+
    // HomePreviewModule.scala - Add to Available Components list
    li(a(
        href := "/preview/budget/status-indicator",

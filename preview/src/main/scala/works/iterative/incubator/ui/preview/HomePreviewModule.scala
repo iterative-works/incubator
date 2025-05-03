@@ -68,6 +68,11 @@ class HomePreviewModule(
                                 href := "/preview/transaction-import/results-panel",
                                 cls := "text-blue-600 hover:underline",
                                 "ResultsPanel - Display panel for transaction import results"
+                            )),
+                            li(a(
+                                href := "/preview/transaction-import/status-indicator",
+                                cls := "text-blue-600 hover:underline",
+                                "StatusIndicator - Displays current import operation status"
                             ))
                             // Add more components as they are implemented
                         )
