@@ -64,7 +64,7 @@ object Main extends ZIOAppDefault:
             BlazeHttpServer.layer,
             ModuleRegistry.layer,
             ScalatagsViteSupport.layer,
-            MockTransactionImportService.layer
+            AppEnv.live
         )
     end run
 end Main

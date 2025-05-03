@@ -26,7 +26,7 @@ object ResultsPanel:
             val dateRange = s"$formattedStart to $formattedEnd"
 
             div(
-                id := "import-results",
+                id := "results-panel-container",
                 cls := "rounded-lg shadow-md mt-6",
                 attr("aria-live") := "polite",
                 attr("role") := "region",
@@ -87,8 +87,8 @@ object ResultsPanel:
                                     cls := "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500",
                                     attr(
                                         "hx-post"
-                                    ) := s"/import-transactions?startDate=${viewModel.startDate}&endDate=${viewModel.endDate}",
-                                    attr("hx-target") := "#import-results",
+                                    ) := s"/transactions/import?startDate=${viewModel.startDate}&endDate=${viewModel.endDate}",
+                                    attr("hx-target") := "#results-panel-container",
                                     attr("hx-swap") := "outerHTML"
                                 )(
                                     "Retry Import"

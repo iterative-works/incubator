@@ -50,7 +50,7 @@ object DateRangeSelector:
                     name := "startDate",
                     cls := startDateBorderClasses,
                     value := startDateValue,
-                    attr("hx-post") := "/validate-dates",
+                    attr("hx-post") := "/transactions/import/validate-dates",
                     attr("hx-trigger") := "change",
                     attr("max") := today
                 )
@@ -63,7 +63,7 @@ object DateRangeSelector:
                     name := "endDate",
                     cls := endDateBorderClasses,
                     value := endDateValue,
-                    attr("hx-post") := "/validate-dates",
+                    attr("hx-post") := "/transactions/import/validate-dates",
                     attr("hx-trigger") := "change",
                     attr("max") := today
                 )

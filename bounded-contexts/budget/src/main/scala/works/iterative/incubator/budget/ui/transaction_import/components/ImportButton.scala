@@ -32,11 +32,10 @@ object ImportButton:
         else
             s"$baseClasses $enabledClasses"
 
-        // Loading spinner (only visible during loading)
+        // Loading spinner (visible when button has htmx-request class)
         val loadingSpinner =
             span(
-                cls := "inline-block animate-spin mr-2",
-                style := (if viewModel.isLoading then "display: inline-block" else "display: none")
+                cls := "inline-block animate-spin ml-2 htmx-indicator"
             )(
                 // SVG spinner icon
                 raw("""<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -51,10 +50,9 @@ object ImportButton:
             attr("aria-disabled") := (if viewModel.isDisabled then "true" else "false"),
             attr(
                 "hx-post"
-            ) := s"/import-transactions?startDate=$startDateParam&endDate=$endDateParam",
-            attr("hx-target") := "#import-results",
-            attr("hx-swap") := "innerHTML",
-            attr("hx-indicator") := "#loading-indicator"
+            ) := s"/transactions/import?startDate=$startDateParam&endDate=$endDateParam",
+            attr("hx-target") := "#results-panel-container",
+            attr("hx-swap") := "innerHTML"
         )
 
         // Add disabled attribute only if disabled
@@ -64,8 +62,8 @@ object ImportButton:
             buttonAttrs
 
         button(finalAttrs*)(
-            loadingSpinner,
-            viewModel.buttonText
+            viewModel.buttonText,
+            loadingSpinner
         )
     end render
 end ImportButton
