@@ -8,9 +8,10 @@ import works.iterative.server.http.impl.blaze.BlazeHttpServer
 import zio.logging.*
 import com.typesafe.config.ConfigFactory
 import zio.config.typesafe.TypesafeConfigProvider
-import works.iterative.server.http.ZIOWebModule
 import view.modules.*
 import works.iterative.server.http.ScalatagsViteSupport
+import works.iterative.server.http.WebFeatureModule
+import works.iterative.incubator.budget.ui.transaction_import.MockTransactionImportService
 
 object Main extends ZIOAppDefault:
 
@@ -36,7 +37,8 @@ object Main extends ZIOAppDefault:
         )
 
     def routes(registry: ModuleRegistry): HttpRoutes[AppTask] =
-        ZIOWebModule.combineRoutes[AppEnv](registry.modules*)
+        import zio.interop.catz.*
+        WebFeatureModule.combineRoutes[RIO[AppEnv, *]](registry.modules*)
     end routes
 
     def setupRoutes(
@@ -61,7 +63,8 @@ object Main extends ZIOAppDefault:
         program.provideSome[Scope](
             BlazeHttpServer.layer,
             ModuleRegistry.layer,
-            ScalatagsViteSupport.layer
+            ScalatagsViteSupport.layer,
+            MockTransactionImportService.layer
         )
     end run
 end Main
