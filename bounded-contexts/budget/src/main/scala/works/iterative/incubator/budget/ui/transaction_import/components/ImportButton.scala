@@ -64,6 +64,20 @@ object ImportButton:
             ) := s"/transactions/import?startDate=$startDateParam&endDate=$endDateParam",
             attr("hx-target") := "#results-panel-container",
             attr("hx-swap") := "innerHTML",
+            // Start polling the status endpoint when import begins
+            attr("hx-on::before-request") := """
+              // Create a status poller that updates every 500ms
+              window.statusPoller = setInterval(function() {
+                htmx.ajax('GET', '/transactions/import/status', {target:'#status-indicator-container'});
+              }, 500);
+            """,
+            // Stop polling when import completes or fails
+            attr("hx-on::after-request") := """
+              // Stop polling the status endpoint
+              clearInterval(window.statusPoller);
+              // Update status one final time to ensure latest state is shown
+              htmx.ajax('GET', '/transactions/import/status', {target:'#status-indicator-container'});
+            """,
             // Disable button during request
             attr("hx-disabled-elt") := "this",
             // Add htmx classes for styling during request
