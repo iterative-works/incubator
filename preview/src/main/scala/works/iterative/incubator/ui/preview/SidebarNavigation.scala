@@ -22,6 +22,10 @@ object SidebarNavigation:
             NavCategory("Transaction Import", List(
                 NavItem("Date Range Selector", "/preview/transaction-import/date-range-selector")
                 // Add more components as they're implemented
+            )),
+            NavCategory("Budget", List(
+                NavItem("Import Button", "/preview/budget/import-button")
+                // Add more budget components as they're implemented
             ))
             // Add more categories as needed
         )
