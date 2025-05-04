@@ -38,37 +38,46 @@ object DateRangeSelector:
             if viewModel.hasError then s"$inputClasses border-red-500" else inputClasses
 
         div(
-            cls := "p-4 bg-white rounded-lg shadow-md",
+            cls := "w-full",
             id := "date-range-selector",
             attr("hx-target") := "#date-range-selector",
             attr("hx-swap") := "outerHTML"
         )(
-            div(cls := "mb-4")(
-                label(`for` := "start-date", cls := labelClasses)("Start Date"),
-                input(
-                    `type` := "date",
-                    id := "start-date",
-                    name := "startDate",
-                    cls := startDateBorderClasses,
-                    value := startDateValue,
-                    attr("hx-post") := "/transactions/import/validate-dates",
-                    attr("hx-trigger") := "change",
-                    attr("hx-include") := "#end-date",
-                    attr("max") := today
-                )
-            ),
-            div(cls := "mb-4")(
-                label(`for` := "end-date", cls := labelClasses)("End Date"),
-                input(
-                    `type` := "date",
-                    id := "end-date",
-                    name := "endDate",
-                    cls := endDateBorderClasses,
-                    value := endDateValue,
-                    attr("hx-post") := "/transactions/import/validate-dates",
-                    attr("hx-trigger") := "change",
-                    attr("hx-include") := "#start-date",
-                    attr("max") := today
+            h3(cls := "text-lg font-medium mb-2")("Select Date Range for Import"),
+            div(
+                cls := "flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full"
+            )(
+                div(
+                    cls := "flex-grow w-full",
+                    label(`for` := "start-date", cls := s"$labelClasses")("From:"),
+                    input(
+                        `type` := "date",
+                        id := "start-date",
+                        name := "startDate",
+                        cls := startDateBorderClasses,
+                        value := startDateValue,
+                        attr("hx-post") := "/transactions/import/validate-dates",
+                        attr("hx-trigger") := "change",
+                        attr("hx-include") := "#end-date",
+                        attr("max") := today
+                    )
+                ),
+                div(
+                    cls := "flex-grow w-full",
+                    label(`for` := "end-date", cls := s"$labelClasses")(
+                        "To:"
+                    ),
+                    input(
+                        `type` := "date",
+                        id := "end-date",
+                        name := "endDate",
+                        cls := endDateBorderClasses,
+                        value := endDateValue,
+                        attr("hx-post") := "/transactions/import/validate-dates",
+                        attr("hx-trigger") := "change",
+                        attr("hx-include") := "#start-date",
+                        attr("max") := today
+                    )
                 )
             ),
 

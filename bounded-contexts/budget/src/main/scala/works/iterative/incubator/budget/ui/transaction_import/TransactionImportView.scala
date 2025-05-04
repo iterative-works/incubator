@@ -51,32 +51,37 @@ class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: 
             content = div(
                 cls := "container mx-auto px-4 py-8",
                 h1(
-                    cls := "text-2xl font-bold text-gray-800 mb-6",
+                    cls := "text-2xl font-bold text-gray-800 mb-3 bg-blue-100 p-4 rounded-md",
                     "Import Transactions from Fio Bank"
                 ),
+                // Help text
                 div(
-                    cls := "bg-white rounded-lg shadow-md p-6",
-                    // Description
+                    cls := "mt-6 text-sm text-gray-500",
                     p(
-                        cls := "text-gray-600 mb-6",
-                        "Select a date range to import transactions from your Fio Bank account. " +
-                            "The date range cannot exceed 90 days due to Fio Bank API limitations."
+                        "Note: This will import all transactions from the selected period. " +
+                            "Transactions will be categorized using predefined rules."
+                    )
+                ),
+                div(
+                    cls := "bg-white rounded-lg py-6 w-full",
+                    // Date range selector (includes its own title now)
+                    div(
+                        cls := "mb-4 w-full",
+                        DateRangeSelector.render(dateRangeSelectorViewModel)
                     ),
-                    // Date range selector
-                    div(cls := "mb-6", DateRangeSelector.render(dateRangeSelectorViewModel)),
                     // Import action panel with button and status
                     div(
-                        cls := "flex flex-col space-y-4",
-                        // Import button
+                        cls := "flex flex-col sm:flex-row sm:items-center justify-between mb-4",
+                        // Import button - aligned to left
                         div(
                             id := "import-button-container",
-                            cls := "flex justify-center",
+                            cls := "flex",
                             ImportButton.render(importButtonViewModel)
                         ),
-                        // Status indicator
+                        // Status indicator - aligned to right and filling space
                         div(
                             id := "status-indicator-container",
-                            cls := "mt-4",
+                            cls := "mt-2 sm:mt-0 sm:ml-4 flex-grow flex items-center justify-end",
                             StatusIndicator.render(statusIndicatorViewModel)
                         )
                     ),
@@ -85,14 +90,6 @@ class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: 
                         id := "results-panel-container",
                         cls := "mt-6",
                         ResultsPanel.render(resultsPanelViewModel)
-                    )
-                ),
-                // Help text
-                div(
-                    cls := "mt-6 text-sm text-gray-500",
-                    p(
-                        "Note: This will import all transactions from the selected period. " +
-                            "Transactions will be categorized using predefined rules."
                     )
                 )
             )
