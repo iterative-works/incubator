@@ -103,3 +103,6 @@ out/
 
 **/.claude/settings.local.json
 .zed/settings.json
+
+# Ignore local MCP servers for now, not sure what the workflow will be
+.mcp.json
