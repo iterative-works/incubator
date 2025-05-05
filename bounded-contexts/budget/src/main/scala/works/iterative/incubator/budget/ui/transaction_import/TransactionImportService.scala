@@ -4,12 +4,10 @@ import works.iterative.incubator.budget.ui.transaction_import.models.*
 import java.time.LocalDate
 import zio.*
 
-/** Service interface for handling transaction imports from Fio Bank.
-  * This service provides methods for the import workflow:
-  * 1. Initial view model for the import page
-  * 2. Date range validation
-  * 3. Transaction import execution
-  * 4. Import status tracking
+/** Service interface for handling transaction imports from Fio Bank. This service provides methods
+  * for the import workflow:
+  *   1. Initial view model for the import page 2. Date range validation 3. Transaction import
+  *      execution 4. Import status tracking
   */
 trait TransactionImportService:
     /** Get the initial view model for the import page.
@@ -19,11 +17,10 @@ trait TransactionImportService:
       */
     def getImportViewModel(): ZIO[Any, String, ImportPageViewModel]
 
-    /** Validate a date range based on business rules.
-      * Valid ranges are:
-      * - Start date is not after end date
-      * - Neither date is in the future
-      * - Range is not more than 90 days (Fio Bank API limitation)
+    /** Validate a date range based on business rules. Valid ranges are:
+      *   - Start date is not after end date
+      *   - Neither date is in the future
+      *   - Range is not more than 90 days (Fio Bank API limitation)
       *
       * @param startDate
       *   The start date of the range

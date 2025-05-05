@@ -22,7 +22,8 @@ object StatusIndicatorSpec extends ZIOSpecDefault:
             val result1 = assert(rendered)(containsString("Ready to import"))
             val result2 = assert(rendered)(containsString("bg-gray-100 text-gray-800"))
             // Check opacity-100 for NotStarted icon instead of checking for absence of animate-
-            val result3 = assert(rendered)(containsString("opacity-100\" data-icon=\"not-started\""))
+            val result3 =
+                assert(rendered)(containsString("opacity-100\" data-icon=\"not-started\""))
             result1 && result2 && result3
         },
         test("renders correctly for InProgress status") {
@@ -111,11 +112,16 @@ object StatusIndicatorSpec extends ZIOSpecDefault:
             val errorRendered = StatusIndicator.render(errorViewModel).render
 
             // Check that InProgress has the animate-spin element with opacity-100
-            val result1 = assert(inProgressRendered)(containsString("opacity-100\" data-icon=\"in-progress\""))
+            val result1 = assert(inProgressRendered)(
+                containsString("opacity-100\" data-icon=\"in-progress\"")
+            )
             // Check that other states have the animate-spin element with opacity-0
-            val result2 = assert(notStartedRendered)(containsString("opacity-0\" data-icon=\"in-progress\""))
-            val result3 = assert(completedRendered)(containsString("opacity-0\" data-icon=\"in-progress\""))
-            val result4 = assert(errorRendered)(containsString("opacity-0\" data-icon=\"in-progress\""))
+            val result2 =
+                assert(notStartedRendered)(containsString("opacity-0\" data-icon=\"in-progress\""))
+            val result3 =
+                assert(completedRendered)(containsString("opacity-0\" data-icon=\"in-progress\""))
+            val result4 =
+                assert(errorRendered)(containsString("opacity-0\" data-icon=\"in-progress\""))
             result1 && result2 && result3 && result4
         },
         test("shows success icon only in Completed status") {
@@ -131,11 +137,15 @@ object StatusIndicatorSpec extends ZIOSpecDefault:
             val errorRendered = StatusIndicator.render(errorViewModel).render
 
             // Check that Completed has the success icon with opacity-100
-            val result1 = assert(completedRendered)(containsString("opacity-100\" data-icon=\"completed\""))
+            val result1 =
+                assert(completedRendered)(containsString("opacity-100\" data-icon=\"completed\""))
             // Check that other states have the success icon with opacity-0
-            val result2 = assert(notStartedRendered)(containsString("opacity-0\" data-icon=\"completed\""))
-            val result3 = assert(inProgressRendered)(containsString("opacity-0\" data-icon=\"completed\""))
-            val result4 = assert(errorRendered)(containsString("opacity-0\" data-icon=\"completed\""))
+            val result2 =
+                assert(notStartedRendered)(containsString("opacity-0\" data-icon=\"completed\""))
+            val result3 =
+                assert(inProgressRendered)(containsString("opacity-0\" data-icon=\"completed\""))
+            val result4 =
+                assert(errorRendered)(containsString("opacity-0\" data-icon=\"completed\""))
             result1 && result2 && result3 && result4
         },
         test("shows error icon only in Error status") {
@@ -153,9 +163,12 @@ object StatusIndicatorSpec extends ZIOSpecDefault:
             // Check that Error has the error icon with opacity-100
             val result1 = assert(errorRendered)(containsString("opacity-100\" data-icon=\"error\""))
             // Check that other states have the error icon with opacity-0
-            val result2 = assert(notStartedRendered)(containsString("opacity-0\" data-icon=\"error\""))
-            val result3 = assert(inProgressRendered)(containsString("opacity-0\" data-icon=\"error\""))
-            val result4 = assert(completedRendered)(containsString("opacity-0\" data-icon=\"error\""))
+            val result2 =
+                assert(notStartedRendered)(containsString("opacity-0\" data-icon=\"error\""))
+            val result3 =
+                assert(inProgressRendered)(containsString("opacity-0\" data-icon=\"error\""))
+            val result4 =
+                assert(completedRendered)(containsString("opacity-0\" data-icon=\"error\""))
             result1 && result2 && result3 && result4
         }
     )

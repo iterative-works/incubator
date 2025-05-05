@@ -5,33 +5,32 @@ import java.time.{Instant, LocalDate}
 import zio.*
 import scala.util.Random
 
-/**
- * Enum representing different import scenarios for demonstration
- */
+/** Enum representing different import scenarios for demonstration
+  */
 enum ImportScenario:
     case SuccessfulImport, NoTransactions, ErrorDuringImport
 
-/** Mock implementation of TransactionImportService for UI development.
-  * Simulates the import process with configurable scenarios for demonstration.
+/** Mock implementation of TransactionImportService for UI development. Simulates the import process
+  * with configurable scenarios for demonstration.
   */
 class MockTransactionImportService extends TransactionImportService:
     private val random = new Random()
     private var currentStatus: ImportStatus = ImportStatus.NotStarted
     private var lastImportResults: Option[ImportResults] = None
     private var importStartTime: Option[Instant] = None
-    
+
     // Default to successful import scenario
     private var activeScenario: ImportScenario = ImportScenario.SuccessfulImport
-    
-    /**
-     * Set the active scenario for demonstration purposes
-     */
+
+    /** Set the active scenario for demonstration purposes
+      */
     def setScenario(scenario: ImportScenario): Unit =
         activeScenario = scenario
         // Reset status for a clean demonstration
         currentStatus = ImportStatus.NotStarted
         lastImportResults = None
         importStartTime = None
+    end setScenario
 
     /** Get the initial view model for the import page.
       *
@@ -94,46 +93,45 @@ class MockTransactionImportService extends TransactionImportService:
                 case Left(error) => ZIO.fail(error)
                 case Right(_)    => ZIO.unit
             }
-            
+
             // Start the import process
             _ <- ZIO.succeed {
                 currentStatus = ImportStatus.InProgress
                 importStartTime = Some(Instant.now())
             }
-            
+
             // Initial connecting status - simulate delay
             _ <- ZIO.sleep(Duration.fromMillis(800))
-            
+
             // Process according to the active scenario
             results <- activeScenario match
-                case ImportScenario.SuccessfulImport => 
+                case ImportScenario.SuccessfulImport =>
                     handleSuccessfulImport(startDate, endDate)
-                
-                case ImportScenario.NoTransactions => 
+
+                case ImportScenario.NoTransactions =>
                     handleNoTransactionsScenario
-                
-                case ImportScenario.ErrorDuringImport => 
+
+                case ImportScenario.ErrorDuringImport =>
                     handleErrorScenario
         yield results
 
-    /**
-     * Handle the successful import scenario with random transaction count
-     */
+    /** Handle the successful import scenario with random transaction count
+      */
     private def handleSuccessfulImport(
-        startDate: LocalDate, 
+        startDate: LocalDate,
         endDate: LocalDate
     ): ZIO[Any, String, ImportResults] =
         for
             // Retrieving transactions status - simulate delay
             _ <- ZIO.sleep(Duration.fromMillis(1200))
-            
+
             // Random transaction count based on date range (1 to days between dates)
             daysBetween = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate).toInt + 1
             transactionCount = if daysBetween <= 0 then 1 else (random.nextInt(daysBetween) + 1)
-            
+
             // Storing transactions status - simulate delay based on count
             _ <- ZIO.sleep(Duration.fromMillis(500 + (transactionCount * 50).min(2000)))
-            
+
             // Complete the import
             results <- ZIO.succeed {
                 val now = Instant.now()
@@ -148,15 +146,14 @@ class MockTransactionImportService extends TransactionImportService:
                 importResults
             }
         yield results
-    
-    /**
-     * Handle the scenario where no transactions are found
-     */
+
+    /** Handle the scenario where no transactions are found
+      */
     private def handleNoTransactionsScenario: ZIO[Any, String, ImportResults] =
         for
             // Retrieving transactions status - simulate delay
             _ <- ZIO.sleep(Duration.fromMillis(1000))
-            
+
             // Complete the import with zero transactions
             results <- ZIO.succeed {
                 val now = Instant.now()
@@ -171,15 +168,14 @@ class MockTransactionImportService extends TransactionImportService:
                 importResults
             }
         yield results
-    
-    /**
-     * Handle the error scenario where the API is unavailable
-     */
+
+    /** Handle the error scenario where the API is unavailable
+      */
     private def handleErrorScenario: ZIO[Any, Nothing, ImportResults] =
         for
             // Short delay to simulate connection attempt
             _ <- ZIO.sleep(Duration.fromMillis(1500))
-            
+
             // Set error status
             results <- ZIO.succeed {
                 val now = Instant.now()
