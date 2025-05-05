@@ -236,7 +236,7 @@ object ResultsPanelSpec extends ZIOSpecDefault:
 
             // Then it should have HTMX attributes for the retry action
             val result1 = assert(rendered)(containsString("hx-post"))
-            val result2 = assert(rendered)(containsString("hx-target=\"#import-results\""))
+            val result2 = assert(rendered)(containsString("hx-target=\"#results-panel-container\""))
             val result3 = assert(rendered)(containsString("hx-swap=\"outerHTML\""))
             val result4 = assert(rendered)(containsString(s"startDate=2025-03-01"))
             val result5 = assert(rendered)(containsString(s"endDate=2025-03-31"))

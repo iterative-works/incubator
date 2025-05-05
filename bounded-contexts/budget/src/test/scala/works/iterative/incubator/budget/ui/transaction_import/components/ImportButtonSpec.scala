@@ -71,7 +71,7 @@ object ImportButtonSpec extends ZIOSpecDefault:
             // Then it should show the loading state
             val result1 = assert(rendered)(containsString("Importing..."))
             val result2 = assert(rendered)(containsString("animate-spin"))
-            val result3 = assert(rendered)(containsString("display: inline-block"))
+            val result3 = assert(rendered)(containsString("inline-block"))
             val result4 = assert(rendered)(containsString("disabled=\"disabled\""))
             val result5 = assert(rendered)(containsString("aria-disabled=\"true\""))
             result1 && result2 && result3 && result4 && result5
@@ -97,11 +97,11 @@ object ImportButtonSpec extends ZIOSpecDefault:
 
             // Then it should have the correct HTMX attributes
             val result1 = assert(rendered)(containsString(
-                s"hx-post=\"/import-transactions?startDate=$startDateFormatted&amp;endDate=$endDateFormatted\""
+                s"hx-post=\"/transactions/import?startDate=$startDateFormatted&amp;endDate=$endDateFormatted\""
             ))
-            val result2 = assert(rendered)(containsString("hx-target=\"#import-results\""))
+            val result2 = assert(rendered)(containsString("hx-target=\"#results-panel-container\""))
             val result3 = assert(rendered)(containsString("hx-swap=\"innerHTML\""))
-            val result4 = assert(rendered)(containsString("hx-indicator=\"#loading-indicator\""))
+            val result4 = assert(rendered)(containsString("hx-indicator=\"#loading-spinner\""))
             result1 && result2 && result3 && result4
         }
     )

@@ -23,7 +23,7 @@ object DateRangeSelectorSpec extends ZIOSpecDefault:
             // Then it should contain expected elements
             val result1 = assert(rendered)(containsString("<input type=\"date\" id=\"start-date\""))
             val result2 = assert(rendered)(containsString("<input type=\"date\" id=\"end-date\""))
-            val result3 = assert(rendered)(containsString("hx-post=\"/validate-dates\""))
+            val result3 = assert(rendered)(containsString("hx-post=\"/transactions/import/validate-dates\""))
             val result4 =
                 assert(rendered)(
                     containsString("style=\"display: none\"")
@@ -94,10 +94,10 @@ object DateRangeSelectorSpec extends ZIOSpecDefault:
             val rendered = render(viewModel).render
 
             // Then it should have the HTMX attributes for validation
-            val result1 = assert(rendered)(containsString("hx-post=\"/validate-dates\""))
+            val result1 = assert(rendered)(containsString("hx-post=\"/transactions/import/validate-dates\""))
             val result2 = assert(rendered)(containsString("hx-trigger=\"change\""))
-            val result3 = assert(rendered)(containsString("hx-target=\"this\""))
-            val result4 = assert(rendered)(containsString("hx-swap=\"innerHTML\""))
+            val result3 = assert(rendered)(containsString("hx-target=\"#date-range-selector\""))
+            val result4 = assert(rendered)(containsString("hx-swap=\"outerHTML\""))
             result1 && result2 && result3 && result4
         }
     )
