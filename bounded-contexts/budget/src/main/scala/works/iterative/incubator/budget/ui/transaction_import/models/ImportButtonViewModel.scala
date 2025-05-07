@@ -8,6 +8,8 @@ import java.time.LocalDate
   *   Whether the button is clickable
   * @param isLoading
   *   Whether import is in progress
+  * @param accountId
+  *   The selected account ID for import
   * @param startDate
   *   The selected start date for import
   * @param endDate
@@ -19,6 +21,7 @@ import java.time.LocalDate
 case class ImportButtonViewModel(
     isEnabled: Boolean,
     isLoading: Boolean,
+    accountId: Option[String],
     startDate: LocalDate,
     endDate: LocalDate
 ):
@@ -34,5 +37,5 @@ case class ImportButtonViewModel(
       * @return
       *   true if the button is either not enabled or is in loading state
       */
-    def isDisabled: Boolean = !isEnabled || isLoading
+    def isDisabled: Boolean = !isEnabled || isLoading || accountId.isEmpty
 end ImportButtonViewModel

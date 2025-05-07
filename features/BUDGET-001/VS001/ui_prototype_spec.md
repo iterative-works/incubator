@@ -21,6 +21,7 @@ This document specifies the UI components, interactions, and mock data for the B
 ```
 ImportPage
 ├── PageHeader
+├── AccountSelector
 ├── DateRangeSelector
 ├── ImportActionPanel
 │   ├── ImportButton
@@ -37,12 +38,54 @@ ImportPage
 
 **States**:
 1. Initial state - empty form
-2. Valid date range selected - ready to import
-3. Import in progress - loading indicator
-4. Import successful - results displayed
-5. Import error - error message and retry option
+2. Account selected - date range form enabled
+3. Valid account and date range selected - ready to import
+4. Import in progress - loading indicator
+5. Import successful - results displayed
+6. Import error - error message and retry option
 
-### 2. DateRangeSelector Component
+### 2. AccountSelector Component
+
+**Purpose**: Allow users to select the account to import transactions from.
+
+**Properties**:
+- `accounts`: List[AccountOption] - Available accounts to choose from
+- `selectedAccountId`: Option[String] - Currently selected account ID
+- `onAccountChange`: Function to handle account selection changes
+- `validationError`: Option[String] - Error message if account selection is invalid
+
+**Behavior**:
+- Display dropdown with available accounts
+- Required selection before date range can be set
+- Display validation errors inline
+
+**HTML Structure**:
+```html
+<div class="mb-4">
+  <h2 class="text-lg font-semibold mb-2 text-gray-700">Select Account</h2>
+  <div class="relative">
+    <select class="w-full px-3 py-2 border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            id="account-selector"
+            name="accountId"
+            hx-post="/validate-account"
+            hx-trigger="change"
+            hx-target="#account-selector-container"
+            hx-swap="outerHTML">
+      <option value="" selected disabled>-- Select an account --</option>
+      {#each accounts as account}
+        <option value="{account.id}" {account.id === selectedAccountId ? 'selected' : ''}>
+          {account.name}
+        </option>
+      {/each}
+    </select>
+  </div>
+  {#if validationError}
+    <div class="text-red-500 text-sm mt-1">{validationError}</div>
+  {/if}
+</div>
+```
+
+### 3. DateRangeSelector Component
 
 **Purpose**: Allow users to specify the date range for transaction import.
 
@@ -93,17 +136,18 @@ ImportPage
 </div>
 ```
 
-### 3. ImportActionPanel Component
+### 4. ImportActionPanel Component
 
 **Purpose**: Provide controls for initiating the import process and displaying its status.
 
 **Subcomponents**:
 
-#### 3.1 ImportButton
+#### 4.1 ImportButton
 
 **Properties**:
 - `isEnabled`: Boolean - Whether the button is clickable
 - `isLoading`: Boolean - Whether import is in progress
+- `accountId`: Option[String] - The selected account ID
 - `onClick`: Function to handle click events
 
 **States**:
@@ -122,7 +166,7 @@ ImportPage
         hx-target="#results-panel"
         hx-indicator="#status-indicator"
         hx-disabled="{!isEnabled || isLoading}"
-        hx-vals='{"startDate": "{startDate}", "endDate": "{endDate}"}'>
+        hx-vals='{"accountId": "{accountId}", "startDate": "{startDate}", "endDate": "{endDate}"}'>
   {#if isLoading}
     <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -135,7 +179,7 @@ ImportPage
 </button>
 ```
 
-#### 3.2 StatusIndicator
+#### 4.2 StatusIndicator
 
 **Properties**:
 - `status`: ImportStatus - Current status of import operation
@@ -177,7 +221,7 @@ ImportPage
 </div>
 ```
 
-### 4. ResultsPanel Component
+### 5. ResultsPanel Component
 
 **Purpose**: Display the results of an import operation, including success summaries or error details.
 
@@ -187,7 +231,7 @@ ImportPage
 
 **Subcomponents**:
 
-#### 4.1 TransactionCountSummary
+#### 5.1 TransactionCountSummary
 
 **Properties**:
 - `transactionCount`: Int - Number of imported transactions
@@ -212,7 +256,7 @@ ImportPage
 </div>
 ```
 
-#### 4.2 ErrorMessageDisplay
+#### 5.2 ErrorMessageDisplay
 
 **Properties**:
 - `errorMessage`: String - Error message to display
@@ -230,7 +274,7 @@ ImportPage
 </div>
 ```
 
-#### 4.3 RetryButton
+#### 5.3 RetryButton
 
 **Properties**:
 - `isVisible`: Boolean - Whether the button is shown
@@ -254,17 +298,31 @@ ImportPage
 
 ## View Models
 
+### AccountOption
+
+```scala
+case class AccountOption(
+  id: String,
+  name: String
+)
+```
+
 ### ImportPageViewModel
 
 ```scala
 case class ImportPageViewModel(
+  accounts: List[AccountOption] = defaultAccounts,
+  selectedAccountId: Option[String] = None,
   startDate: LocalDate = LocalDate.now().withDayOfMonth(1),
   endDate: LocalDate = LocalDate.now(),
   importStatus: ImportStatus = ImportStatus.NotStarted,
   importResults: Option[ImportResults] = None,
-  validationError: Option[String] = None
+  validationError: Option[String] = None,
+  accountValidationError: Option[String] = None
 ):
   def isValid: Boolean = validationError.isEmpty &&
+                         accountValidationError.isEmpty &&
+                         selectedAccountId.isDefined &&
                          startDate != null &&
                          endDate != null &&
                          !startDate.isAfter(endDate) &&
@@ -274,6 +332,13 @@ case class ImportPageViewModel(
 
   def showResults: Boolean = importStatus == ImportStatus.Completed ||
                             importStatus == ImportStatus.Error
+                            
+  def accountSelectorViewModel: AccountSelectorViewModel =
+    AccountSelectorViewModel(
+      accounts = accounts,
+      selectedAccountId = selectedAccountId,
+      validationError = accountValidationError
+    )
 ```
 
 ### ImportStatus
@@ -300,18 +365,28 @@ case class ImportResults(
 
 ## Mock Data and Services
 
+### AccountSelectorViewModel
+
+```scala
+case class AccountSelectorViewModel(
+  accounts: List[AccountOption],
+  selectedAccountId: Option[String] = None,
+  validationError: Option[String] = None
+)
+```
+
 ### MockImportService
 
 ```scala
 class MockImportService:
-  def importTransactions(startDate: LocalDate, endDate: LocalDate): Task[ImportResults] =
+  def importTransactions(accountId: AccountId, startDate: LocalDate, endDate: LocalDate): Task[ImportResults] =
     // Simulate API call delay
     for
       _ <- ZIO.sleep(Duration.fromSeconds(2))
-      result <- simulateImportResult(startDate, endDate)
+      result <- simulateImportResult(accountId, startDate, endDate)
     yield result
 
-  private def simulateImportResult(startDate: LocalDate, endDate: LocalDate): Task[ImportResults] =
+  private def simulateImportResult(accountId: AccountId, startDate: LocalDate, endDate: LocalDate): Task[ImportResults] =
     // For demo purposes, generate different results based on date ranges
     val now = Instant.now()
 
@@ -349,20 +424,21 @@ class MockImportService:
 ### Import Flow - Happy Path
 
 1. User navigates to the import page
-2. User selects a date range (e.g., April 1-15, 2025)
-3. System validates the date range and enables the Import button
-4. User clicks "Import Transactions"
-5. System shows loading indicator and disables the button
-6. System simulates connection to Fio Bank API and retrieval of transactions
-7. System displays success message with transaction count
-8. User can click to view imported transactions
+2. User selects an account from the dropdown
+3. User selects a date range (e.g., April 1-15, 2025)
+4. System validates the selections and enables the Import button
+5. User clicks "Import Transactions"
+6. System shows loading indicator and disables the button
+7. System simulates connection to Fio Bank API and retrieval of transactions
+8. System displays success message with transaction count
+9. User can click to view imported transactions
 
 ### Import Flow - Error Path
 
 1. User navigates to the import page
-2. User selects an invalid date range (e.g., future dates)
-3. System displays validation error and disables the Import button
-4. User corrects the date range
+2. User either skips account selection or selects an invalid date range
+3. System displays appropriate validation errors and disables the Import button
+4. User corrects the selections
 5. System validates and enables the Import button
 6. User clicks "Import Transactions"
 7. System shows loading indicator
@@ -381,10 +457,14 @@ The HTML mockups will be implemented using Scalatags with HTMX for interactivity
 def renderImportPage(model: ImportPageViewModel): Tag =
   div(cls := "container mx-auto px-4 py-8 max-w-2xl")(
     renderPageHeader(),
+    renderAccountSelector(model),
     renderDateRangeSelector(model),
     renderImportActionPanel(model),
     renderResultsPanel(model)
   )
+
+def renderAccountSelector(model: ImportPageViewModel): Tag =
+  // Implement using Scalatags equivalent to HTML mockup with Tailwind classes
 
 def renderDateRangeSelector(model: ImportPageViewModel): Tag =
   // Implement using Scalatags equivalent to HTML mockup with Tailwind classes
@@ -423,6 +503,7 @@ object TailwindClasses:
 
 The page will use HTMX for dynamic updates without full page reloads:
 
+- Account selection validation will happen on change via HTMX request
 - Date validation will happen on change via HTMX request
 - Import action will submit via HTMX and update only the results panel
 - Status updates will be pushed using HTMX SSE (Server-Sent Events) for real-time progress
@@ -438,8 +519,9 @@ The page will use HTMX for dynamic updates without full page reloads:
 
 ### Component Testing
 
+- Test AccountSelector validation with various account selections
 - Test DateRangeSelector validation with various date combinations
-- Test ImportButton state changes based on form validity
+- Test ImportButton state changes based on account and form validity
 - Test proper display of all StatusIndicator states
 - Test ResultsPanel for various import outcomes
 

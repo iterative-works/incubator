@@ -18,6 +18,7 @@ We'll implement components in the following order:
 
 1. **TailwindClasses Utility** - Create shared Tailwind classes for consistent styling
 2. **Basic UI Components** - Implement low-level UI components:
+   - AccountSelector
    - DateRangeSelector
    - ImportButton
    - StatusIndicator
@@ -55,7 +56,63 @@ object TailwindClasses:
   val errorHeading = s"$heading text-red-700"
 ```
 
-### 2. DateRangeSelector Component
+### 2. AccountSelector Component
+
+Implement the AccountSelector view:
+
+```scala
+object AccountSelector:
+  def render(viewModel: AccountSelectorViewModel): Frag =
+    div(
+      cls := "mb-4",
+      h2(
+        cls := "text-lg font-semibold mb-2 text-gray-700",
+        "Select Account"
+      ),
+      div(
+        cls := "relative",
+        select(
+          cls := s"w-full px-3 py-2 border rounded-md ${validationClass(viewModel)}",
+          id := "account-selector",
+          name := "accountId",
+          hx_post := "/validate-account",
+          hx_trigger := "change",
+          hx_target := "#account-selector-container",
+          hx_swap := "outerHTML",
+          // Default empty option
+          option(
+            value := "",
+            selected := viewModel.selectedAccountId.isEmpty,
+            disabled := true,
+            "-- Select an account --"
+          ),
+          // Generate options for each account
+          viewModel.accounts.map { account =>
+            option(
+              value := account.id,
+              selected := viewModel.selectedAccountId.contains(account.id),
+              account.name
+            )
+          }
+        )
+      ),
+      // Error message
+      viewModel.validationError.map { error =>
+        div(
+          cls := "text-red-500 text-sm mt-1",
+          error
+        )
+      }
+    )
+    
+  private def validationClass(viewModel: AccountSelectorViewModel): String =
+    if viewModel.validationError.isDefined then
+      "border-red-500 focus:border-red-500 focus:ring-red-500"
+    else
+      "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+```
+
+### 3. DateRangeSelector Component
 
 Implement the DateRangeSelector view:
 
@@ -98,7 +155,7 @@ class DateRangeSelectorView:
     )
 ```
 
-### 3. ImportButton Component
+### 4. ImportButton Component
 
 Implement the ImportButton view:
 
@@ -117,7 +174,7 @@ class ImportButtonView:
       data("hx-target") := "#results-panel",
       data("hx-indicator") := "#status-indicator",
       data("hx-disabled") := viewModel.isDisabled.toString,
-      data("hx-vals") := s"""{"startDate": "${viewModel.startDate}", "endDate": "${viewModel.endDate}"}"""
+      data("hx-vals") := s"""{"accountId": "${viewModel.accountId.getOrElse("")}", "startDate": "${viewModel.startDate}", "endDate": "${viewModel.endDate}"}"""
     )(
       if viewModel.isLoading then
         frag(
@@ -132,7 +189,7 @@ class ImportButtonView:
     )
 ```
 
-### 4. StatusIndicator Component
+### 5. StatusIndicator Component
 
 Implement the StatusIndicator view:
 
@@ -180,7 +237,7 @@ class StatusIndicatorView:
     )
 ```
 
-### 5. Import Action Panel Component
+### 6. Import Action Panel Component
 
 Implement the ImportActionPanel view which contains ImportButton and StatusIndicator:
 
@@ -208,7 +265,7 @@ class ImportActionPanelView(
     )
 ```
 
-### 6. Transaction Count Summary Component
+### 7. Transaction Count Summary Component
 
 Implement the TransactionCountSummary view:
 
@@ -241,7 +298,7 @@ class TransactionCountSummaryView:
     )
 ```
 
-### 7. Error Message Display Component
+### 8. Error Message Display Component
 
 Implement the ErrorMessageDisplay view:
 
@@ -260,7 +317,7 @@ class ErrorMessageDisplayView:
     )
 ```
 
-### 8. Retry Button Component
+### 9. Retry Button Component
 
 Implement the RetryButton view:
 
@@ -275,7 +332,7 @@ class RetryButtonView:
       data("hx-post") := "/import-transactions",
       data("hx-target") := "#results-panel",
       data("hx-indicator") := "#status-indicator",
-      data("hx-vals") := s"""{"startDate": "${viewModel.startDate}", "endDate": "${viewModel.endDate}"}"""
+      data("hx-vals") := s"""{"accountId": "${viewModel.accountId.getOrElse("")}", "startDate": "${viewModel.startDate}", "endDate": "${viewModel.endDate}"}"""
     )(
       svg(
         cls := "h-5 w-5 mr-2",
@@ -295,7 +352,7 @@ class RetryButtonView:
     )
 ```
 
-### 9. Results Panel Component
+### 10. Results Panel Component
 
 Implement the ResultsPanel view which contains TransactionCountSummary, ErrorMessageDisplay, and RetryButton:
 
@@ -347,12 +404,13 @@ class ResultsPanelView(
     )
 ```
 
-### 10. Import Page Component
+### 11. Import Page Component
 
 Implement the main import page component:
 
 ```scala
 class ImportPageView(
+  accountSelectorView: AccountSelectorView,
   dateRangeSelectorView: DateRangeSelectorView,
   importActionPanelView: ImportActionPanelView,
   resultsPanelView: ResultsPanelView
@@ -362,7 +420,16 @@ class ImportPageView(
       // Page header
       div(cls := "mb-6")(
         h1(cls := "text-2xl font-bold text-gray-900")("Import Transactions"),
-        p(cls := "text-gray-600")("Import your transactions from Fio Bank for the selected date range.")
+        p(cls := "text-gray-600")("Import your transactions from Fio Bank for the selected account and date range.")
+      ),
+      
+      // Account selector
+      accountSelectorView.render(
+        AccountSelectorViewModel(
+          accounts = viewModel.accounts,
+          selectedAccountId = viewModel.selectedAccountId,
+          validationError = viewModel.accountValidationError
+        )
       ),
       
       // Date range selector
@@ -379,6 +446,7 @@ class ImportPageView(
         ImportActionPanelViewModel(
           isEnabled = viewModel.isValid,
           status = viewModel.importStatus,
+          accountId = viewModel.selectedAccountId,
           startDate = viewModel.startDate,
           endDate = viewModel.endDate
         )
@@ -396,7 +464,7 @@ class ImportPageView(
     )
 ```
 
-### 11. Mock Import Service
+### 12. Mock Import Service
 
 Create a mock service for UI development:
 
@@ -442,7 +510,7 @@ class MockImportService:
       ))
 ```
 
-### 12. Import Module
+### 13. Import Module
 
 Create the web module with routes:
 

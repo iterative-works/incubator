@@ -1,6 +1,7 @@
 package works.iterative.incubator.budget.ui.transaction_import
 
 import works.iterative.incubator.budget.ui.transaction_import.models.*
+import works.iterative.incubator.budget.domain.model.AccountId
 import java.time.{Instant, LocalDate}
 import zio.*
 import scala.util.Random
@@ -41,14 +42,17 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
       *   A ZIO effect that returns the ImportPageViewModel with default values
       */
     override def getImportViewModel(): ZIO[Any, String, ImportPageViewModel] =
-        ZIO.succeed(
-            ImportPageViewModel(
-                startDate = LocalDate.now().withDayOfMonth(1),
-                endDate = LocalDate.now(),
-                importStatus = currentStatus,
-                importResults = lastImportResults,
-                validationError = None
-            )
+        for
+            accounts <- getAccounts()
+        yield ImportPageViewModel(
+            accounts = accounts,
+            selectedAccountId = None,
+            startDate = LocalDate.now().withDayOfMonth(1),
+            endDate = LocalDate.now(),
+            importStatus = currentStatus,
+            importResults = lastImportResults,
+            validationError = None,
+            accountValidationError = None
         )
 
     /** Validate a date range based on business rules.
@@ -76,9 +80,30 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
             else
                 Right(())
         }
-
-    /** Import transactions for the specified date range based on the active scenario.
+        
+    /** Validate an account ID string.
       *
+      * @param accountIdStr
+      *   The account ID string to validate
+      * @return
+      *   A ZIO effect with Either an error message (Left) or the parsed AccountId (Right)
+      */
+    override def validateAccountId(
+        accountIdStr: String
+    ): ZIO[Any, String, Either[String, AccountId]] =
+        ZIO.succeed {
+            if accountIdStr == null || accountIdStr.isEmpty then
+                Left("Account selection is required")
+            else 
+                AccountId.fromString(accountIdStr) match
+                    case Right(accountId) => Right(accountId)
+                    case Left(error) => Left(s"Invalid account ID: $error")
+        }
+
+    /** Import transactions for the specified account and date range based on the active scenario.
+      *
+      * @param accountId
+      *   The account to import transactions from
       * @param startDate
       *   The start date for imported transactions
       * @param endDate
@@ -87,6 +112,7 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
       *   A ZIO effect that returns ImportResults or an error string
       */
     override def importTransactions(
+        accountId: AccountId,
         startDate: LocalDate,
         endDate: LocalDate
     ): ZIO[Any, String, ImportResults] =
@@ -109,7 +135,7 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
             // Process according to the active scenario
             results <- activeScenario match
                 case ImportScenario.SuccessfulImport =>
-                    handleSuccessfulImport(startDate, endDate)
+                    handleSuccessfulImport(accountId, startDate, endDate)
 
                 case ImportScenario.NoTransactions =>
                     handleNoTransactionsScenario
@@ -121,6 +147,7 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
     /** Handle the successful import scenario with random transaction count
       */
     private def handleSuccessfulImport(
+        accountId: AccountId,
         startDate: LocalDate,
         endDate: LocalDate
     ): ZIO[Any, String, ImportResults] =
@@ -201,6 +228,14 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
       */
     override def getImportStatus(): ZIO[Any, String, ImportStatus] =
         ZIO.succeed(currentStatus)
+        
+    /** Get the list of available accounts.
+      *
+      * @return
+      *   A ZIO effect that returns a list of AccountOption
+      */
+    override def getAccounts(): ZIO[Any, String, List[AccountOption]] =
+        ZIO.succeed(AccountSelectorViewModel.defaultAccounts)
 end MockTransactionImportPresenter
 
 object MockTransactionImportPresenter:

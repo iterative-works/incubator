@@ -24,6 +24,8 @@ class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: 
       */
     def renderImportPage(viewModel: ImportPageViewModel): Frag =
         // Create component view models from the page view model
+        val accountSelectorViewModel = viewModel.accountSelectorViewModel
+        
         val dateRangeSelectorViewModel = DateRangeSelectorViewModel(
             startDate = viewModel.startDate,
             endDate = viewModel.endDate,
@@ -33,6 +35,7 @@ class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: 
         val importButtonViewModel = ImportButtonViewModel(
             isEnabled = viewModel.isValid,
             isLoading = viewModel.isLoading,
+            accountId = viewModel.selectedAccountId,
             startDate = viewModel.startDate,
             endDate = viewModel.endDate
         )
@@ -61,12 +64,18 @@ class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: 
                 div(
                     cls := "mt-6 text-sm text-gray-500",
                     p(
-                        "Note: This will import all transactions from the selected period. " +
+                        "Note: This will import all transactions from the selected account and period. " +
                             "Transactions will be categorized using predefined rules."
                     )
                 ),
                 div(
                     cls := "bg-white rounded-lg py-6 w-full",
+                    // Account selector
+                    div(
+                        id := "account-selector-container",
+                        cls := "mb-4 w-full",
+                        AccountSelector.render(accountSelectorViewModel)
+                    ),
                     // Date range selector (includes its own title now)
                     div(
                         cls := "mb-4 w-full",
@@ -159,4 +168,28 @@ class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: 
         )
         DateRangeSelector.render(viewModel)
     end renderDateValidationResult
+    
+    /** Render the validation result for account selection.
+      *
+      * @param errorMessage
+      *   The validation error message
+      * @param accountId
+      *   The account ID that was validated
+      * @param accounts
+      *   The list of available accounts
+      * @return
+      *   HTML content
+      */
+    def renderAccountValidationResult(
+        errorMessage: Option[String],
+        accountId: Option[String],
+        accounts: List[AccountOption]
+    ): Frag =
+        val viewModel = AccountSelectorViewModel(
+            accounts = accounts,
+            selectedAccountId = accountId,
+            validationError = errorMessage
+        )
+        AccountSelector.render(viewModel)
+    end renderAccountValidationResult
 end TransactionImportView

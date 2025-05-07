@@ -1,12 +1,13 @@
 package works.iterative.incubator.budget.ui.transaction_import
 
 import works.iterative.incubator.budget.ui.transaction_import.models.*
+import works.iterative.incubator.budget.domain.model.AccountId
 import java.time.LocalDate
 import zio.*
 
 /** Service interface for handling transaction imports from Fio Bank. This service provides methods
   * for the import workflow:
-  *   1. Initial view model for the import page 2. Date range validation 3. Transaction import
+  *   1. Initial view model for the import page 2. Account and date validation 3. Transaction import
   *      execution 4. Import status tracking
   *
   * Category: Presenter
@@ -36,9 +37,22 @@ trait TransactionImportPresenter:
         startDate: LocalDate,
         endDate: LocalDate
     ): ZIO[Any, String, Either[String, Unit]]
-
-    /** Import transactions for the specified date range.
+    
+    /** Validate an account ID.
       *
+      * @param accountIdStr
+      *   The account ID string to validate
+      * @return
+      *   A ZIO effect with Either an error message (Left) or the parsed AccountId (Right)
+      */
+    def validateAccountId(
+        accountIdStr: String
+    ): ZIO[Any, String, Either[String, AccountId]]
+
+    /** Import transactions for the specified account and date range.
+      *
+      * @param accountId
+      *   The account to import transactions from
       * @param startDate
       *   The start date for imported transactions
       * @param endDate
@@ -47,6 +61,7 @@ trait TransactionImportPresenter:
       *   A ZIO effect that returns ImportResults or an error string
       */
     def importTransactions(
+        accountId: AccountId,
         startDate: LocalDate,
         endDate: LocalDate
     ): ZIO[Any, String, ImportResults]
@@ -57,6 +72,13 @@ trait TransactionImportPresenter:
       *   A ZIO effect that returns the current ImportStatus or an error string
       */
     def getImportStatus(): ZIO[Any, String, ImportStatus]
+    
+    /** Get the list of available accounts.
+      *
+      * @return
+      *   A ZIO effect that returns a list of AccountOption or an error string
+      */
+    def getAccounts(): ZIO[Any, String, List[AccountOption]]
 end TransactionImportPresenter
 
 /** Provides access to TransactionImportPresenter.
@@ -84,9 +106,23 @@ object TransactionImportPresenter:
         endDate: LocalDate
     ): ZIO[TransactionImportPresenter, String, Either[String, Unit]] =
         ZIO.serviceWithZIO(_.validateDateRange(startDate, endDate))
+        
+    /** Accessor method for account ID validation.
+      *
+      * @param accountIdStr
+      *   The account ID string to validate
+      * @return
+      *   A ZIO effect with Either an error message (Left) or the parsed AccountId (Right)
+      */
+    def validateAccountId(
+        accountIdStr: String
+    ): ZIO[TransactionImportPresenter, String, Either[String, AccountId]] =
+        ZIO.serviceWithZIO(_.validateAccountId(accountIdStr))
 
     /** Accessor method for transaction import.
       *
+      * @param accountId
+      *   The account to import transactions from
       * @param startDate
       *   The start date for imported transactions
       * @param endDate
@@ -95,10 +131,11 @@ object TransactionImportPresenter:
       *   A ZIO effect that returns ImportResults or an error string
       */
     def importTransactions(
+        accountId: AccountId,
         startDate: LocalDate,
         endDate: LocalDate
     ): ZIO[TransactionImportPresenter, String, ImportResults] =
-        ZIO.serviceWithZIO(_.importTransactions(startDate, endDate))
+        ZIO.serviceWithZIO(_.importTransactions(accountId, startDate, endDate))
 
     /** Accessor method for import status.
       *
@@ -107,4 +144,12 @@ object TransactionImportPresenter:
       */
     def getImportStatus(): ZIO[TransactionImportPresenter, String, ImportStatus] =
         ZIO.serviceWithZIO(_.getImportStatus())
+        
+    /** Accessor method for getting available accounts.
+      *
+      * @return
+      *   A ZIO effect that returns a list of AccountOption or an error string
+      */
+    def getAccounts(): ZIO[TransactionImportPresenter, String, List[AccountOption]] =
+        ZIO.serviceWithZIO(_.getAccounts())
 end TransactionImportPresenter

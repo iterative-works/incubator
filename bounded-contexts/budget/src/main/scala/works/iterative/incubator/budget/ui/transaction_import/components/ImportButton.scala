@@ -64,7 +64,7 @@ object ImportButton:
             attr("aria-disabled") := (if viewModel.isDisabled then "true" else "false"),
             attr(
                 "hx-post"
-            ) := s"/transactions/import?startDate=$startDateParam&endDate=$endDateParam",
+            ) := s"/transactions/import?accountId=${viewModel.accountId.getOrElse("")}&startDate=$startDateParam&endDate=$endDateParam",
             attr("hx-target") := "#results-panel-container",
             attr("hx-swap") := "innerHTML",
             // Start polling the status endpoint when import begins
