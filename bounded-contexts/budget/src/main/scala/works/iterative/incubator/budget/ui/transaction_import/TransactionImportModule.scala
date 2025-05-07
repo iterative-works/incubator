@@ -42,6 +42,7 @@ class TransactionImportModule(
         .post
         .in("submit")
         .in(formBody[Map[String, String]])
+        .in(header[Option[String]]("HX-Request").description("HTMX request header"))
 
     /** GET endpoint for checking import status */
     val importStatusEndpoint = baseEndpoint
@@ -57,7 +58,7 @@ class TransactionImportModule(
         yield transactionImportView.renderImportForm(viewModel)
 
     /** Implementation of the POST endpoint for form submission */
-    private def submitImportForm(formData: Map[String, String])
+    private def submitImportForm(formData: Map[String, String], htxRequestHeader: Option[String])
         : ZIO[TransactionImportPresenter, String, Frag] =
         for
             // Parse form data
@@ -70,7 +71,9 @@ class TransactionImportModule(
             viewModel = result match
                 case Left(errors)         => initialViewModel.withValidationErrors(errors)
                 case Right(importResults) => initialViewModel.withImportResults(importResults)
-        yield transactionImportView.renderImportForm(viewModel)
+            // Check if this is an HTMX request
+            isHtmxRequest = htxRequestHeader.isDefined
+        yield transactionImportView.renderImportForm(viewModel, isHtmxRequest)
 
     /** Implementation for import status check */
     private def getImportStatus: ZIO[TransactionImportPresenter, String, Frag] =
@@ -80,7 +83,9 @@ class TransactionImportModule(
 
     // Server endpoints
     val importFormServerEndpoint = importFormEndpoint.zServerLogic(_ => getImportForm)
-    val submitFormServerEndpoint = submitFormEndpoint.zServerLogic(submitImportForm)
+    val submitFormServerEndpoint = submitFormEndpoint.zServerLogic { case (formData, htxRequestHeader) => 
+        submitImportForm(formData, htxRequestHeader) 
+    }
     val importStatusServerEndpoint = importStatusEndpoint.zServerLogic(_ => getImportStatus)
 
     // List of all endpoints for documentation

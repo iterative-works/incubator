@@ -22,6 +22,7 @@ object TransactionImportForm:
             id := "transaction-import-form",
             cls := "bg-white rounded-lg py-6 w-full",
             attr("hx-post") := "/transactions/import/submit",
+            attr("hx-target") := "#transaction-import-container",
             attr("hx-swap") := "outerHTML"
         )(
             // Global error message if any

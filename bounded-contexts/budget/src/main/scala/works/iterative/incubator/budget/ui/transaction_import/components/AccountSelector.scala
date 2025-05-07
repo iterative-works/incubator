@@ -46,7 +46,7 @@ object AccountSelector:
                 // Add HTMX attributes for real-time form update
                 attr("hx-post") := "/transactions/import/submit",
                 attr("hx-trigger") := "change",
-                attr("hx-target") := "#transaction-import-form",
+                attr("hx-target") := "#transaction-import-container",
                 attr("hx-swap") := "outerHTML",
                 // Default empty option
                 option(

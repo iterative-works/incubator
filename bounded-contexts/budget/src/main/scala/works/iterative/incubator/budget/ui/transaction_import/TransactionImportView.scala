@@ -10,43 +10,34 @@ import works.iterative.scalatags.components.ScalatagsAppShell
 
 /** View class for rendering the transaction import UI. Composes UI from individual components with
   * proper layout.
-  * 
-  * Category: View
-  * Layer: UI/Presentation
+  *
+  * Category: View Layer: UI/Presentation
   */
 class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: BaseUri):
     /** Render the main import form with unified validation.
       *
       * @param viewModel
       *   The form view model containing all data and validation state
+      * @param isHtmxRequest
+      *   Whether this is an HTMX request (which should get just the form, not the full page)
       * @return
       *   HTML content
       */
-    def renderImportForm(viewModel: TransactionImportFormViewModel): Frag =
-        appShell.wrap(
-            pageTitle = "Transaction Import",
-            content = div(
-                cls := "container mx-auto px-4 py-8",
-                // Header
-                h1(
-                    cls := "text-2xl font-bold text-gray-800 mb-3 bg-blue-100 p-4 rounded-md",
-                    "Import Transactions from Fio Bank"
-                ),
-                // Help text
-                div(
-                    cls := "mt-6 text-sm text-gray-500",
-                    p(
-                        "Note: This will import all transactions from the selected account and period. " +
-                            "Transactions will be categorized using predefined rules."
-                    )
-                ),
+    def renderImportForm(
+        viewModel: TransactionImportFormViewModel,
+        isHtmxRequest: Boolean = false
+    ): Frag =
+        if isHtmxRequest then
+            // For HTMX requests, return just the form and results to avoid duplication
+            div(
+                id := "transaction-import-container",
                 // The main form component
                 TransactionImportForm.render(viewModel),
                 // Results panel if applicable
-                viewModel.importResults.map { results =>
-                    div(
-                        id := "results-panel-container",
-                        cls := "mt-6",
+                div(
+                    id := "results-panel-container",
+                    cls := "mt-6",
+                    viewModel.importResults.map { results =>
                         ResultsPanel.render(
                             ResultsPanelViewModel(
                                 importResults = Some(results),
@@ -55,12 +46,53 @@ class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: 
                                 endDate = viewModel.endDate
                             )
                         )
-                    )
-                }
+                    }.getOrElse(raw(""))
+                )
             )
-        )
+        else
+            // For full page requests, render the complete page
+            appShell.wrap(
+                pageTitle = "Transaction Import",
+                content = div(
+                    cls := "container mx-auto px-4 py-8",
+                    // Header
+                    h1(
+                        cls := "text-2xl font-bold text-gray-800 mb-3 bg-blue-100 p-4 rounded-md",
+                        "Import Transactions from Fio Bank"
+                    ),
+                    // Help text
+                    div(
+                        cls := "mt-6 text-sm text-gray-500",
+                        p(
+                            "Note: This will import all transactions from the selected account and period. " +
+                                "Transactions will be categorized using predefined rules."
+                        )
+                    ),
+                    // The form and results in a container for HTMX targeting
+                    div(
+                        id := "transaction-import-container",
+                        // The main form component
+                        TransactionImportForm.render(viewModel),
+                        // Results panel if applicable
+                        div(
+                            id := "results-panel-container",
+                            cls := "mt-6",
+                            viewModel.importResults.map { results =>
+                                ResultsPanel.render(
+                                    ResultsPanelViewModel(
+                                        importResults = Some(results),
+                                        isVisible = true,
+                                        startDate = viewModel.startDate,
+                                        endDate = viewModel.endDate
+                                    )
+                                )
+                            }.getOrElse(raw(""))
+                        )
+                    )
+                )
+            )
     end renderImportForm
-    
+
     /** Legacy method for backward compatibility */
     def renderImportPage(viewModel: ImportPageViewModel): Frag =
         // Convert legacy view model to new form view model
@@ -69,14 +101,16 @@ class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: 
             selectedAccountId = viewModel.selectedAccountId,
             startDate = viewModel.startDate,
             endDate = viewModel.endDate,
-            fieldErrors = Map.empty[String, String] ++ (viewModel.validationError.map(e => "dateRange" -> e)) ++ 
-                             (viewModel.accountValidationError.map(e => "accountId" -> e)),
+            fieldErrors = Map.empty[String, String] ++ (viewModel.validationError.map(e =>
+                "dateRange" -> e
+            )) ++
+                (viewModel.accountValidationError.map(e => "accountId" -> e)),
             globalError = None,
             isSubmitting = viewModel.isLoading,
             importStatus = viewModel.importStatus,
             importResults = viewModel.importResults
         )
-        
+
         renderImportForm(formViewModel)
     end renderImportPage
 
@@ -130,7 +164,7 @@ class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: 
         )
         DateRangeSelector.render(viewModel)
     end renderDateValidationResult
-    
+
     /** Legacy method for backward compatibility */
     def renderAccountValidationResult(
         errorMessage: Option[String],
