@@ -40,17 +40,13 @@ object AccountSelector:
             id := "account-selector-container",
             select(
                 cls := s"w-full px-3 py-2 border rounded-md ${validationClass(viewModel)}",
-                id := "account-selector",
+                id := "accountId",
                 name := "accountId",
-                attr("hx-post") := "/validate-account",
-                attr("hx-trigger") := "change",
-                attr("hx-target") := "#account-selector-container",
-                attr("hx-swap") := "outerHTML",
                 value := viewModel.selectedAccountId.getOrElse(""),
                 // Default empty option
                 option(
                     value := "",
-                    if viewModel.selectedAccountId.isDefined then selected := "" else (),
+                    if viewModel.selectedAccountId.isEmpty then selected := "" else (),
                     "-- Select an account --"
                 ),
                 // Generate options for each account

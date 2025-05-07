@@ -5,6 +5,7 @@ import works.iterative.incubator.budget.domain.model.AccountId
 import java.time.{Instant, LocalDate}
 import zio.*
 import scala.util.Random
+import scala.util.Try
 
 /** Enum representing different import scenarios for demonstration
   */
@@ -35,190 +36,141 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
         importStartTime = None
     end setScenario
 
-    /** Get the initial view model for the import page.
+    /** Get the initial form view model for the import page.
       *
       * @return
-      *   A ZIO effect that returns the ImportPageViewModel with default values
+      *   A ZIO effect that returns the TransactionImportFormViewModel with default values
       */
-    override def getImportViewModel(): ZIO[Any, String, ImportPageViewModel] =
+    override def getImportViewModel(): ZIO[Any, String, TransactionImportFormViewModel] =
         for
             accounts <- getAccounts()
-        yield ImportPageViewModel(
+        yield TransactionImportFormViewModel(
             accounts = accounts,
             selectedAccountId = None,
             startDate = LocalDate.now().withDayOfMonth(1),
             endDate = LocalDate.now(),
             importStatus = currentStatus,
-            importResults = lastImportResults,
-            validationError = None,
-            accountValidationError = None
+            importResults = lastImportResults
         )
 
-    /** Validate a date range based on business rules.
+    /** Validate and process a transaction import command.
       *
-      * @param startDate
-      *   The start date of the range
-      * @param endDate
-      *   The end date of the range
+      * @param command
+      *   The command to validate and process
       * @return
-      *   A ZIO effect with Either an error message (Left) or success (Right)
+      *   A ZIO effect that returns Either validation errors or import results
       */
-    override def validateDateRange(
-        startDate: LocalDate,
-        endDate: LocalDate
-    ): ZIO[Any, String, Either[String, Unit]] =
-        ZIO.succeed {
-            if startDate == null || endDate == null then
-                Left("Both start and end dates are required")
-            else if startDate.isAfter(endDate) then
-                Left("Start date cannot be after end date")
-            else if startDate.isAfter(LocalDate.now()) || endDate.isAfter(LocalDate.now()) then
-                Left("Dates cannot be in the future")
-            else if startDate.plusDays(90).isBefore(endDate) then
-                Left("Date range cannot exceed 90 days (Fio Bank API limitation)")
+    override def validateAndProcess(
+        command: TransactionImportCommand
+    ): ZIO[Any, String, Either[ValidationErrors, ImportResults]] =
+        ZIO.attempt {
+            // Parse dates to validate them
+            val startDateResult = Try(LocalDate.parse(command.startDate))
+            val endDateResult = Try(LocalDate.parse(command.endDate))
+            val accountIdResult = AccountId.fromString(command.accountId)
+
+            // Collect validation errors
+            val errors = Map.newBuilder[String, String]
+
+            // Validate account ID
+            if command.accountId.isEmpty then
+                errors += ("accountId" -> "Account selection is required")
             else
-                Right(())
-        }
+                accountIdResult match
+                    case Left(error) => errors += ("accountId" -> s"Invalid account ID: $error")
+                    case Right(_)    => ()
+            end if
 
-    /** Validate an account ID string.
-      *
-      * @param accountIdStr
-      *   The account ID string to validate
-      * @return
-      *   A ZIO effect with Either an error message (Left) or the parsed AccountId (Right)
-      */
-    override def validateAccountId(
-        accountIdStr: String
-    ): ZIO[Any, String, Either[String, AccountId]] =
-        ZIO.succeed {
-            if accountIdStr == null || accountIdStr.isEmpty then
-                Left("Account selection is required")
-            else
-                AccountId.fromString(accountIdStr) match
-                    case Right(accountId) => Right(accountId)
-                    case Left(error)      => Left(s"Invalid account ID: $error")
-        }
+            // Validate start date
+            if command.startDate.isEmpty then
+                errors += ("startDate" -> "Start date is required")
+            else if startDateResult.isFailure then
+                errors += ("startDate" -> "Invalid start date format")
 
-    /** Import transactions for the specified account and date range based on the active scenario.
-      *
-      * @param accountId
-      *   The account to import transactions from
-      * @param startDate
-      *   The start date for imported transactions
-      * @param endDate
-      *   The end date for imported transactions
-      * @return
-      *   A ZIO effect that returns ImportResults or an error string
-      */
-    override def importTransactions(
-        accountId: AccountId,
-        startDate: LocalDate,
-        endDate: LocalDate
-    ): ZIO[Any, String, ImportResults] =
-        for
-            // Validate date range first
-            _ <- validateDateRange(startDate, endDate).flatMap {
-                case Left(error) => ZIO.fail(error)
-                case Right(_)    => ZIO.unit
-            }
+            // Validate end date
+            if command.endDate.isEmpty then
+                errors += ("endDate" -> "End date is required")
+            else if endDateResult.isFailure then
+                errors += ("endDate" -> "Invalid end date format")
 
-            // Start the import process
-            _ <- ZIO.succeed {
+            // Cross-field validation for dates
+            if startDateResult.isSuccess && endDateResult.isSuccess then
+                val startDate = startDateResult.get
+                val endDate = endDateResult.get
+
+                val dateValidation = if startDate.isAfter(endDate) then
+                    Some("Start date cannot be after end date")
+                else if startDate.isAfter(LocalDate.now()) || endDate.isAfter(LocalDate.now()) then
+                    Some("Dates cannot be in the future")
+                else if startDate.plusDays(90).isBefore(endDate) then
+                    Some("Date range cannot exceed 90 days (Fio Bank API limitation)")
+                else
+                    None
+
+                dateValidation match
+                    case Some(error) => errors += ("dateRange" -> error)
+                    case None        => ()
+            end if
+
+            val validationErrors = ValidationErrors(errors.result())
+
+            if !validationErrors.hasErrors then
+                // Start the import process
                 currentStatus = ImportStatus.InProgress
                 importStartTime = Some(Instant.now())
-            }
 
-            // Initial connecting status - simulate delay
-            _ <- ZIO.sleep(Duration.fromMillis(800))
+                // For the mock, we're synchronously processing the import
+                // In a real implementation, this would likely be asynchronous
+                val result = activeScenario match
+                    case ImportScenario.SuccessfulImport =>
+                        // Random transaction count based on date range (1 to days between dates)
+                        val startDate = startDateResult.get
+                        val endDate = endDateResult.get
+                        val daysBetween =
+                            java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate).toInt + 1
+                        val transactionCount =
+                            if daysBetween <= 0 then 1 else (random.nextInt(daysBetween) + 1)
 
-            // Process according to the active scenario
-            results <- activeScenario match
-                case ImportScenario.SuccessfulImport =>
-                    handleSuccessfulImport(accountId, startDate, endDate)
+                        val now = Instant.now()
+                        val importResults = ImportResults(
+                            transactionCount = transactionCount,
+                            errorMessage = None,
+                            startTime = importStartTime.getOrElse(now.minusSeconds(5)),
+                            endTime = Some(now)
+                        )
+                        lastImportResults = Some(importResults)
+                        currentStatus = ImportStatus.Completed
+                        Right(importResults)
 
-                case ImportScenario.NoTransactions =>
-                    handleNoTransactionsScenario
+                    case ImportScenario.NoTransactions =>
+                        val now = Instant.now()
+                        val importResults = ImportResults(
+                            transactionCount = 0,
+                            errorMessage = None,
+                            startTime = importStartTime.getOrElse(now.minusSeconds(3)),
+                            endTime = Some(now)
+                        )
+                        lastImportResults = Some(importResults)
+                        currentStatus = ImportStatus.Completed
+                        Right(importResults)
 
-                case ImportScenario.ErrorDuringImport =>
-                    handleErrorScenario
-        yield results
+                    case ImportScenario.ErrorDuringImport =>
+                        val now = Instant.now()
+                        val importResults = ImportResults(
+                            transactionCount = 0,
+                            errorMessage = Some("Connection to Fio Bank failed: Network timeout"),
+                            startTime = importStartTime.getOrElse(now.minusSeconds(2)),
+                            endTime = Some(now)
+                        )
+                        lastImportResults = Some(importResults)
+                        currentStatus = ImportStatus.Error
+                        Right(importResults)
 
-    /** Handle the successful import scenario with random transaction count
-      */
-    private def handleSuccessfulImport(
-        accountId: AccountId, // Using the account ID for future features
-        startDate: LocalDate,
-        endDate: LocalDate
-    ): ZIO[Any, String, ImportResults] =
-        for
-            // Retrieving transactions status - simulate delay
-            _ <- ZIO.sleep(Duration.fromMillis(1200))
-
-            // Random transaction count based on date range (1 to days between dates)
-            daysBetween = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate).toInt + 1
-            transactionCount = if daysBetween <= 0 then 1 else (random.nextInt(daysBetween) + 1)
-
-            // Storing transactions status - simulate delay based on count
-            _ <- ZIO.sleep(Duration.fromMillis(500 + (transactionCount * 50).min(2000)))
-
-            // Complete the import
-            results <- ZIO.succeed {
-                val now = Instant.now()
-                val importResults = ImportResults(
-                    transactionCount = transactionCount,
-                    errorMessage = None,
-                    startTime = importStartTime.getOrElse(now.minusSeconds(5)),
-                    endTime = Some(now)
-                )
-                lastImportResults = Some(importResults)
-                currentStatus = ImportStatus.Completed
-                importResults
-            }
-        yield results
-
-    /** Handle the scenario where no transactions are found
-      */
-    private def handleNoTransactionsScenario: ZIO[Any, String, ImportResults] =
-        for
-            // Retrieving transactions status - simulate delay
-            _ <- ZIO.sleep(Duration.fromMillis(1000))
-
-            // Complete the import with zero transactions
-            results <- ZIO.succeed {
-                val now = Instant.now()
-                val importResults = ImportResults(
-                    transactionCount = 0,
-                    errorMessage = None,
-                    startTime = importStartTime.getOrElse(now.minusSeconds(3)),
-                    endTime = Some(now)
-                )
-                lastImportResults = Some(importResults)
-                currentStatus = ImportStatus.Completed
-                importResults
-            }
-        yield results
-
-    /** Handle the error scenario where the API is unavailable
-      */
-    private def handleErrorScenario: ZIO[Any, Nothing, ImportResults] =
-        for
-            // Short delay to simulate connection attempt
-            _ <- ZIO.sleep(Duration.fromMillis(1500))
-
-            // Set error status
-            results <- ZIO.succeed {
-                val now = Instant.now()
-                val importResults = ImportResults(
-                    transactionCount = 0,
-                    errorMessage = Some("Connection to Fio Bank failed: Network timeout"),
-                    startTime = importStartTime.getOrElse(now.minusSeconds(2)),
-                    endTime = Some(now)
-                )
-                lastImportResults = Some(importResults)
-                currentStatus = ImportStatus.Error
-                importResults
-            }
-        yield results
+                result
+            else
+                Left(validationErrors)
+            end if
+        }.mapError(_.getMessage)
 
     /** Get the current status of the import operation.
       *

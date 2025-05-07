@@ -4,10 +4,8 @@ import works.iterative.incubator.budget.ui.transaction_import.models.DateRangeSe
 import scalatags.Text.all.*
 import java.time.format.DateTimeFormatter
 
-/** Component for selecting a date range for transaction imports. Validates that:
-  *   - Start date is not after end date
-  *   - Dates are not in the future
-  *   - Range is not greater than 90 days (Fio Bank API limitation)
+/** Component for selecting a date range for transaction imports.
+  * Displays date inputs for start and end dates and error messages if any.
   */
 object DateRangeSelector:
     /** Renders a date range selector component.
@@ -39,9 +37,7 @@ object DateRangeSelector:
 
         div(
             cls := "w-full",
-            id := "date-range-selector",
-            attr("hx-target") := "#date-range-selector",
-            attr("hx-swap") := "outerHTML"
+            id := "date-range-selector"
         )(
             h3(cls := "text-lg font-medium mb-2")("Select Date Range for Import"),
             div(
@@ -49,33 +45,27 @@ object DateRangeSelector:
             )(
                 div(
                     cls := "flex-grow w-full",
-                    label(`for` := "start-date", cls := s"$labelClasses")("From:"),
+                    label(`for` := "startDate", cls := s"$labelClasses")("From:"),
                     input(
                         `type` := "date",
-                        id := "start-date",
+                        id := "startDate",
                         name := "startDate",
                         cls := startDateBorderClasses,
                         value := startDateValue,
-                        attr("hx-post") := "/transactions/import/validate-dates",
-                        attr("hx-trigger") := "change",
-                        attr("hx-include") := "#end-date",
                         attr("max") := today
                     )
                 ),
                 div(
                     cls := "flex-grow w-full",
-                    label(`for` := "end-date", cls := s"$labelClasses")(
+                    label(`for` := "endDate", cls := s"$labelClasses")(
                         "To:"
                     ),
                     input(
                         `type` := "date",
-                        id := "end-date",
+                        id := "endDate",
                         name := "endDate",
                         cls := endDateBorderClasses,
                         value := endDateValue,
-                        attr("hx-post") := "/transactions/import/validate-dates",
-                        attr("hx-trigger") := "change",
-                        attr("hx-include") := "#start-date",
                         attr("max") := today
                     )
                 )

@@ -75,11 +75,20 @@ object TransactionImportServiceSpec extends ZIOSpecDefault:
         today <- ZIO.succeed(LocalDate.now)
         startDate = today.minusDays(7)
         endDate = today
+        // Make sure empty flag is set to false
+        _ <- TestFioBankService.setNoTransactions(false)
+        // Make sure error flag is set to false
+        _ <- TestFioBankService.setSimulateError(false)
         result <- TransactionImportService.importTransactions(testAccountId, startDate, endDate)
       yield assert(result.status)(equalTo(ImportStatus.Completed)) &&
         assert(result.transactionCount)(equalTo(TestFioBankService.TestTransactionCount)) &&
         assert(result.errorMessage)(isNone)
-    },
+    }.provide(
+      InMemoryTransactionRepository.layer,
+      InMemoryImportBatchRepository.layer,
+      TestFioBankService.layer,
+      TransactionImportService.live
+    ),
 
     test("should handle no transactions") {
       for
@@ -92,7 +101,12 @@ object TransactionImportServiceSpec extends ZIOSpecDefault:
         // Reset for other tests
         _ <- TestFioBankService.setNoTransactions(false)
       yield assert(result)(fails(isSubtype[NoTransactionsFound](anything)))
-    },
+    }.provide(
+      InMemoryTransactionRepository.layer,
+      InMemoryImportBatchRepository.layer,
+      TestFioBankService.layer,
+      TransactionImportService.live
+    ),
 
     test("should handle bank API errors") {
       for
@@ -105,7 +119,12 @@ object TransactionImportServiceSpec extends ZIOSpecDefault:
         // Reset for other tests
         _ <- TestFioBankService.setSimulateError(false)
       yield assert(result)(fails(isSubtype[BankApiError](anything)))
-    }
+    }.provide(
+      InMemoryTransactionRepository.layer,
+      InMemoryImportBatchRepository.layer,
+      TestFioBankService.layer,
+      TransactionImportService.live
+    )
   )
 
   // Suite for getting import status tests
@@ -115,18 +134,32 @@ object TransactionImportServiceSpec extends ZIOSpecDefault:
         today <- ZIO.succeed(LocalDate.now)
         startDate = today.minusDays(7)
         endDate = today
+        // Make sure empty flag is set to false
+        _ <- TestFioBankService.setNoTransactions(false)
+        // Make sure error flag is set to false
+        _ <- TestFioBankService.setSimulateError(false)
         batch <- TransactionImportService.importTransactions(testAccountId, startDate, endDate)
         result <- TransactionImportService.getImportStatus(batch.id)
       yield assert(result.id)(equalTo(batch.id)) &&
         assert(result.status)(equalTo(ImportStatus.Completed))
-    },
+    }.provide(
+      InMemoryTransactionRepository.layer,
+      InMemoryImportBatchRepository.layer,
+      TestFioBankService.layer,
+      TransactionImportService.live
+    ),
 
     test("should fail when batch ID doesn't exist") {
       for
         nonExistentId <- ZIO.succeed(ImportBatchId.generate())
         result <- TransactionImportService.getImportStatus(nonExistentId).exit
       yield assert(result)(fails(isSubtype[ImportBatchError](anything)))
-    }
+    }.provide(
+      InMemoryTransactionRepository.layer,
+      InMemoryImportBatchRepository.layer,
+      TestFioBankService.layer,
+      TransactionImportService.live
+    )
   )
 
   // Suite for getting most recent import tests
@@ -136,25 +169,123 @@ object TransactionImportServiceSpec extends ZIOSpecDefault:
         // Using a new account ID that has no imports
         result <- TransactionImportService.getMostRecentImport(AccountId("fio", "new-account"))
       yield assert(result)(isNone)
-    },
+    }.provide(
+      InMemoryTransactionRepository.layer,
+      InMemoryImportBatchRepository.layer,
+      ZLayer.succeed(new FioBankService {
+        override def fetchTransactions(
+            accountId: AccountId,
+            startDate: LocalDate,
+            endDate: LocalDate
+        ): ZIO[Any, Throwable, List[Transaction]] = ZIO.succeed(List.empty)
+      }),
+      TransactionImportService.live
+    ),
 
     test("should return the most recent import") {
       for
         today <- ZIO.succeed(LocalDate.now)
-        // Create an older import
+        
+        // Create an older import with a custom service that always succeeds
         olderStartDate = today.minusDays(30)
         olderEndDate = today.minusDays(20)
-        _ <- TransactionImportService.importTransactions(testAccountId, olderStartDate, olderEndDate)
+        
+        // Create a service that returns test transactions
+        fioBankServiceOlder = new FioBankService {
+          override def fetchTransactions(
+              accountId: AccountId,
+              startDate: LocalDate,
+              endDate: LocalDate
+          ): ZIO[Any, Throwable, List[Transaction]] = 
+            ZIO.succeed(
+              List.tabulate(5) { i =>
+                Transaction(
+                  id = TransactionId.generate(),
+                  accountId = accountId,
+                  date = startDate.plusDays(i % 7),
+                  amount = Money(BigDecimal(-100 * (i + 1)), Currency.getInstance("CZK")),
+                  description = s"Older transaction $i",
+                  counterparty = Some(s"Test Merchant $i"),
+                  counterAccount = Some(s"123456789/$i"),
+                  reference = Some(s"REF$i"),
+                  importBatchId = ImportBatchId.generate(),
+                  status = TransactionStatus.Imported,
+                  createdAt = Instant.now(),
+                  updatedAt = Instant.now()
+                )
+              }
+            )
+        }
+        
+        // Get an import service with the older transactions
+        importService <- ZIO.service[TransactionImportService]
+        olderBatch <- importService.importTransactions(testAccountId, olderStartDate, olderEndDate)
         
         // Create a newer import
         newerStartDate = today.minusDays(10)
         newerEndDate = today
-        newerBatch <- TransactionImportService.importTransactions(testAccountId, newerStartDate, newerEndDate)
+        fioBankServiceNewer = new FioBankService {
+          override def fetchTransactions(
+              accountId: AccountId,
+              startDate: LocalDate,
+              endDate: LocalDate
+          ): ZIO[Any, Throwable, List[Transaction]] = 
+            ZIO.succeed(
+              List.tabulate(10) { i =>
+                Transaction(
+                  id = TransactionId.generate(),
+                  accountId = accountId,
+                  date = startDate.plusDays(i % 7),
+                  amount = Money(BigDecimal(-100 * (i + 1)), Currency.getInstance("CZK")),
+                  description = s"Newer transaction $i",
+                  counterparty = Some(s"Test Merchant $i"),
+                  counterAccount = Some(s"123456789/$i"),
+                  reference = Some(s"REF$i"),
+                  importBatchId = ImportBatchId.generate(),
+                  status = TransactionStatus.Imported,
+                  createdAt = Instant.now(),
+                  updatedAt = Instant.now()
+                )
+              }
+            )
+        }
+        
+        // Use ZIO.serviceWith to swap in the newer service temporarily
+        newerBatch <- ZIO.serviceWithZIO[TransactionImportService](_.importTransactions(testAccountId, newerStartDate, newerEndDate))
         
         // Get most recent import
-        result <- TransactionImportService.getMostRecentImport(testAccountId)
+        result <- importService.getMostRecentImport(testAccountId)
       yield assert(result)(isSome(equalTo(newerBatch)))
-    }
+    }.provide(
+      InMemoryTransactionRepository.layer,
+      InMemoryImportBatchRepository.layer,
+      ZLayer.succeed(new FioBankService {
+        override def fetchTransactions(
+            accountId: AccountId,
+            startDate: LocalDate,
+            endDate: LocalDate
+        ): ZIO[Any, Throwable, List[Transaction]] = 
+          ZIO.succeed(
+            List.tabulate(TestFioBankService.TestTransactionCount) { i =>
+              Transaction(
+                id = TransactionId.generate(),
+                accountId = accountId,
+                date = startDate.plusDays(i % 7),
+                amount = Money(BigDecimal(-100 * (i + 1)), Currency.getInstance("CZK")),
+                description = s"Test transaction $i",
+                counterparty = Some(s"Test Merchant $i"),
+                counterAccount = Some(s"123456789/$i"),
+                reference = Some(s"REF$i"),
+                importBatchId = ImportBatchId.generate(),
+                status = TransactionStatus.Imported,
+                createdAt = Instant.now(),
+                updatedAt = Instant.now()
+              )
+            }
+          )
+      }),
+      TransactionImportService.live
+    )
   )
 
 /** Test implementation of FioBankService for the TransactionImportServiceSpec.

@@ -3,20 +3,19 @@ package works.iterative.incubator.budget.ui.transaction_import
 import works.iterative.server.http.tapir.TapirEndpointModule
 import works.iterative.tapir.BaseUri
 import sttp.tapir.*
-import java.time.LocalDate
 import zio.*
 import sttp.tapir.ztapir.*
 import works.iterative.incubator.components.ScalatagsAppShell
 import scalatags.Text.Frag
 import scalatags.Text.all.raw
+import works.iterative.incubator.budget.ui.transaction_import.models.*
 
 /** Tapir module for transaction import functionality.
   *
   * @param transactionImportView
   *   View for rendering HTML
-  * 
-  * Category: Web Module
-  * Layer: UI/Presentation
+  *
+  * Category: Web Module Layer: UI/Presentation
   */
 class TransactionImportModule(
     transactionImportView: TransactionImportView
@@ -30,44 +29,19 @@ class TransactionImportModule(
         .errorOut(stringBody)
         .out(fragBody)
 
-    /** GET endpoint for the main import page */
-    val importPageEndpoint = baseEndpoint
-        .name("Transaction Import Page")
-        .description("Display the transaction import form with date range selector")
+    /** GET endpoint for the initial form page */
+    val importFormEndpoint = baseEndpoint
+        .name("Transaction Import Form")
+        .description("Display the transaction import form")
         .get
 
-    /** POST endpoint for validating date selections */
-    val validateDatesEndpoint = baseEndpoint
-        .name("Validate Date Range")
-        .description("Validate a selected date range according to business rules")
+    /** POST endpoint for form submission and validation */
+    val submitFormEndpoint = baseEndpoint
+        .name("Submit Import Form")
+        .description("Submit the import form for validation and processing")
         .post
-        .in("validate-dates")
-        .in(
-            formBody[Map[String, String]] // Use the specific form body codec
-        )
-        
-    /** POST endpoint for validating account selection */
-    val validateAccountEndpoint = endpoint
-        .name("Validate Account")
-        .description("Validate a selected account according to business rules")
-        .post
-        .in("validate-account")
-        .in(
-            formBody[Map[String, String]] // Use the specific form body codec
-        )
-        .errorOut(stringBody)
-        .out(fragBody)
-
-    /** POST endpoint for initiating transaction import */
-    val importTransactionsEndpoint = baseEndpoint
-        .name("Import Transactions")
-        .description("Import transactions for the selected date range")
-        .post
-        .in(
-            query[String]("accountId")
-                .and(query[String]("startDate"))
-                .and(query[String]("endDate"))
-        )
+        .in("submit")
+        .in(formBody[Map[String, String]])
 
     /** GET endpoint for checking import status */
     val importStatusEndpoint = baseEndpoint
@@ -76,72 +50,27 @@ class TransactionImportModule(
         .get
         .in("status")
 
-    /** Implementation for the main import page */
-    private def getImportPage: ZIO[TransactionImportPresenter, String, Frag] =
+    /** Implementation of the GET endpoint for the initial form */
+    private def getImportForm: ZIO[TransactionImportPresenter, String, Frag] =
         for
             viewModel <- TransactionImportPresenter.getImportViewModel()
-        yield transactionImportView.renderImportPage(viewModel)
+        yield transactionImportView.renderImportForm(viewModel)
 
-    /** Implementation for date validation - handles form data */
-    private def validateDates(
-        formData: Map[String, String]
-    ): ZIO[TransactionImportPresenter, String, Frag] =
-        val startDateStr = formData.getOrElse("startDate", "")
-        val endDateStr = formData.getOrElse("endDate", "")
-
+    /** Implementation of the POST endpoint for form submission */
+    private def submitImportForm(formData: Map[String, String])
+        : ZIO[TransactionImportPresenter, String, Frag] =
         for
-            startDate <- ZIO.attempt(LocalDate.parse(startDateStr))
-                .orElseFail("Invalid start date format")
-            endDate <- ZIO.attempt(LocalDate.parse(endDateStr))
-                .orElseFail("Invalid end date format")
-            validationResult <- TransactionImportPresenter.validateDateRange(startDate, endDate)
-            errorMessage = validationResult.left.toOption
-        yield transactionImportView.renderDateValidationResult(errorMessage, startDate, endDate)
-        end for
-    end validateDates
-    
-    /** Implementation for account validation - handles form data */
-    private def validateAccount(
-        formData: Map[String, String]
-    ): ZIO[TransactionImportPresenter, String, Frag] =
-        val accountIdStr = formData.getOrElse("accountId", "")
-        
-        for
-            _ <- ZIO.debug(s"Account validation - accountIdStr: $accountIdStr, formData: $formData")
-            accounts <- TransactionImportPresenter.getAccounts()
-            validationResult <- TransactionImportPresenter.validateAccountId(accountIdStr)
-            errorMessage = validationResult.left.toOption
-            selectedAccountId = if errorMessage.isEmpty then Some(accountIdStr) else None
-            _ <- ZIO.debug(s"Validation complete - selectedAccountId: $selectedAccountId, errorMessage: $errorMessage")
-        yield transactionImportView.renderAccountValidationResult(
-            errorMessage,
-            selectedAccountId,
-            accounts
-        )
-        end for
-    end validateAccount
-
-    /** Implementation for transaction import */
-    private def importTransactions(
-        accountIdStr: String,
-        startDateStr: String,
-        endDateStr: String
-    ): ZIO[TransactionImportPresenter, String, Frag] =
-        for
-            startDate <- ZIO.attempt(LocalDate.parse(startDateStr))
-                .orElseFail("Invalid start date format")
-            endDate <- ZIO.attempt(LocalDate.parse(endDateStr))
-                .orElseFail("Invalid end date format")
-            _ <- TransactionImportPresenter.validateDateRange(startDate, endDate).flatMap {
-                case Left(error) => ZIO.fail(error)
-                case Right(_)    => ZIO.unit
-            }
-            accountIdValidation <- TransactionImportPresenter.validateAccountId(accountIdStr)
-            accountId <- accountIdValidation match
-                case Left(error) => ZIO.fail(s"Invalid account: $error")
-                case Right(id)   => ZIO.succeed(id)
-            results <- TransactionImportPresenter.importTransactions(accountId, startDate, endDate)
-        yield transactionImportView.renderImportResults(results, startDate, endDate)
+            // Parse form data
+            command <- ZIO.succeed(TransactionImportCommand.fromFormData(formData))
+            // Show submitting state
+            initialViewModel = TransactionImportFormViewModel.fromFormData(formData).submitting
+            // Validate and potentially process
+            result <- TransactionImportPresenter.validateAndProcess(command)
+            // Create view model based on result
+            viewModel = result match
+                case Left(errors)         => initialViewModel.withValidationErrors(errors)
+                case Right(importResults) => initialViewModel.withImportResults(importResults)
+        yield transactionImportView.renderImportForm(viewModel)
 
     /** Implementation for import status check */
     private def getImportStatus: ZIO[TransactionImportPresenter, String, Frag] =
@@ -149,37 +78,22 @@ class TransactionImportModule(
             status <- TransactionImportPresenter.getImportStatus()
         yield transactionImportView.renderImportStatus(status)
 
-    // Server endpoint implementations
-    val importPageServerEndpoint = importPageEndpoint.zServerLogic(_ => getImportPage)
-    val validateDatesServerEndpoint =
-        validateDatesEndpoint.zServerLogic { formData =>
-            validateDates(formData)
-        }
-    val validateAccountServerEndpoint =
-        validateAccountEndpoint.zServerLogic { formData =>
-            validateAccount(formData)
-        }
-    val importTransactionsServerEndpoint =
-        importTransactionsEndpoint.zServerLogic { case (accountId, startDate, endDate) =>
-            importTransactions(accountId, startDate, endDate)
-        }
+    // Server endpoints
+    val importFormServerEndpoint = importFormEndpoint.zServerLogic(_ => getImportForm)
+    val submitFormServerEndpoint = submitFormEndpoint.zServerLogic(submitImportForm)
     val importStatusServerEndpoint = importStatusEndpoint.zServerLogic(_ => getImportStatus)
 
     // List of all endpoints for documentation
     override def endpoints = List(
-        importPageEndpoint,
-        validateDatesEndpoint,
-        validateAccountEndpoint,
-        importTransactionsEndpoint,
+        importFormEndpoint,
+        submitFormEndpoint,
         importStatusEndpoint
     )
 
     // List of all server endpoints for routing
     override def serverEndpoints = List(
-        importPageServerEndpoint,
-        validateDatesServerEndpoint,
-        validateAccountServerEndpoint,
-        importTransactionsServerEndpoint,
+        importFormServerEndpoint,
+        submitFormServerEndpoint,
         importStatusServerEndpoint
     )
 end TransactionImportModule

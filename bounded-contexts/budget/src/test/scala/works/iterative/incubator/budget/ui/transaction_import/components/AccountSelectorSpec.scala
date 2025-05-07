@@ -29,8 +29,8 @@ object AccountSelectorSpec extends ZIOSpecDefault:
 
             // Then it should contain expected elements
             val result1 = assert(rendered)(containsString("<select"))
-            val result2 = assert(rendered)(containsString("id=\"account-selector\""))
-            val result3 = assert(rendered)(containsString("<option value=\"\" selected=\"true\" disabled=\"true\">"))
+            val result2 = assert(rendered)(containsString("id=\"accountId\""))
+            val result3 = assert(rendered)(containsString("<option value=\"\""))
             val result4 = assert(rendered)(containsString("-- Select an account --"))
             val result5 = assert(rendered)(containsString("border-gray-300")) // No error border
             result1 && result2 && result3 && result4 && result5
@@ -50,7 +50,7 @@ object AccountSelectorSpec extends ZIOSpecDefault:
 
             // Then it should contain expected elements and mark the selected account
             val result1 = assert(rendered)(containsString(s"value=\"$selectedAccountId\" selected"))
-            val result2 = assert(rendered)(containsString("value=\"\" selected=\"false\"")) // Default option not selected
+            val result2 = assert(rendered)(not(containsString("value=\"\" selected"))) // Default option not selected
             val result3 = assert(rendered)(containsString("Fio Bank - Main Account"))
             result1 && result2 && result3
         },
@@ -92,7 +92,7 @@ object AccountSelectorSpec extends ZIOSpecDefault:
             result1 && result2 && result3
         },
         
-        test("should have proper HTMX attributes for validation") {
+        test("should not have HTMX attributes after refactoring") {
             // Given a valid view model
             val viewModel = AccountSelectorViewModel(
                 accounts = testAccounts,
@@ -103,12 +103,9 @@ object AccountSelectorSpec extends ZIOSpecDefault:
             // When rendering the component
             val rendered = render(viewModel).render
 
-            // Then it should have the HTMX attributes for validation
-            val result1 = assert(rendered)(containsString("hx-post=\"/validate-account\""))
-            val result2 = assert(rendered)(containsString("hx-trigger=\"change\""))
-            val result3 = assert(rendered)(containsString("hx-target=\"#account-selector-container\""))
-            val result4 = assert(rendered)(containsString("hx-swap=\"outerHTML\""))
-            result1 && result2 && result3 && result4
+            // Then it should not have the HTMX attributes for validation
+            // since we've moved validation to the form level
+            assert(rendered)(not(containsString("hx-post=")))
         },
         
         test("should render appropriate heading") {

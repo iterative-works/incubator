@@ -79,7 +79,7 @@ object ImportButtonSpec extends ZIOSpecDefault:
             val result5 = assert(rendered)(containsString("aria-disabled=\"true\""))
             result1 && result2 && result3 && result4 && result5
         },
-        test("includes correct HTMX attributes") {
+        test("does not include HTMX attributes after refactoring") {
             // Given a view model with specific dates
             val startDate = LocalDate.of(2025, 3, 1)
             val endDate = LocalDate.of(2025, 3, 31)
@@ -91,22 +91,11 @@ object ImportButtonSpec extends ZIOSpecDefault:
                 endDate = endDate
             )
 
-            // Format dates for comparison
-            val dateFormat = DateTimeFormatter.ISO_LOCAL_DATE
-            val startDateFormatted = startDate.format(dateFormat)
-            val endDateFormatted = endDate.format(dateFormat)
-
             // When rendering the component
             val rendered = render(viewModel).render
 
-            // Then it should have the correct HTMX attributes
-            val result1 = assert(rendered)(containsString(
-                s"hx-post=\"/transactions/import?accountId=0100-1234567890&amp;startDate=$startDateFormatted&amp;endDate=$endDateFormatted\""
-            ))
-            val result2 = assert(rendered)(containsString("hx-target=\"#results-panel-container\""))
-            val result3 = assert(rendered)(containsString("hx-swap=\"innerHTML\""))
-            val result4 = assert(rendered)(containsString("hx-indicator=\"#loading-spinner\""))
-            result1 && result2 && result3 && result4
+            // Then it should not have HTMX attributes since we've moved to form submission
+            assert(rendered)(not(containsString("hx-post=")))
         }
     )
 end ImportButtonSpec

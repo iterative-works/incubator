@@ -21,15 +21,10 @@ object DateRangeSelectorSpec extends ZIOSpecDefault:
             val rendered = render(viewModel).render
 
             // Then it should contain expected elements
-            val result1 = assert(rendered)(containsString("<input type=\"date\" id=\"start-date\""))
-            val result2 = assert(rendered)(containsString("<input type=\"date\" id=\"end-date\""))
-            val result3 =
-                assert(rendered)(containsString("hx-post=\"/transactions/import/validate-dates\""))
-            val result4 =
-                assert(rendered)(
-                    containsString("style=\"display: none\"")
-                ) // Error message should be hidden
-            result1 && result2 && result3 && result4
+            val result1 = assert(rendered)(containsString("<input type=\"date\" id=\"startDate\""))
+            val result2 = assert(rendered)(containsString("<input type=\"date\" id=\"endDate\""))
+            val result3 = assert(rendered)(containsString("style=\"display: none\"")) // Error message should be hidden
+            result1 && result2 && result3
         },
         test("renders correctly with error when start date is after end date") {
             // Given an invalid date range where start date is after end date
@@ -84,7 +79,7 @@ object DateRangeSelectorSpec extends ZIOSpecDefault:
             // Then it should have the correct max date attribute
             assert(rendered)(containsString(s"max=\"$expectedMaxDate\""))
         },
-        test("renders HTMX attributes for validation") {
+        test("does not contain HTMX attributes for validation after refactoring") {
             // Given a valid view model
             val viewModel = DateRangeSelectorViewModel(
                 LocalDate.now().minusDays(30),
@@ -94,13 +89,9 @@ object DateRangeSelectorSpec extends ZIOSpecDefault:
             // When rendering the component
             val rendered = render(viewModel).render
 
-            // Then it should have the HTMX attributes for validation
-            val result1 =
-                assert(rendered)(containsString("hx-post=\"/transactions/import/validate-dates\""))
-            val result2 = assert(rendered)(containsString("hx-trigger=\"change\""))
-            val result3 = assert(rendered)(containsString("hx-target=\"#date-range-selector\""))
-            val result4 = assert(rendered)(containsString("hx-swap=\"outerHTML\""))
-            result1 && result2 && result3 && result4
+            // Then it should not have the HTMX attributes for validation anymore
+            // since we've moved validation to the form level
+            assert(rendered)(not(containsString("hx-post=")))
         }
     )
 end DateRangeSelectorSpec

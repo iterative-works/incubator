@@ -15,47 +15,19 @@ import works.iterative.scalatags.components.ScalatagsAppShell
   * Layer: UI/Presentation
   */
 class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: BaseUri):
-    /** Render the main import page.
+    /** Render the main import form with unified validation.
       *
       * @param viewModel
-      *   The view model containing all data needed for the page
+      *   The form view model containing all data and validation state
       * @return
       *   HTML content
       */
-    def renderImportPage(viewModel: ImportPageViewModel): Frag =
-        // Create component view models from the page view model
-        val accountSelectorViewModel = viewModel.accountSelectorViewModel
-        
-        val dateRangeSelectorViewModel = DateRangeSelectorViewModel(
-            startDate = viewModel.startDate,
-            endDate = viewModel.endDate,
-            validationError = viewModel.validationError
-        )
-
-        val importButtonViewModel = ImportButtonViewModel(
-            isEnabled = viewModel.isValid,
-            isLoading = viewModel.isLoading,
-            accountId = viewModel.selectedAccountId,
-            startDate = viewModel.startDate,
-            endDate = viewModel.endDate
-        )
-
-        val statusIndicatorViewModel = StatusIndicatorViewModel(
-            status = viewModel.importStatus,
-            isVisible = viewModel.importStatus != ImportStatus.NotStarted
-        )
-
-        val resultsPanelViewModel = ResultsPanelViewModel(
-            importResults = viewModel.importResults,
-            isVisible = viewModel.showResults,
-            startDate = viewModel.startDate,
-            endDate = viewModel.endDate
-        )
-
+    def renderImportForm(viewModel: TransactionImportFormViewModel): Frag =
         appShell.wrap(
             pageTitle = "Transaction Import",
             content = div(
                 cls := "container mx-auto px-4 py-8",
+                // Header
                 h1(
                     cls := "text-2xl font-bold text-gray-800 mb-3 bg-blue-100 p-4 rounded-md",
                     "Import Transactions from Fio Bank"
@@ -68,43 +40,44 @@ class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: 
                             "Transactions will be categorized using predefined rules."
                     )
                 ),
-                div(
-                    cls := "bg-white rounded-lg py-6 w-full",
-                    // Account selector
-                    div(
-                        cls := "mb-4 w-full",
-                        AccountSelector.render(accountSelectorViewModel)
-                    ),
-                    // Date range selector (includes its own title now)
-                    div(
-                        cls := "mb-4 w-full",
-                        DateRangeSelector.render(dateRangeSelectorViewModel)
-                    ),
-                    // Import action panel with button and status
-                    div(
-                        cls := "flex flex-col sm:flex-row sm:items-center justify-between mb-4",
-                        // Import button - aligned to left
-                        div(
-                            id := "import-button-container",
-                            cls := "flex",
-                            ImportButton.render(importButtonViewModel)
-                        ),
-                        // Status indicator - aligned to right and filling space
-                        div(
-                            id := "status-indicator-container",
-                            cls := "mt-2 sm:mt-0 sm:ml-4 flex-grow flex items-center justify-end",
-                            StatusIndicator.render(statusIndicatorViewModel)
-                        )
-                    ),
-                    // Results panel (only visible after import)
+                // The main form component
+                TransactionImportForm.render(viewModel),
+                // Results panel if applicable
+                viewModel.importResults.map { results =>
                     div(
                         id := "results-panel-container",
                         cls := "mt-6",
-                        ResultsPanel.render(resultsPanelViewModel)
+                        ResultsPanel.render(
+                            ResultsPanelViewModel(
+                                importResults = Some(results),
+                                isVisible = true,
+                                startDate = viewModel.startDate,
+                                endDate = viewModel.endDate
+                            )
+                        )
                     )
-                )
+                }
             )
         )
+    end renderImportForm
+    
+    /** Legacy method for backward compatibility */
+    def renderImportPage(viewModel: ImportPageViewModel): Frag =
+        // Convert legacy view model to new form view model
+        val formViewModel = TransactionImportFormViewModel(
+            accounts = viewModel.accounts,
+            selectedAccountId = viewModel.selectedAccountId,
+            startDate = viewModel.startDate,
+            endDate = viewModel.endDate,
+            fieldErrors = Map.empty[String, String] ++ (viewModel.validationError.map(e => "dateRange" -> e)) ++ 
+                             (viewModel.accountValidationError.map(e => "accountId" -> e)),
+            globalError = None,
+            isSubmitting = viewModel.isLoading,
+            importStatus = viewModel.importStatus,
+            importResults = viewModel.importResults
+        )
+        
+        renderImportForm(formViewModel)
     end renderImportPage
 
     /** Render just the import status component for HTMX updates.
@@ -144,17 +117,7 @@ class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: 
         ResultsPanel.render(viewModel)
     end renderImportResults
 
-    /** Render the validation error message for date range.
-      *
-      * @param errorMessage
-      *   The validation error message
-      * @param startDate
-      *   The start date that was validated
-      * @param endDate
-      *   The end date that was validated
-      * @return
-      *   HTML content
-      */
+    /** Legacy method for backward compatibility */
     def renderDateValidationResult(
         errorMessage: Option[String],
         startDate: LocalDate,
@@ -168,17 +131,7 @@ class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: 
         DateRangeSelector.render(viewModel)
     end renderDateValidationResult
     
-    /** Render the validation result for account selection.
-      *
-      * @param errorMessage
-      *   The validation error message
-      * @param accountId
-      *   The account ID that was validated
-      * @param accounts
-      *   The list of available accounts
-      * @return
-      *   HTML content
-      */
+    /** Legacy method for backward compatibility */
     def renderAccountValidationResult(
         errorMessage: Option[String],
         accountId: Option[String],

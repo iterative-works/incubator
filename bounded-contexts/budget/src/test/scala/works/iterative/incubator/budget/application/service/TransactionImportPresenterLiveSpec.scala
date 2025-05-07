@@ -6,6 +6,7 @@ import works.iterative.incubator.budget.infrastructure.adapter.*
 import works.iterative.incubator.budget.ui.transaction_import.TransactionImportPresenter
 import works.iterative.incubator.budget.ui.transaction_import.models.*
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import zio.*
 import zio.test.*
 import zio.test.Assertion.*
@@ -15,6 +16,7 @@ import zio.test.Assertion.*
 object TransactionImportPresenterLiveSpec extends ZIOSpecDefault:
   // Test account ID to use throughout tests
   private val testAccountId = AccountId("fio", "test-account")
+  private val formatter = DateTimeFormatter.ISO_LOCAL_DATE
 
   override def spec = suite("TransactionImportPresenterLive")(
     test("should get initial view model") {
@@ -25,28 +27,69 @@ object TransactionImportPresenterLiveSpec extends ZIOSpecDefault:
         assert(viewModel.endDate)(equalTo(LocalDate.now()))
     },
 
-    test("should validate date range") {
+    test("should validate form with valid data") {
       for
         today <- ZIO.succeed(LocalDate.now)
         startDate = today.minusDays(7)
         endDate = today
-        validResult <- TransactionImportPresenter.validateDateRange(startDate, endDate)
-        
-        invalidStartDate = today.plusDays(1)
-        invalidResult <- TransactionImportPresenter.validateDateRange(invalidStartDate, endDate)
-      yield assert(validResult)(isRight(isUnit)) &&
-        assert(invalidResult)(isLeft(anything))
+        command = TransactionImportCommand(
+          accountId = testAccountId.toString,
+          startDate = startDate.format(formatter),
+          endDate = endDate.format(formatter)
+        )
+        result <- TransactionImportPresenter.validateAndProcess(command)
+      yield assert(result.isRight)(isTrue)
     },
 
-    test("should import transactions") {
+    test("should validate form with invalid date range") {
+      for
+        today <- ZIO.succeed(LocalDate.now)
+        invalidStartDate = today.plusDays(1)
+        endDate = today
+        command = TransactionImportCommand(
+          accountId = testAccountId.toString,
+          startDate = invalidStartDate.format(formatter),
+          endDate = endDate.format(formatter)
+        )
+        result <- TransactionImportPresenter.validateAndProcess(command)
+      yield {
+        assert(result.isLeft)(isTrue) &&
+        assert(result.left.toOption.flatMap(_.errors.get("dateRange")).isDefined)(isTrue)
+      }
+    },
+    
+    test("should validate form with invalid account id") {
       for
         today <- ZIO.succeed(LocalDate.now)
         startDate = today.minusDays(7)
         endDate = today
-        result <- TransactionImportPresenter.importTransactions(testAccountId, startDate, endDate)
-      yield assert(result.transactionCount)(equalTo(TestFioBankService.TestTransactionCount)) &&
-        assert(result.errorMessage)(isNone) &&
-        assert(result.endTime)(isSome(anything))
+        command = TransactionImportCommand(
+          accountId = "This is definitely not a valid account ID",
+          startDate = startDate.format(formatter),
+          endDate = endDate.format(formatter)
+        )
+        result <- TransactionImportPresenter.validateAndProcess(command)
+      yield {
+        assert(result.isLeft)(isTrue) &&
+        assert(result.left.toOption.flatMap(_.errors.get("accountId")).isDefined)(isTrue)
+      }
+    },
+
+    test("should process import with valid data") {
+      for
+        today <- ZIO.succeed(LocalDate.now)
+        startDate = today.minusDays(7)
+        endDate = today
+        command = TransactionImportCommand(
+          accountId = testAccountId.toString,
+          startDate = startDate.format(formatter),
+          endDate = endDate.format(formatter)
+        )
+        result <- TransactionImportPresenter.validateAndProcess(command)
+      yield assert(result.isRight)(isTrue) &&
+        assert(result.toOption.map(_.transactionCount).getOrElse(0))(
+          equalTo(TestFioBankService.TestTransactionCount)
+        )
     },
 
     test("should get import status") {
@@ -54,7 +97,12 @@ object TransactionImportPresenterLiveSpec extends ZIOSpecDefault:
         today <- ZIO.succeed(LocalDate.now)
         startDate = today.minusDays(7)
         endDate = today
-        _ <- TransactionImportPresenter.importTransactions(testAccountId, startDate, endDate)
+        command = TransactionImportCommand(
+          accountId = testAccountId.toString,
+          startDate = startDate.format(formatter),
+          endDate = endDate.format(formatter)
+        )
+        _ <- TransactionImportPresenter.validateAndProcess(command)
         status <- TransactionImportPresenter.getImportStatus()
       yield assert(status)(equalTo(ImportStatus.Completed))
     }
