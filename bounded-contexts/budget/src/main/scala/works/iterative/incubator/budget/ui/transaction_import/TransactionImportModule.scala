@@ -52,7 +52,8 @@ class TransactionImportModule(
         .description("Import transactions for the selected date range")
         .post
         .in(
-            query[String]("startDate")
+            query[String]("accountId")
+                .and(query[String]("startDate"))
                 .and(query[String]("endDate"))
         )
 
@@ -89,6 +90,7 @@ class TransactionImportModule(
 
     /** Implementation for transaction import */
     private def importTransactions(
+        accountIdStr: String,
         startDateStr: String,
         endDateStr: String
     ): ZIO[TransactionImportPresenter, String, Frag] =
@@ -101,8 +103,6 @@ class TransactionImportModule(
                 case Left(error) => ZIO.fail(error)
                 case Right(_)    => ZIO.unit
             }
-            // TODO: Get accountId from form data instead of using a default one
-            accountIdStr = "0100-1234567890" // Default account ID for now
             accountIdValidation <- TransactionImportPresenter.validateAccountId(accountIdStr)
             accountId <- accountIdValidation match
                 case Left(error) => ZIO.fail(s"Invalid account: $error")
@@ -123,8 +123,8 @@ class TransactionImportModule(
             validateDates(formData)
         }
     val importTransactionsServerEndpoint =
-        importTransactionsEndpoint.zServerLogic { case (startDate, endDate) =>
-            importTransactions(startDate, endDate)
+        importTransactionsEndpoint.zServerLogic { case (accountId, startDate, endDate) =>
+            importTransactions(accountId, startDate, endDate)
         }
     val importStatusServerEndpoint = importStatusEndpoint.zServerLogic(_ => getImportStatus)
 

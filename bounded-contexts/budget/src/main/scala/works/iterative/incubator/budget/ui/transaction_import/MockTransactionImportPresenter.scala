@@ -46,7 +46,7 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
             accounts <- getAccounts()
         yield ImportPageViewModel(
             accounts = accounts,
-            selectedAccountId = None,
+            selectedAccountId = Some("0300-0987654321"), // Default select the ČSOB account
             startDate = LocalDate.now().withDayOfMonth(1),
             endDate = LocalDate.now(),
             importStatus = currentStatus,
