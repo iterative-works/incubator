@@ -1,12 +1,11 @@
 package works.iterative.incubator.budget.ui.transaction_import.components
 
 import works.iterative.incubator.budget.ui.transaction_import.models.AccountSelectorViewModel
-import scalatags.Text.all._
+import scalatags.Text.all.*
 
 /** UI component for selecting an account for transaction import.
   *
-  * Category: UI Component
-  * Layer: UI/Presentation
+  * Category: UI Component Layer: UI/Presentation
   */
 object AccountSelector:
     /** Render the account selector component.
@@ -23,33 +22,46 @@ object AccountSelector:
                 cls := "text-lg font-semibold mb-2 text-gray-700",
                 "Select Account"
             ),
-            div(
-                cls := "relative",
-                id := "account-selector-container",
-                select(
-                    cls := s"w-full px-3 py-2 border rounded-md ${validationClass(viewModel)}",
-                    id := "account-selector",
-                    name := "accountId",
-                    attr("hx-post") := "/validate-account",
-                    attr("hx-trigger") := "change",
-                    attr("hx-target") := "#account-selector-container",
-                    attr("hx-swap") := "outerHTML",
-                    // Default empty option
+            renderControl(viewModel)
+        )
+    end render
+
+    /** Render just the select control part without the header. This is used for HTMX updates to
+      * avoid duplication.
+      *
+      * @param viewModel
+      *   The view model containing account options and selection state
+      * @return
+      *   HTML content for just the select control
+      */
+    def renderControl(viewModel: AccountSelectorViewModel): Frag =
+        div(
+            cls := "relative",
+            id := "account-selector-container",
+            select(
+                cls := s"w-full px-3 py-2 border rounded-md ${validationClass(viewModel)}",
+                id := "account-selector",
+                name := "accountId",
+                attr("hx-post") := "/validate-account",
+                attr("hx-trigger") := "change",
+                attr("hx-target") := "#account-selector-container",
+                attr("hx-swap") := "outerHTML",
+                value := viewModel.selectedAccountId.getOrElse(""),
+                // Default empty option
+                option(
+                    value := "",
+                    if viewModel.selectedAccountId.isDefined then selected := "" else (),
+                    "-- Select an account --"
+                ),
+                // Generate options for each account
+                viewModel.accounts.map { account =>
                     option(
-                        value := "",
-                        selected := viewModel.selectedAccountId.isEmpty,
-                        disabled := true,
-                        "-- Select an account --"
-                    ),
-                    // Generate options for each account
-                    viewModel.accounts.map { account =>
-                        option(
-                            value := account.id,
-                            selected := viewModel.selectedAccountId.contains(account.id),
-                            account.name
-                        )
-                    }
-                )
+                        value := account.id,
+                        if viewModel.selectedAccountId.contains(account.id) then selected := ""
+                        else (),
+                        account.name
+                    )
+                }
             ),
             // Error message
             viewModel.validationError.map { error =>
@@ -59,7 +71,7 @@ object AccountSelector:
                 )
             }
         )
-    end render
+    end renderControl
 
     /** Determine the appropriate CSS class based on validation state.
       *

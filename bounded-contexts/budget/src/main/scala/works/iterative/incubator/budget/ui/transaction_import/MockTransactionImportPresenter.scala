@@ -11,11 +11,10 @@ import scala.util.Random
 enum ImportScenario:
     case SuccessfulImport, NoTransactions, ErrorDuringImport
 
-/** Mock implementation of TransactionImportPresenter for UI development. Simulates the import process
-  * with configurable scenarios for demonstration.
+/** Mock implementation of TransactionImportPresenter for UI development. Simulates the import
+  * process with configurable scenarios for demonstration.
   *
-  * Category: Presenter
-  * Layer: UI/Presentation
+  * Category: Presenter Layer: UI/Presentation
   */
 class MockTransactionImportPresenter extends TransactionImportPresenter:
     private val random = new Random()
@@ -46,7 +45,7 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
             accounts <- getAccounts()
         yield ImportPageViewModel(
             accounts = accounts,
-            selectedAccountId = Some("0300-0987654321"), // Default select the ČSOB account
+            selectedAccountId = None,
             startDate = LocalDate.now().withDayOfMonth(1),
             endDate = LocalDate.now(),
             importStatus = currentStatus,
@@ -80,7 +79,7 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
             else
                 Right(())
         }
-        
+
     /** Validate an account ID string.
       *
       * @param accountIdStr
@@ -94,10 +93,10 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
         ZIO.succeed {
             if accountIdStr == null || accountIdStr.isEmpty then
                 Left("Account selection is required")
-            else 
+            else
                 AccountId.fromString(accountIdStr) match
                     case Right(accountId) => Right(accountId)
-                    case Left(error) => Left(s"Invalid account ID: $error")
+                    case Left(error)      => Left(s"Invalid account ID: $error")
         }
 
     /** Import transactions for the specified account and date range based on the active scenario.
@@ -228,7 +227,7 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
       */
     override def getImportStatus(): ZIO[Any, String, ImportStatus] =
         ZIO.succeed(currentStatus)
-        
+
     /** Get the list of available accounts.
       *
       * @return

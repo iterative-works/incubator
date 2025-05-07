@@ -72,7 +72,6 @@ class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: 
                     cls := "bg-white rounded-lg py-6 w-full",
                     // Account selector
                     div(
-                        id := "account-selector-container",
                         cls := "mb-4 w-full",
                         AccountSelector.render(accountSelectorViewModel)
                     ),
@@ -190,6 +189,7 @@ class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: 
             selectedAccountId = accountId,
             validationError = errorMessage
         )
-        AccountSelector.render(viewModel)
+        // Use renderControl instead of render to avoid including the header in HTMX updates
+        AccountSelector.renderControl(viewModel)
     end renderAccountValidationResult
 end TransactionImportView

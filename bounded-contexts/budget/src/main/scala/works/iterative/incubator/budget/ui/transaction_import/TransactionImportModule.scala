@@ -107,10 +107,12 @@ class TransactionImportModule(
         val accountIdStr = formData.getOrElse("accountId", "")
         
         for
+            _ <- ZIO.debug(s"Account validation - accountIdStr: $accountIdStr, formData: $formData")
             accounts <- TransactionImportPresenter.getAccounts()
             validationResult <- TransactionImportPresenter.validateAccountId(accountIdStr)
             errorMessage = validationResult.left.toOption
             selectedAccountId = if errorMessage.isEmpty then Some(accountIdStr) else None
+            _ <- ZIO.debug(s"Validation complete - selectedAccountId: $selectedAccountId, errorMessage: $errorMessage")
         yield transactionImportView.renderAccountValidationResult(
             errorMessage,
             selectedAccountId,
