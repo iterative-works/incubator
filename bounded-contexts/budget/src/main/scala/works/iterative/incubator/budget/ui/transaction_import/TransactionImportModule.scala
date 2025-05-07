@@ -45,6 +45,18 @@ class TransactionImportModule(
         .in(
             formBody[Map[String, String]] // Use the specific form body codec
         )
+        
+    /** POST endpoint for validating account selection */
+    val validateAccountEndpoint = endpoint
+        .name("Validate Account")
+        .description("Validate a selected account according to business rules")
+        .post
+        .in("validate-account")
+        .in(
+            formBody[Map[String, String]] // Use the specific form body codec
+        )
+        .errorOut(stringBody)
+        .out(fragBody)
 
     /** POST endpoint for initiating transaction import */
     val importTransactionsEndpoint = baseEndpoint
@@ -87,6 +99,25 @@ class TransactionImportModule(
         yield transactionImportView.renderDateValidationResult(errorMessage, startDate, endDate)
         end for
     end validateDates
+    
+    /** Implementation for account validation - handles form data */
+    private def validateAccount(
+        formData: Map[String, String]
+    ): ZIO[TransactionImportPresenter, String, Frag] =
+        val accountIdStr = formData.getOrElse("accountId", "")
+        
+        for
+            accounts <- TransactionImportPresenter.getAccounts()
+            validationResult <- TransactionImportPresenter.validateAccountId(accountIdStr)
+            errorMessage = validationResult.left.toOption
+            selectedAccountId = if errorMessage.isEmpty then Some(accountIdStr) else None
+        yield transactionImportView.renderAccountValidationResult(
+            errorMessage,
+            selectedAccountId,
+            accounts
+        )
+        end for
+    end validateAccount
 
     /** Implementation for transaction import */
     private def importTransactions(
@@ -122,6 +153,10 @@ class TransactionImportModule(
         validateDatesEndpoint.zServerLogic { formData =>
             validateDates(formData)
         }
+    val validateAccountServerEndpoint =
+        validateAccountEndpoint.zServerLogic { formData =>
+            validateAccount(formData)
+        }
     val importTransactionsServerEndpoint =
         importTransactionsEndpoint.zServerLogic { case (accountId, startDate, endDate) =>
             importTransactions(accountId, startDate, endDate)
@@ -132,6 +167,7 @@ class TransactionImportModule(
     override def endpoints = List(
         importPageEndpoint,
         validateDatesEndpoint,
+        validateAccountEndpoint,
         importTransactionsEndpoint,
         importStatusEndpoint
     )
@@ -140,6 +176,7 @@ class TransactionImportModule(
     override def serverEndpoints = List(
         importPageServerEndpoint,
         validateDatesServerEndpoint,
+        validateAccountServerEndpoint,
         importTransactionsServerEndpoint,
         importStatusServerEndpoint
     )
