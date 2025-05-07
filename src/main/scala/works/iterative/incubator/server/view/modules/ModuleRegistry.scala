@@ -8,7 +8,7 @@ import works.iterative.incubator.components.ScalatagsAppShell
 import works.iterative.server.http.ScalatagsViteSupport
 import works.iterative.incubator.budget.ui.transaction_import.TransactionImportModule
 import works.iterative.server.http.tapir.TapirWebModuleAdapter
-import works.iterative.incubator.budget.ui.transaction_import.TransactionImportService
+import works.iterative.incubator.budget.ui.transaction_import.TransactionImportPresenter
 import sttp.tapir.server.http4s.Http4sServerOptions
 import zio.interop.catz.*
 import works.iterative.server.http.WebFeatureModule
@@ -29,7 +29,7 @@ class ModuleRegistry(
         TransactionImportModule(appShell, baseUri)
 
     private val transactionImportWebModule =
-        TapirWebModuleAdapter.adapt[TransactionImportService](
+        TapirWebModuleAdapter.adapt[TransactionImportPresenter](
             options = Http4sServerOptions.default,
             module = transactionImportModule
         )

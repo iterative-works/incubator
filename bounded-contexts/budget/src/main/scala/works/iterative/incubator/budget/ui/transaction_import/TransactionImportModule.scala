@@ -20,7 +20,7 @@ import scalatags.Text.all.raw
   */
 class TransactionImportModule(
     transactionImportView: TransactionImportView
-) extends TapirEndpointModule[TransactionImportService]:
+) extends TapirEndpointModule[TransactionImportPresenter]:
 
     val fragBody = htmlBodyUtf8.map[Frag](raw)(_.render)
 
@@ -64,15 +64,15 @@ class TransactionImportModule(
         .in("status")
 
     /** Implementation for the main import page */
-    private def getImportPage: ZIO[TransactionImportService, String, Frag] =
+    private def getImportPage: ZIO[TransactionImportPresenter, String, Frag] =
         for
-            viewModel <- TransactionImportService.getImportViewModel()
+            viewModel <- TransactionImportPresenter.getImportViewModel()
         yield transactionImportView.renderImportPage(viewModel)
 
     /** Implementation for date validation - handles form data */
     private def validateDates(
         formData: Map[String, String]
-    ): ZIO[TransactionImportService, String, Frag] =
+    ): ZIO[TransactionImportPresenter, String, Frag] =
         val startDateStr = formData.getOrElse("startDate", "")
         val endDateStr = formData.getOrElse("endDate", "")
 
@@ -81,7 +81,7 @@ class TransactionImportModule(
                 .orElseFail("Invalid start date format")
             endDate <- ZIO.attempt(LocalDate.parse(endDateStr))
                 .orElseFail("Invalid end date format")
-            validationResult <- TransactionImportService.validateDateRange(startDate, endDate)
+            validationResult <- TransactionImportPresenter.validateDateRange(startDate, endDate)
             errorMessage = validationResult.left.toOption
         yield transactionImportView.renderDateValidationResult(errorMessage, startDate, endDate)
         end for
@@ -91,23 +91,23 @@ class TransactionImportModule(
     private def importTransactions(
         startDateStr: String,
         endDateStr: String
-    ): ZIO[TransactionImportService, String, Frag] =
+    ): ZIO[TransactionImportPresenter, String, Frag] =
         for
             startDate <- ZIO.attempt(LocalDate.parse(startDateStr))
                 .orElseFail("Invalid start date format")
             endDate <- ZIO.attempt(LocalDate.parse(endDateStr))
                 .orElseFail("Invalid end date format")
-            _ <- TransactionImportService.validateDateRange(startDate, endDate).flatMap {
+            _ <- TransactionImportPresenter.validateDateRange(startDate, endDate).flatMap {
                 case Left(error) => ZIO.fail(error)
                 case Right(_)    => ZIO.unit
             }
-            results <- TransactionImportService.importTransactions(startDate, endDate)
+            results <- TransactionImportPresenter.importTransactions(startDate, endDate)
         yield transactionImportView.renderImportResults(results, startDate, endDate)
 
     /** Implementation for import status check */
-    private def getImportStatus: ZIO[TransactionImportService, String, Frag] =
+    private def getImportStatus: ZIO[TransactionImportPresenter, String, Frag] =
         for
-            status <- TransactionImportService.getImportStatus()
+            status <- TransactionImportPresenter.getImportStatus()
         yield transactionImportView.renderImportStatus(status)
 
     // Server endpoint implementations

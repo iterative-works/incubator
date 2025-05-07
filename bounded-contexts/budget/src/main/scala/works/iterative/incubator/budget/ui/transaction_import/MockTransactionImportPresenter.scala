@@ -10,13 +10,13 @@ import scala.util.Random
 enum ImportScenario:
     case SuccessfulImport, NoTransactions, ErrorDuringImport
 
-/** Mock implementation of TransactionImportService for UI development. Simulates the import process
+/** Mock implementation of TransactionImportPresenter for UI development. Simulates the import process
   * with configurable scenarios for demonstration.
   *
   * Category: Presenter
   * Layer: UI/Presentation
   */
-class MockTransactionImportService extends TransactionImportService:
+class MockTransactionImportPresenter extends TransactionImportPresenter:
     private val random = new Random()
     private var currentStatus: ImportStatus = ImportStatus.NotStarted
     private var lastImportResults: Option[ImportResults] = None
@@ -201,14 +201,14 @@ class MockTransactionImportService extends TransactionImportService:
       */
     override def getImportStatus(): ZIO[Any, String, ImportStatus] =
         ZIO.succeed(currentStatus)
-end MockTransactionImportService
+end MockTransactionImportPresenter
 
-object MockTransactionImportService:
-    /** Create a new instance of MockTransactionImportService.
+object MockTransactionImportPresenter:
+    /** Create a new instance of MockTransactionImportPresenter.
       *
       * @return
-      *   A ZLayer that provides a MockTransactionImportService
+      *   A ZLayer that provides a MockTransactionImportPresenter
       */
-    val layer: ULayer[TransactionImportService] =
-        ZLayer.succeed(new MockTransactionImportService())
-end MockTransactionImportService
+    val layer: ULayer[TransactionImportPresenter] =
+        ZLayer.succeed(new MockTransactionImportPresenter())
+end MockTransactionImportPresenter

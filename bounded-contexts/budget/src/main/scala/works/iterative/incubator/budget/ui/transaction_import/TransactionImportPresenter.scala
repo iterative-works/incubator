@@ -12,7 +12,7 @@ import zio.*
   * Category: Presenter
   * Layer: UI/Presentation
   */
-trait TransactionImportService:
+trait TransactionImportPresenter:
     /** Get the initial view model for the import page.
       *
       * @return
@@ -57,17 +57,17 @@ trait TransactionImportService:
       *   A ZIO effect that returns the current ImportStatus or an error string
       */
     def getImportStatus(): ZIO[Any, String, ImportStatus]
-end TransactionImportService
+end TransactionImportPresenter
 
-/** Provides access to TransactionImportService.
+/** Provides access to TransactionImportPresenter.
   */
-object TransactionImportService:
+object TransactionImportPresenter:
     /** Accessor method for the service.
       *
       * @return
-      *   A ZIO effect that accesses the TransactionImportService
+      *   A ZIO effect that accesses the TransactionImportPresenter
       */
-    def getImportViewModel(): ZIO[TransactionImportService, String, ImportPageViewModel] =
+    def getImportViewModel(): ZIO[TransactionImportPresenter, String, ImportPageViewModel] =
         ZIO.serviceWithZIO(_.getImportViewModel())
 
     /** Accessor method for date range validation.
@@ -82,7 +82,7 @@ object TransactionImportService:
     def validateDateRange(
         startDate: LocalDate,
         endDate: LocalDate
-    ): ZIO[TransactionImportService, String, Either[String, Unit]] =
+    ): ZIO[TransactionImportPresenter, String, Either[String, Unit]] =
         ZIO.serviceWithZIO(_.validateDateRange(startDate, endDate))
 
     /** Accessor method for transaction import.
@@ -97,7 +97,7 @@ object TransactionImportService:
     def importTransactions(
         startDate: LocalDate,
         endDate: LocalDate
-    ): ZIO[TransactionImportService, String, ImportResults] =
+    ): ZIO[TransactionImportPresenter, String, ImportResults] =
         ZIO.serviceWithZIO(_.importTransactions(startDate, endDate))
 
     /** Accessor method for import status.
@@ -105,6 +105,6 @@ object TransactionImportService:
       * @return
       *   A ZIO effect that returns the current ImportStatus or an error string
       */
-    def getImportStatus(): ZIO[TransactionImportService, String, ImportStatus] =
+    def getImportStatus(): ZIO[TransactionImportPresenter, String, ImportStatus] =
         ZIO.serviceWithZIO(_.getImportStatus())
-end TransactionImportService
+end TransactionImportPresenter
