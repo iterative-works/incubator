@@ -6,6 +6,9 @@ import java.util.concurrent.atomic.AtomicLong
 /** Value object that uniquely identifies an import batch in the system.
   * Uses a sequential identifier (accountId-sequence) for better human readability
   * and chronological ordering.
+  * 
+  * Category: Value Object
+  * Layer: Domain
   */
 case class ImportBatchId(accountId: String, sequenceNumber: Long):
     require(accountId != null, "Account ID must not be null")

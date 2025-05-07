@@ -10,6 +10,9 @@ import works.iterative.scalatags.components.ScalatagsAppShell
 
 /** View class for rendering the transaction import UI. Composes UI from individual components with
   * proper layout.
+  * 
+  * Category: View
+  * Layer: UI/Presentation
   */
 class TransactionImportView(appShell: ScalatagsAppShell)(using @unused baseUri: BaseUri):
     /** Render the main import page.

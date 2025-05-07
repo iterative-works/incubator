@@ -5,6 +5,9 @@ import java.util.UUID
 /** Value object that uniquely identifies a transaction in the system.
   * Uses a composite natural identifier that combines the source account identifier
   * and the bank's transaction identifier for better traceability and deduplication.
+  *
+  * Category: Value Object
+  * Layer: Domain
   */
 case class TransactionId(sourceAccountId: String, bankTransactionId: String):
     require(sourceAccountId != null, "Source account ID must not be null")

@@ -1,6 +1,9 @@
 package works.iterative.incubator.budget.domain.model
 
 /** Represents the status of an import batch operation.
+  *
+  * Category: Value Object
+  * Layer: Domain
   */
 enum ImportStatus:
     /** Import has not yet started */

@@ -13,6 +13,9 @@ import java.time.temporal.ChronoUnit
   *   The time when the import operation started
   * @param endTime
   *   Optional time when the import operation completed
+  *
+  * Category: View Model
+  * Layer: UI/Presentation  
   */
 case class ImportResults(
     transactionCount: Int,

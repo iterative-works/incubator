@@ -28,6 +28,9 @@ import java.time.{Instant, LocalDate}
   *   When this transaction record was created
   * @param updatedAt
   *   When this transaction record was last updated
+  * 
+  * Category: Entity
+  * Layer: Domain
   */
 case class Transaction(
     id: TransactionId,

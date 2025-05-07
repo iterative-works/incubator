@@ -8,6 +8,9 @@ import zio.*
   * for the import workflow:
   *   1. Initial view model for the import page 2. Date range validation 3. Transaction import
   *      execution 4. Import status tracking
+  *
+  * Category: Presenter
+  * Layer: UI/Presentation
   */
 trait TransactionImportService:
     /** Get the initial view model for the import page.

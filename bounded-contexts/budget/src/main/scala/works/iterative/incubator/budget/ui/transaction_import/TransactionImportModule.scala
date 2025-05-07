@@ -14,6 +14,9 @@ import scalatags.Text.all.raw
   *
   * @param transactionImportView
   *   View for rendering HTML
+  * 
+  * Category: Web Module
+  * Layer: UI/Presentation
   */
 class TransactionImportModule(
     transactionImportView: TransactionImportView

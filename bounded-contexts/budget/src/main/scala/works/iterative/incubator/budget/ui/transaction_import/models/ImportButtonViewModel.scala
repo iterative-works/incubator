@@ -12,6 +12,9 @@ import java.time.LocalDate
   *   The selected start date for import
   * @param endDate
   *   The selected end date for import
+  *
+  * Category: View Model
+  * Layer: UI/Presentation
   */
 case class ImportButtonViewModel(
     isEnabled: Boolean,

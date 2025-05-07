@@ -6,6 +6,9 @@ import java.time.format.DateTimeFormatter
 
 /** Component for triggering transaction import with loading state. Uses HTMX to perform the import
   * operation and display loading spinner.
+  *
+  * Category: View
+  * Layer: UI/Presentation
   */
 object ImportButton:
     /** Renders an import button component.

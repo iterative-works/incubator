@@ -6,6 +6,9 @@ import java.util.Currency
   *
   * Money is immutable and provides operations for arithmetic with monetary amounts, ensuring
   * currency compatibility is maintained.
+  *
+  * Category: Value Object
+  * Layer: Domain
   */
 case class Money(amount: BigDecimal, currency: Currency):
     require(amount != null, "Amount must not be null")

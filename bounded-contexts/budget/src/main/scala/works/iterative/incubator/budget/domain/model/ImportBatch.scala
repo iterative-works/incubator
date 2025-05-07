@@ -26,6 +26,9 @@ import java.time.{Instant, LocalDate}
   *   When this import batch record was created
   * @param updatedAt
   *   When this import batch record was last updated
+  * 
+  * Category: Entity
+  * Layer: Domain
   */
 case class ImportBatch(
     id: ImportBatchId,

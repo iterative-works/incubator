@@ -5,6 +5,9 @@ import java.util.UUID
 /** Value object that uniquely identifies a financial account in the system.
   * Uses a composite natural identifier that combines the bank identifier
   * and the bank account number for better traceability and integration.
+  *
+  * Category: Value Object
+  * Layer: Domain
   */
 case class AccountId(bankId: String, bankAccountId: String):
     require(bankId != null, "Bank ID must not be null")

@@ -12,6 +12,9 @@ enum ImportScenario:
 
 /** Mock implementation of TransactionImportService for UI development. Simulates the import process
   * with configurable scenarios for demonstration.
+  *
+  * Category: Presenter
+  * Layer: UI/Presentation
   */
 class MockTransactionImportService extends TransactionImportService:
     private val random = new Random()

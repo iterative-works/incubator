@@ -10,6 +10,9 @@ import java.time.LocalDate
 import zio.*
 
 /** Repository interface for ImportBatch entities.
+  *
+  * Category: Repository Interface
+  * Layer: Domain
   */
 trait ImportBatchRepository:
     /** Saves an import batch to the repository.

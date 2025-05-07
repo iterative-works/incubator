@@ -15,6 +15,9 @@ import java.time.LocalDate
   *   Optional results of the import operation
   * @param validationError
   *   Optional error message related to input validation
+  *
+  * Category: View Model
+  * Layer: UI/Presentation
   */
 case class ImportPageViewModel(
     startDate: LocalDate = LocalDate.now().withDayOfMonth(1),
