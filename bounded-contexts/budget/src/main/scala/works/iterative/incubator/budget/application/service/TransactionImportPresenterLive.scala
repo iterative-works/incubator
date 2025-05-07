@@ -35,43 +35,20 @@ final case class TransactionImportPresenterLive(
 
   override def getImportViewModel(): ZIO[Any, String, TransactionImportFormViewModel] =
     (for
-      // Get the most recent import batch to initialize the view model
-      maybeBatch <- transactionImportService.getMostRecentImport(accountId)
-      
-      // Get initial view model state
-      importStatus <- maybeBatch match
-        case Some(batch) =>
-          currentImportBatchId = Some(batch.id)
-          ZIO.succeed(domainToUiStatus(batch.status))
-        case None =>
-          ZIO.succeed(ImportStatus.NotStarted)
-          
-      importResults <- maybeBatch match
-        case Some(batch) =>
-          ZIO.succeed(
-            Some(
-              ImportResults(
-                transactionCount = batch.transactionCount,
-                errorMessage = batch.errorMessage,
-                startTime = batch.startTime,
-                endTime = batch.endTime
-              )
-            )
-          )
-        case None =>
-          ZIO.succeed(None)
-          
       // Get available accounts
       accounts <- getAccounts()
       
       // Prepare the account ID string
       accountIdStr = accountId.value
+      
+      // Create a fresh view model with default state - we don't show previous imports
+      // when first loading the form
     yield
       TransactionImportFormViewModel(
         startDate = LocalDate.now().withDayOfMonth(1),
         endDate = LocalDate.now(),
-        importStatus = importStatus,
-        importResults = importResults,
+        importStatus = ImportStatus.NotStarted,
+        importResults = None,
         accounts = accounts,
         selectedAccountId = Some(accountIdStr)
       )).mapError(err => s"Failed to get import form view model: $err")

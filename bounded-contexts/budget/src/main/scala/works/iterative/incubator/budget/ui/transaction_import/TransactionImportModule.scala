@@ -63,14 +63,32 @@ class TransactionImportModule(
         for
             // Parse form data
             command <- ZIO.succeed(TransactionImportCommand.fromFormData(formData))
-            // Show submitting state
-            initialViewModel = TransactionImportFormViewModel.fromFormData(formData).submitting
-            // Validate and potentially process
+            // Get base view model from form data (not submitting yet)
+            baseViewModel = TransactionImportFormViewModel.fromFormData(formData)
+            
+            // Check if this is just a validation from HTMX field change or an actual form submission
+            isHtmxFieldChange = htxRequestHeader.isDefined && formData.get("_triggeredBy").isDefined
+            isActualSubmission = !isHtmxFieldChange
+            
+            // Only use submitting state for actual form submissions via the button
+            initialViewModel = if isActualSubmission then baseViewModel.submitting else baseViewModel
+            
+            // Validate the command regardless
             result <- TransactionImportPresenter.validateAndProcess(command)
+            
             // Create view model based on result
             viewModel = result match
-                case Left(errors)         => initialViewModel.withValidationErrors(errors)
-                case Right(importResults) => initialViewModel.withImportResults(importResults)
+                case Left(errors) => 
+                    // If we have errors, don't show submitting state
+                    baseViewModel.withValidationErrors(errors)
+                case Right(importResults) => 
+                    // Only process the import and show results if this is an actual submission
+                    if isActualSubmission then
+                        initialViewModel.withImportResults(importResults)
+                    else
+                        // For just validation, show the form is valid but don't process or show results
+                        baseViewModel
+                        
             // Check if this is an HTMX request
             isHtmxRequest = htxRequestHeader.isDefined
         yield transactionImportView.renderImportForm(viewModel, isHtmxRequest)

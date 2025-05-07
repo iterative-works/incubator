@@ -34,6 +34,13 @@ object TransactionImportForm:
                 )
             },
             
+            // Hidden field to track which field triggered the HTMX update
+            input(
+                `type` := "hidden",
+                name := "_triggeredBy",
+                value := ""
+            ),
+            
             // Account selector
             div(
                 cls := "mb-4 w-full",

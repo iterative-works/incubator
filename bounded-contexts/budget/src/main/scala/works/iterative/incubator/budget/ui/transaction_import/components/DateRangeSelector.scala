@@ -57,7 +57,10 @@ object DateRangeSelector:
                         attr("hx-post") := "/transactions/import/submit",
                         attr("hx-trigger") := "change",
                         attr("hx-target") := "#transaction-import-container",
-                        attr("hx-swap") := "outerHTML"
+                        attr("hx-swap") := "outerHTML",
+                        // Add HTMX indicator for which field triggered the change
+                        attr("hx-include") := "[name='_triggeredBy']",
+                        attr("hx-vals") := """{"_triggeredBy": "startDate"}"""
                     )
                 ),
                 div(
@@ -76,7 +79,10 @@ object DateRangeSelector:
                         attr("hx-post") := "/transactions/import/submit",
                         attr("hx-trigger") := "change",
                         attr("hx-target") := "#transaction-import-container",
-                        attr("hx-swap") := "outerHTML"
+                        attr("hx-swap") := "outerHTML",
+                        // Add HTMX indicator for which field triggered the change
+                        attr("hx-include") := "[name='_triggeredBy']",
+                        attr("hx-vals") := """{"_triggeredBy": "endDate"}"""
                     )
                 )
             ),
