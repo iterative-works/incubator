@@ -43,6 +43,11 @@ object AccountSelector:
                 id := "accountId",
                 name := "accountId",
                 value := viewModel.selectedAccountId.getOrElse(""),
+                // Add HTMX attributes for real-time form update
+                attr("hx-post") := "/transactions/import/submit",
+                attr("hx-trigger") := "change",
+                attr("hx-target") := "#transaction-import-form",
+                attr("hx-swap") := "outerHTML",
                 // Default empty option
                 option(
                     value := "",

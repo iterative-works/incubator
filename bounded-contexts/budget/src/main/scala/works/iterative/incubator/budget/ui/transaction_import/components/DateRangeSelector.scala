@@ -52,7 +52,12 @@ object DateRangeSelector:
                         name := "startDate",
                         cls := startDateBorderClasses,
                         value := startDateValue,
-                        attr("max") := today
+                        attr("max") := today,
+                        // Add HTMX attributes for real-time form update
+                        attr("hx-post") := "/transactions/import/submit",
+                        attr("hx-trigger") := "change",
+                        attr("hx-target") := "#transaction-import-form",
+                        attr("hx-swap") := "outerHTML"
                     )
                 ),
                 div(
@@ -66,7 +71,12 @@ object DateRangeSelector:
                         name := "endDate",
                         cls := endDateBorderClasses,
                         value := endDateValue,
-                        attr("max") := today
+                        attr("max") := today,
+                        // Add HTMX attributes for real-time form update
+                        attr("hx-post") := "/transactions/import/submit",
+                        attr("hx-trigger") := "change",
+                        attr("hx-target") := "#transaction-import-form",
+                        attr("hx-swap") := "outerHTML"
                     )
                 )
             ),
