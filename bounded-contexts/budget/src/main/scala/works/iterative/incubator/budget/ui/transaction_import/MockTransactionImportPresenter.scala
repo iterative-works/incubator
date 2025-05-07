@@ -147,7 +147,7 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
     /** Handle the successful import scenario with random transaction count
       */
     private def handleSuccessfulImport(
-        accountId: AccountId,
+        accountId: AccountId, // Using the account ID for future features
         startDate: LocalDate,
         endDate: LocalDate
     ): ZIO[Any, String, ImportResults] =

@@ -18,6 +18,7 @@ object ImportButtonSpec extends ZIOSpecDefault:
             val viewModel = ImportButtonViewModel(
                 isEnabled = true,
                 isLoading = false,
+                accountId = Some("0100-1234567890"),
                 startDate = startDate,
                 endDate = endDate
             )
@@ -39,6 +40,7 @@ object ImportButtonSpec extends ZIOSpecDefault:
             val viewModel = ImportButtonViewModel(
                 isEnabled = false,
                 isLoading = false,
+                accountId = Some("0100-1234567890"),
                 startDate = startDate,
                 endDate = endDate
             )
@@ -61,6 +63,7 @@ object ImportButtonSpec extends ZIOSpecDefault:
             val viewModel = ImportButtonViewModel(
                 isEnabled = true,
                 isLoading = true,
+                accountId = Some("0100-1234567890"),
                 startDate = startDate,
                 endDate = endDate
             )
@@ -83,6 +86,7 @@ object ImportButtonSpec extends ZIOSpecDefault:
             val viewModel = ImportButtonViewModel(
                 isEnabled = true,
                 isLoading = false,
+                accountId = Some("0100-1234567890"),
                 startDate = startDate,
                 endDate = endDate
             )
@@ -97,7 +101,7 @@ object ImportButtonSpec extends ZIOSpecDefault:
 
             // Then it should have the correct HTMX attributes
             val result1 = assert(rendered)(containsString(
-                s"hx-post=\"/transactions/import?startDate=$startDateFormatted&amp;endDate=$endDateFormatted\""
+                s"hx-post=\"/transactions/import?accountId=0100-1234567890&amp;startDate=$startDateFormatted&amp;endDate=$endDateFormatted\""
             ))
             val result2 = assert(rendered)(containsString("hx-target=\"#results-panel-container\""))
             val result3 = assert(rendered)(containsString("hx-swap=\"innerHTML\""))

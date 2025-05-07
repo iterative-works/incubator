@@ -43,7 +43,7 @@ object TransactionImportPresenterLiveSpec extends ZIOSpecDefault:
         today <- ZIO.succeed(LocalDate.now)
         startDate = today.minusDays(7)
         endDate = today
-        result <- TransactionImportPresenter.importTransactions(startDate, endDate)
+        result <- TransactionImportPresenter.importTransactions(testAccountId, startDate, endDate)
       yield assert(result.transactionCount)(equalTo(TestFioBankService.TestTransactionCount)) &&
         assert(result.errorMessage)(isNone) &&
         assert(result.endTime)(isSome(anything))
@@ -54,7 +54,7 @@ object TransactionImportPresenterLiveSpec extends ZIOSpecDefault:
         today <- ZIO.succeed(LocalDate.now)
         startDate = today.minusDays(7)
         endDate = today
-        _ <- TransactionImportPresenter.importTransactions(startDate, endDate)
+        _ <- TransactionImportPresenter.importTransactions(testAccountId, startDate, endDate)
         status <- TransactionImportPresenter.getImportStatus()
       yield assert(status)(equalTo(ImportStatus.Completed))
     }

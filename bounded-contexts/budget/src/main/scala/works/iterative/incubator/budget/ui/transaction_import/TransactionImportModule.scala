@@ -101,7 +101,13 @@ class TransactionImportModule(
                 case Left(error) => ZIO.fail(error)
                 case Right(_)    => ZIO.unit
             }
-            results <- TransactionImportPresenter.importTransactions(startDate, endDate)
+            // TODO: Get accountId from form data instead of using a default one
+            accountIdStr = "0100-1234567890" // Default account ID for now
+            accountIdValidation <- TransactionImportPresenter.validateAccountId(accountIdStr)
+            accountId <- accountIdValidation match
+                case Left(error) => ZIO.fail(s"Invalid account: $error")
+                case Right(id)   => ZIO.succeed(id)
+            results <- TransactionImportPresenter.importTransactions(accountId, startDate, endDate)
         yield transactionImportView.renderImportResults(results, startDate, endDate)
 
     /** Implementation for import status check */

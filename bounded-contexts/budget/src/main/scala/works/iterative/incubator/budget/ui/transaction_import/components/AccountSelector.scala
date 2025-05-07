@@ -1,7 +1,6 @@
 package works.iterative.incubator.budget.ui.transaction_import.components
 
 import works.iterative.incubator.budget.ui.transaction_import.models.AccountSelectorViewModel
-import works.iterative.incubator.budget.ui.transaction_import.styles.TailwindStyles
 import scalatags.Text.all._
 
 /** UI component for selecting an account for transaction import.
@@ -26,14 +25,15 @@ object AccountSelector:
             ),
             div(
                 cls := "relative",
+                id := "account-selector-container",
                 select(
                     cls := s"w-full px-3 py-2 border rounded-md ${validationClass(viewModel)}",
                     id := "account-selector",
                     name := "accountId",
-                    hx_post := "/validate-account",
-                    hx_trigger := "change",
-                    hx_target := "#account-selector-container",
-                    hx_swap := "outerHTML",
+                    attr("hx-post") := "/validate-account",
+                    attr("hx-trigger") := "change",
+                    attr("hx-target") := "#account-selector-container",
+                    attr("hx-swap") := "outerHTML",
                     // Default empty option
                     option(
                         value := "",

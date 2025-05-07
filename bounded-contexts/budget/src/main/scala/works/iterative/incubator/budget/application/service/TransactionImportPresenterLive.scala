@@ -59,13 +59,22 @@ final case class TransactionImportPresenterLive(
           )
         case None =>
           ZIO.succeed(None)
+          
+      // Get available accounts
+      accounts <- getAccounts()
+      
+      // Prepare the account ID string
+      accountIdStr = accountId.value
     yield
       ImportPageViewModel(
         startDate = LocalDate.now().withDayOfMonth(1),
         endDate = LocalDate.now(),
         importStatus = importStatus,
         importResults = importResults,
-        validationError = None
+        validationError = None,
+        accounts = accounts,
+        selectedAccountId = Some(accountIdStr),
+        accountValidationError = None
       )).mapError(err => s"Failed to get import page view model: $err")
 
   override def validateDateRange(
@@ -81,6 +90,7 @@ final case class TransactionImportPresenterLive(
       }
 
   override def importTransactions(
+      accountId: AccountId,
       startDate: LocalDate,
       endDate: LocalDate
   ): ZIO[Any, String, ImportResults] =
@@ -125,6 +135,46 @@ final case class TransactionImportPresenterLive(
           .mapError(err => s"Failed to get import status: $err")
       case None =>
         ZIO.succeed(ImportStatus.NotStarted)
+
+  /** Implement validateAccountId method to validate and parse an account ID string.
+    *
+    * @param accountIdStr
+    *   The account ID string to validate (format: "bankId-accountId")
+    * @return
+    *   Either an error message (Left) or valid AccountId (Right)
+    */
+  override def validateAccountId(
+      accountIdStr: String
+  ): ZIO[Any, String, Either[String, AccountId]] =
+    ZIO.succeed {
+      if (accountIdStr.isEmpty) {
+        Left("Please select an account")
+      } else {
+        // Expected format: "bankId-accountId"
+        val parts = accountIdStr.split("-", 2)
+        if (parts.length != 2) {
+          Left(s"Invalid account ID format: $accountIdStr (expected format: bankId-accountId)")
+        } else {
+          val (bankId, accountId) = (parts(0), parts(1))
+          Right(AccountId(bankId, accountId))
+        }
+      }
+    }
+
+  /** Implement getAccounts method to provide a list of available accounts.
+    *
+    * @return
+    *   A list of available accounts
+    */
+  override def getAccounts(): ZIO[Any, String, List[AccountOption]] =
+    // TODO: In a real implementation, fetch accounts from a repository
+    ZIO.succeed(
+      List(
+        AccountOption("0100-1234567890", "Fio Bank - Main Account"),
+        AccountOption("0300-0987654321", "ČSOB - Business Account"),
+        AccountOption("0100-5647382910", "Komerční banka - Savings")
+      )
+    )
 
   /** Converts domain ImportStatus to UI ImportStatus.
     *
