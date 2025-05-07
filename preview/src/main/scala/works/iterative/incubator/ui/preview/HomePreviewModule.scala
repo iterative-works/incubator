@@ -55,6 +55,11 @@ class HomePreviewModule(
                         ul(
                             cls := "list-disc pl-6 space-y-1",
                             li(a(
+                                href := "/preview/transaction-import/account-selector",
+                                cls := "text-blue-600 hover:underline",
+                                "AccountSelector - Allows users to select an account for transaction import"
+                            )),
+                            li(a(
                                 href := "/preview/transaction-import/date-range-selector",
                                 cls := "text-blue-600 hover:underline",
                                 "DateRangeSelector - Date selection for transaction imports"

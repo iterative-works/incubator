@@ -25,6 +25,7 @@ object SidebarNavigation:
             NavCategory(
                 "Transaction Import",
                 List(
+                    NavItem("Account Selector", "/preview/transaction-import/account-selector"),
                     NavItem(
                         "Date Range Selector",
                         "/preview/transaction-import/date-range-selector"

@@ -3,80 +3,84 @@ package works.iterative.incubator.ui.preview
 import works.iterative.tapir.BaseUri
 import scalatags.Text.all.*
 import zio.*
-import works.iterative.incubator.budget.ui.transaction_import.models.ImportButtonViewModel
-import works.iterative.incubator.budget.ui.transaction_import.components.ImportButton
-import java.time.LocalDate
+import works.iterative.incubator.budget.ui.transaction_import.models.AccountSelectorViewModel
+import works.iterative.incubator.budget.ui.transaction_import.models.AccountOption
+import works.iterative.incubator.budget.ui.transaction_import.components.AccountSelector
 
-/** Preview module for the ImportButton component. Shows the component in various states for testing
-  * and development.
+/** Preview module for the AccountSelector component
+  * Shows the component in various states for testing and development
   */
-class ImportButtonPreviewModule(
+class AccountSelectorPreviewModule(
     val appShell: PreviewAppShell,
     val baseUri: BaseUri
-) extends ComponentStatePreviewModule[ImportButtonViewModel]:
+) extends ComponentStatePreviewModule[AccountSelectorViewModel]:
 
-    override def basePath: List[String] = List("transaction-import", "import-button")
-    override def title: String = "Import Button"
+    override def basePath: List[String] = List("transaction-import", "account-selector")
+    override def title: String = "Account Selector"
 
-    // Create various states for the import button
+    // Create various states for the account selector
     val defaultState = ComponentState(
         name = "default",
-        description = "Default enabled state ready for import",
-        viewModel = ImportButtonViewModel(
-            isEnabled = true,
-            isLoading = false,
-            accountId = Some("0100-1234567890"),
-            startDate = LocalDate.now().withDayOfMonth(1),
-            endDate = LocalDate.now()
+        description = "Default state with multiple accounts and no selection",
+        viewModel = AccountSelectorViewModel(
+            accounts = AccountSelectorViewModel.defaultAccounts,
+            selectedAccountId = None,
+            validationError = None
+        )
+    )
+
+    val selectedState = ComponentState(
+        name = "selected",
+        description = "With an account selected",
+        viewModel = AccountSelectorViewModel(
+            accounts = AccountSelectorViewModel.defaultAccounts,
+            selectedAccountId = Some("0100-1234567890"),
+            validationError = None
+        )
+    )
+
+    val errorState = ComponentState(
+        name = "with-error",
+        description = "With validation error",
+        viewModel = AccountSelectorViewModel(
+            accounts = AccountSelectorViewModel.defaultAccounts,
+            selectedAccountId = None,
+            validationError = Some("Please select an account to continue")
+        )
+    )
+
+    val emptyState = ComponentState(
+        name = "empty",
+        description = "No accounts available",
+        viewModel = AccountSelectorViewModel(
+            accounts = List.empty,
+            selectedAccountId = None,
+            validationError = Some("No accounts available. Please add an account first.")
         )
     )
 
     val disabledState = ComponentState(
         name = "disabled",
-        description = "Disabled state when import is not available",
-        viewModel = ImportButtonViewModel(
-            isEnabled = false,
-            isLoading = false,
-            accountId = Some("0100-1234567890"),
-            startDate = LocalDate.now().withDayOfMonth(1),
-            endDate = LocalDate.now()
+        description = "Component is disabled during import process",
+        viewModel = AccountSelectorViewModel(
+            accounts = AccountSelectorViewModel.defaultAccounts,
+            selectedAccountId = Some("0100-1234567890"),
+            validationError = None
         )
-    )
-
-    val loadingState = ComponentState(
-        name = "loading",
-        description = "Loading state during import operation",
-        viewModel = ImportButtonViewModel(
-            isEnabled = true,
-            isLoading = true,
-            accountId = Some("0100-1234567890"),
-            startDate = LocalDate.now().withDayOfMonth(1),
-            endDate = LocalDate.now()
-        )
-    )
-
-    val disabledLoadingState = ComponentState(
-        name = "disabled-loading",
-        description = "Edge case: disabled and loading simultaneously",
-        viewModel = ImportButtonViewModel(
-            isEnabled = false,
-            isLoading = true,
-            accountId = Some("0100-1234567890"),
-            startDate = LocalDate.now().withDayOfMonth(1),
-            endDate = LocalDate.now()
-        )
+        // Note: In a real implementation, we'd have a 'disabled' property in the ViewModel
     )
 
     // This needs to be defined before the trait initialization
-    override def states: List[ComponentState[ImportButtonViewModel]] = List(
+    override def states: List[ComponentState[AccountSelectorViewModel]] = List(
         defaultState,
-        disabledState,
-        loadingState,
-        disabledLoadingState
+        selectedState,
+        errorState,
+        emptyState,
+        disabledState
     )
 
     /** Find a state by name */
-    private def findState(name: String): Option[ComponentState[ImportButtonViewModel]] =
+    private def findState(name: String): Option[ComponentState[AccountSelectorViewModel]] =
         states.find(_.name == name)
 
     /** Render the list of available states for this component */
@@ -88,7 +92,7 @@ class ImportButtonPreviewModule(
                     h3(cls := "text-xl font-semibold mb-4", s"$title Component Preview"),
                     p(
                         cls := "mb-6",
-                        "This preview shows the ImportButton component in various states for development and testing purposes."
+                        "This preview shows the AccountSelector component in various states for development and testing purposes."
                     ),
 
                     // Component description
@@ -97,11 +101,11 @@ class ImportButtonPreviewModule(
                         h4(cls := "font-medium text-blue-800 mb-2", "Component Information"),
                         p(
                             cls := "text-blue-700 mb-2",
-                            "The ImportButton component triggers transaction imports from connected bank accounts."
+                            "The AccountSelector component allows users to select an account for transaction imports."
                         ),
                         p(
                             cls := "text-blue-700",
-                            "It displays a loading spinner during import operations and can be disabled based on application state."
+                            "It handles validation and provides feedback for error states."
                         )
                     ),
 
@@ -124,8 +128,8 @@ class ImportButtonPreviewModule(
                     // Default component preview
                     h4(cls := "text-lg font-semibold mb-3", "Default Preview:"),
                     div(
-                        cls := "preview-container bg-gray-50 p-4",
-                        ImportButton.render(defaultState.viewModel)
+                        cls := "preview-container bg-gray-50",
+                        AccountSelector.render(defaultState.viewModel)
                     )
                 ),
                 currentPath = currentPath
@@ -159,8 +163,8 @@ class ImportButtonPreviewModule(
 
                                 // Component preview
                                 div(
-                                    cls := "preview-container bg-gray-50 p-4 mb-6",
-                                    ImportButton.render(state.viewModel)
+                                    cls := "preview-container bg-gray-50 mb-6",
+                                    AccountSelector.render(state.viewModel)
                                 ),
 
                                 // View model details
@@ -173,16 +177,11 @@ class ImportButtonPreviewModule(
                                     pre(
                                         cls := "bg-gray-100 p-4 rounded overflow-x-auto text-sm",
                                         code(
-                                            s"""ImportButtonViewModel(
-                                               |  isEnabled = ${state.viewModel.isEnabled},
-                                               |  isLoading = ${state.viewModel.isLoading},
-                                               |  accountId = ${state.viewModel.accountId},
-                                               |  startDate = ${state.viewModel.startDate},
-                                               |  endDate = ${state.viewModel.endDate}
+                                            s"""AccountSelectorViewModel(
+                                               |  accounts = ${state.viewModel.accounts.map(a => s"AccountOption(${a.id}, ${a.name})").mkString("[", ", ", "]")},
+                                               |  selectedAccountId = ${state.viewModel.selectedAccountId},
+                                               |  validationError = ${state.viewModel.validationError}
                                                |)
-                                               |
-                                               |buttonText = "${state.viewModel.buttonText}"
-                                               |isDisabled = ${state.viewModel.isDisabled}
                                                |""".stripMargin
                                         )
                                     )
@@ -217,8 +216,8 @@ class ImportButtonPreviewModule(
                                     "Return to states list"
                                 )
                             )
-                ),
+                    ),
                 currentPath = currentPath
             )
         }
-end ImportButtonPreviewModule
+end AccountSelectorPreviewModule
