@@ -1,73 +1,576 @@
-# Transaction Import Form Validation Refactoring Summary
+# Transaction Import Form Validation Refactoring - Implementation Summary
 
-## Overview of Changes
+## Core Architecture Changes
 
-We've successfully refactored the Transaction Import form validation to use a centralized approach. This ensures all components share a common validation state, preventing the issues where components would validate independently and get out of sync.
+We're fundamentally changing our approach to form validation by:
 
-## Implementation Details
+1. **Moving from Component-Level to Domain-Level Validation**: Components should only display data and errors, not perform validation
+2. **Treating the Form as a Single Entity**: The entire form creates a command that is validated by the domain
+3. **Simplifying UI Updates**: Full form rerender instead of partial out-of-band updates
 
-### 1. Created a Centralized Form Validation Service
+## Implementation Steps
 
-- Created `TransactionImportFormValidationService` to handle validation across all form fields
-- The service processes all form inputs at once and returns a unified validation result
-- Validation results now include both field-specific errors and overall form validity state
+### 1. Create Transaction Import Command Model
 
-### 2. Implemented New Model Classes for Form Validation
+Create a command object that represents the domain operation being performed:
 
-- Created `ImportFormData` class to represent the full form state
-- Created `FormValidationResult` to encapsulate all validation outcomes
-- Added methods to parse raw form data into strongly typed objects
+```scala
+case class TransactionImportCommand(
+  accountId: String,
+  startDate: String,
+  endDate: String
+)
+```
 
-### 3. Added a Unified Validation Endpoint
+This will be used to encapsulate the form data for validation and processing.
 
-- Added `/transactions/import/validate` endpoint that validates the entire form at once
-- The endpoint returns validation results for all components simultaneously
-- Used HTMX's out-of-band swaps to update multiple DOM elements with a single response
+### 2. Update Domain Validation Service (or create mock)
 
-### 4. Updated View Components
+Define a domain service for validating the import command:
 
-- Modified all form components to use the centralized validation endpoint
-- Added proper HTMX attributes to target specific DOM elements for updates
-- Ensured all components include the entire form data when validating, not just their own state
+```scala
+trait TransactionImportService:
+  /** 
+   * Validates and processes a transaction import command.
+   *
+   * @param command The import command to validate and process
+   * @return Either validation errors or import results
+   */
+  def validateAndProcess(command: TransactionImportCommand): 
+    ZIO[Any, String, Either[ValidationErrors, ImportResults]]
 
-### 5. Implemented Form-Level Validation State Tracking
+case class ValidationErrors(
+  errors: Map[String, String] = Map.empty,
+  globalErrors: List[String] = List.empty
+):
+  def hasErrors: Boolean = errors.nonEmpty || globalErrors.nonEmpty
+```
 
-- Added a hidden form state element to track overall form validity
-- Updated ImportButton to check form validation state before submitting
-- Added client-side validation fallback to trigger validation on invalid form submission
+For now, we can create a mock implementation that returns validation errors based on predefined rules.
 
-### 6. Improved User Experience
+### 3. Simplify Existing Components
 
-- Components now communicate validation issues consistently
-- The import button state correctly reflects the overall form validity
-- Validation errors appear immediately and in context with the relevant fields
+#### A. DateRangeSelector Component
 
-## Backward Compatibility
+Remove all validation logic and HTMX validation calls:
 
-- Kept the legacy validation endpoints for backward compatibility
-- Marked legacy methods as deprecated with clear comments
-- Ensured the new validation approach works alongside the old one during transition
+```scala
+object DateRangeSelector:
+  def render(viewModel: DateRangeSelectorViewModel): Frag =
+    // Keep input rendering, but remove validation-specific HTMX attributes
+    // Only display errors passed via the view model
+    div(
+      cls := "w-full",
+      id := "date-range-selector"
+    )(
+      h3(cls := "text-lg font-medium mb-2")("Select Date Range for Import"),
+      div(cls := "flex flex-col sm:flex-row")(
+        // Start date input
+        div(cls := "flex-grow w-full")(
+          label(`for` := "startDate", cls := labelClasses)("From:"),
+          input(
+            `type` := "date",
+            id := "startDate",
+            name := "startDate",
+            cls := startDateBorderClasses,
+            value := startDateValue,
+            attr("max") := today
+          )
+        ),
+        // End date input
+        div(cls := "flex-grow w-full")(
+          label(`for` := "endDate", cls := labelClasses)("To:"),
+          input(
+            `type` := "date",
+            id := "endDate",
+            name := "endDate",
+            cls := endDateBorderClasses,
+            value := endDateValue,
+            attr("max") := today
+          )
+        )
+      ),
+      // Error message display - only shows errors passed in view model
+      div(
+        cls := "text-sm text-red-600 mt-2",
+        style := (if viewModel.hasError then "display: block" else "display: none")
+      )(
+        viewModel.validationError.getOrElse("")
+      )
+    )
+```
 
-## Technical Notes
+#### B. AccountSelector Component
 
-### HTMX Integration
+Similarly, remove validation logic:
 
-Used several HTMX features to implement the centralized validation:
+```scala
+object AccountSelector:
+  def render(viewModel: AccountSelectorViewModel): Frag =
+    div(
+      cls := "mb-4",
+      id := "account-selector-container"
+    )(
+      h2(cls := "text-lg font-semibold mb-2 text-gray-700")("Select Account"),
+      div(cls := "relative")(
+        select(
+          cls := s"w-full px-3 py-2 border rounded-md ${validationClass(viewModel)}",
+          id := "accountId",
+          name := "accountId",
+          value := viewModel.selectedAccountId.getOrElse("")
+        )(
+          // Default empty option
+          option(
+            value := "",
+            if viewModel.selectedAccountId.isEmpty then selected := "" else (),
+            "-- Select an account --"
+          ),
+          // Generate options for each account
+          viewModel.accounts.map { account =>
+            option(
+              value := account.id,
+              if viewModel.selectedAccountId.contains(account.id) then selected := "" else (),
+              account.name
+            )
+          }
+        ),
+        // Error message - only shows errors passed in view model
+        viewModel.validationError.map { error =>
+          div(
+            cls := "text-red-500 text-sm mt-1",
+            error
+          )
+        }
+      )
+    )
+```
 
-1. `hx-include` to gather all form data when validating
-2. `hx-swap-oob` for out-of-band swaps to update multiple elements
-3. Custom event handlers for client-side validation
-4. Target selectors to ensure the right components get updated
+#### C. ImportButton Component
 
-### Progressive Enhancement
+Simplify to only respond to enabled/disabled state:
 
-The implementation follows progressive enhancement principles:
+```scala
+object ImportButton:
+  def render(viewModel: ImportButtonViewModel): Frag =
+    button(
+      `type` := "submit",
+      cls := buttonClasses,
+      attr("aria-disabled") := (if viewModel.isDisabled then "true" else "false"),
+      disabled := viewModel.isDisabled
+    )(
+      loadingSpinner,
+      viewModel.buttonText,
+      placeholderSpinner
+    )
+```
 
-1. Form works without JavaScript through normal form submission
-2. HTMX adds immediate validation feedback when available
-3. Client-side checks provide an extra validation layer
-4. Fallbacks ensure all validation errors are shown properly
+### 4. Create Transaction Import Form Component
 
-## Conclusion
+Create a new component that combines all fields into a cohesive form:
 
-The refactored form validation provides a more robust and maintainable approach that treats the form as a cohesive entity rather than disconnected components. This ensures consistent form state across all components and improves the user experience with more reliable validation feedback.
+```scala
+object TransactionImportForm:
+  def render(viewModel: TransactionImportFormViewModel): Frag =
+    form(
+      id := "transaction-import-form",
+      cls := "bg-white rounded-lg py-6 w-full",
+      attr("hx-post") := "/transactions/import/submit",
+      attr("hx-swap") := "outerHTML"
+    )(
+      // Global error message if any
+      viewModel.globalError.map { error =>
+        div(cls := "bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4")(
+          error
+        )
+      },
+      
+      // Account selector
+      div(
+        cls := "mb-4 w-full",
+        AccountSelector.render(
+          AccountSelectorViewModel(
+            accounts = viewModel.accounts,
+            selectedAccountId = viewModel.selectedAccountId,
+            validationError = viewModel.fieldErrors.get("accountId")
+          )
+        )
+      ),
+      
+      // Date range selector
+      div(
+        cls := "mb-4 w-full",
+        DateRangeSelector.render(
+          DateRangeSelectorViewModel(
+            startDate = viewModel.startDate,
+            endDate = viewModel.endDate,
+            validationError = 
+              if viewModel.fieldErrors.contains("startDate") then viewModel.fieldErrors.get("startDate")
+              else if viewModel.fieldErrors.contains("endDate") then viewModel.fieldErrors.get("endDate")
+              else if viewModel.fieldErrors.contains("dateRange") then viewModel.fieldErrors.get("dateRange")
+              else None
+          )
+        )
+      ),
+      
+      // Import button
+      div(
+        cls := "flex",
+        ImportButton.render(
+          ImportButtonViewModel(
+            isEnabled = !viewModel.hasErrors,
+            isLoading = viewModel.isSubmitting,
+            accountId = viewModel.selectedAccountId,
+            startDate = viewModel.startDate,
+            endDate = viewModel.endDate
+          )
+        )
+      ),
+      
+      // Status indicator (if needed)
+      viewModel.importStatus match
+        case ImportStatus.NotStarted => ()
+        case status =>
+          div(
+            id := "status-indicator-container",
+            cls := "mt-2 flex items-center justify-end",
+            StatusIndicator.render(
+              StatusIndicatorViewModel(
+                status = status,
+                isVisible = true
+              )
+            )
+          )
+    )
+```
+
+### 5. Create Transaction Import Form View Model
+
+```scala
+case class TransactionImportFormViewModel(
+  // Form data
+  accounts: List[AccountOption] = AccountSelectorViewModel.defaultAccounts,
+  selectedAccountId: Option[String] = None,
+  startDate: LocalDate = LocalDate.now().withDayOfMonth(1),
+  endDate: LocalDate = LocalDate.now(),
+  
+  // Validation errors
+  fieldErrors: Map[String, String] = Map.empty,
+  globalError: Option[String] = None,
+  
+  // State
+  isSubmitting: Boolean = false,
+  importStatus: ImportStatus = ImportStatus.NotStarted,
+  importResults: Option[ImportResults] = None
+):
+  def hasErrors: Boolean = fieldErrors.nonEmpty || globalError.isDefined
+  
+  def withValidationErrors(errors: ValidationErrors): TransactionImportFormViewModel =
+    this.copy(
+      fieldErrors = errors.errors,
+      globalError = errors.globalErrors.headOption
+    )
+    
+  def withImportResults(results: ImportResults): TransactionImportFormViewModel =
+    this.copy(
+      importResults = Some(results),
+      importStatus = ImportStatus.Completed,
+      isSubmitting = false
+    )
+    
+  def withError(error: String): TransactionImportFormViewModel =
+    this.copy(
+      globalError = Some(error),
+      importStatus = ImportStatus.Error,
+      isSubmitting = false
+    )
+    
+  def submitting: TransactionImportFormViewModel =
+    this.copy(
+      isSubmitting = true,
+      importStatus = ImportStatus.InProgress
+    )
+```
+
+### 6. Update TransactionImportModule
+
+Simplify to have just two endpoints:
+
+```scala
+class TransactionImportModule(
+  transactionImportView: TransactionImportView,
+  transactionImportService: TransactionImportService
+) extends TapirEndpointModule[Any]:
+
+  // Base endpoint configuration
+  private val baseEndpoint = endpoint
+    .in("transactions" / "import")
+    .errorOut(stringBody)
+    .out(htmlBodyUtf8.map[Frag](raw)(_.render))
+
+  // GET endpoint for the initial form page
+  val importFormEndpoint = baseEndpoint
+    .name("Transaction Import Form")
+    .description("Display the transaction import form")
+    .get
+    
+  // POST endpoint for form submission and validation
+  val submitFormEndpoint = baseEndpoint
+    .name("Submit Import Form")
+    .description("Submit the import form for validation and processing")
+    .post
+    .in("submit")
+    .in(formBody[Map[String, String]])
+    
+  // Implementation of the GET endpoint
+  private def getImportForm: ZIO[Any, String, Frag] =
+    for
+      accounts <- transactionImportService.getAccounts()
+      viewModel = TransactionImportFormViewModel(accounts = accounts)
+    yield transactionImportView.renderImportForm(viewModel)
+    
+  // Implementation of the POST endpoint
+  private def submitImportForm(formData: Map[String, String]): ZIO[Any, String, Frag] =
+    for
+      // Parse form data
+      command <- ZIO.succeed(createCommand(formData))
+      // Show submitting state
+      initialViewModel = createViewModel(formData).submitting
+      // Validate and potentially process
+      result <- transactionImportService.validateAndProcess(command)
+      // Create view model based on result
+      viewModel = result match
+        case Left(errors) => initialViewModel.withValidationErrors(errors)
+        case Right(importResults) => initialViewModel.withImportResults(importResults)
+    yield transactionImportView.renderImportForm(viewModel)
+      
+  // Helper to create command from form data
+  private def createCommand(formData: Map[String, String]): TransactionImportCommand =
+    TransactionImportCommand(
+      accountId = formData.getOrElse("accountId", ""),
+      startDate = formData.getOrElse("startDate", ""),
+      endDate = formData.getOrElse("endDate", "")
+    )
+    
+  // Helper to create initial view model from form data
+  private def createViewModel(formData: Map[String, String]): TransactionImportFormViewModel =
+    val startDate = Try(LocalDate.parse(formData.getOrElse("startDate", "")))
+      .getOrElse(LocalDate.now().withDayOfMonth(1))
+    val endDate = Try(LocalDate.parse(formData.getOrElse("endDate", "")))
+      .getOrElse(LocalDate.now())
+      
+    TransactionImportFormViewModel(
+      selectedAccountId = Option(formData.getOrElse("accountId", "")).filter(_.nonEmpty),
+      startDate = startDate,
+      endDate = endDate
+    )
+    
+  // Server endpoints
+  val importFormServerEndpoint = importFormEndpoint.zServerLogic(_ => getImportForm)
+  val submitFormServerEndpoint = submitFormEndpoint.zServerLogic(submitImportForm)
+  
+  // List of all endpoints for documentation and routing
+  override def endpoints = List(importFormEndpoint, submitFormEndpoint)
+  override def serverEndpoints = List(importFormServerEndpoint, submitFormServerEndpoint)
+```
+
+### 7. Update TransactionImportView
+
+Simplify to use the new form component:
+
+```scala
+class TransactionImportView(appShell: ScalatagsAppShell):
+  /** Render the main import form page
+   *
+   * @param viewModel The form view model
+   * @return The rendered HTML
+   */
+  def renderImportForm(viewModel: TransactionImportFormViewModel): Frag =
+    appShell.wrap(
+      pageTitle = "Transaction Import",
+      content = div(
+        cls := "container mx-auto px-4 py-8",
+        // Header
+        h1(
+          cls := "text-2xl font-bold text-gray-800 mb-3 bg-blue-100 p-4 rounded-md",
+          "Import Transactions from Fio Bank"
+        ),
+        // Help text
+        div(
+          cls := "mt-6 text-sm text-gray-500",
+          p(
+            "Note: This will import all transactions from the selected account and period. " +
+              "Transactions will be categorized using predefined rules."
+          )
+        ),
+        // The main form component
+        TransactionImportForm.render(viewModel),
+        // Results panel if applicable
+        viewModel.importResults.map { results =>
+          div(
+            id := "results-panel-container",
+            cls := "mt-6",
+            ResultsPanel.render(
+              ResultsPanelViewModel(
+                importResults = Some(results),
+                isVisible = true,
+                startDate = viewModel.startDate,
+                endDate = viewModel.endDate
+              )
+            )
+          )
+        }
+      )
+    )
+```
+
+### 8. Implement Mock TransactionImportService
+
+Create a mock service for testing:
+
+```scala
+class MockTransactionImportService extends TransactionImportService:
+  private val random = new Random()
+  
+  override def validateAndProcess(command: TransactionImportCommand): 
+    ZIO[Any, String, Either[ValidationErrors, ImportResults]] =
+    ZIO.succeed {
+      // Parse dates to validate them
+      val startDateResult = Try(LocalDate.parse(command.startDate))
+      val endDateResult = Try(LocalDate.parse(command.endDate))
+      val accountIdResult = AccountId.fromString(command.accountId)
+      
+      // Collect validation errors
+      val errors = Map.newBuilder[String, String]
+      
+      // Validate account ID
+      if command.accountId.isEmpty then
+        errors += ("accountId" -> "Account selection is required")
+      else accountIdResult match
+        case Left(error) => errors += ("accountId" -> s"Invalid account ID: $error")
+        case Right(_) => ()
+      
+      // Validate start date
+      if command.startDate.isEmpty then
+        errors += ("startDate" -> "Start date is required")
+      else if startDateResult.isFailure then
+        errors += ("startDate" -> "Invalid start date format")
+        
+      // Validate end date
+      if command.endDate.isEmpty then
+        errors += ("endDate" -> "End date is required")
+      else if endDateResult.isFailure then
+        errors += ("endDate" -> "Invalid end date format")
+      
+      // Cross-field validation for dates
+      if startDateResult.isSuccess && endDateResult.isSuccess then
+        val startDate = startDateResult.get
+        val endDate = endDateResult.get
+        
+        if startDate.isAfter(endDate) then
+          errors += ("dateRange" -> "Start date cannot be after end date")
+        else if startDate.isAfter(LocalDate.now()) || endDate.isAfter(LocalDate.now()) then
+          errors += ("dateRange" -> "Dates cannot be in the future")
+        else if startDate.plusDays(90).isBefore(endDate) then
+          errors += ("dateRange" -> "Date range cannot exceed 90 days (Fio Bank API limitation)")
+      
+      val validationErrors = ValidationErrors(errors.result())
+      
+      // If validation passes, generate a mock result
+      if !validationErrors.hasErrors then
+        Right(generateMockResults(startDateResult.get, endDateResult.get))
+      else
+        Left(validationErrors)
+    }
+    
+  private def generateMockResults(startDate: LocalDate, endDate: LocalDate): ImportResults =
+    val now = Instant.now()
+    val daysBetween = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate).toInt + 1
+    val transactionCount = if daysBetween <= 0 then 1 else (random.nextInt(daysBetween) + 1)
+    
+    ImportResults(
+      transactionCount = transactionCount,
+      errorMessage = None,
+      startTime = now.minusSeconds(5),
+      endTime = Some(now)
+    )
+    
+  def getAccounts(): ZIO[Any, String, List[AccountOption]] =
+    ZIO.succeed(AccountSelectorViewModel.defaultAccounts)
+```
+
+### 9. Update Component Tests
+
+Update the component tests to reflect the new approach:
+
+```scala
+class TransactionImportFormSpec extends ZIOSpec[Any]:
+  def spec = suite("TransactionImportForm")(
+    test("should display validation errors for invalid input") {
+      // Create view model with errors
+      val viewModel = TransactionImportFormViewModel(
+        fieldErrors = Map(
+          "accountId" -> "Account selection is required",
+          "dateRange" -> "Start date cannot be after end date"
+        )
+      )
+      
+      // Render form
+      val html = TransactionImportForm.render(viewModel).render
+      
+      // Verify error messages are displayed
+      assertTrue(
+        html.contains("Account selection is required"),
+        html.contains("Start date cannot be after end date")
+      )
+    },
+    
+    test("should disable submit button when errors exist") {
+      // Create view model with errors
+      val viewModel = TransactionImportFormViewModel(
+        fieldErrors = Map("accountId" -> "Account selection is required")
+      )
+      
+      // Render form
+      val html = TransactionImportForm.render(viewModel).render
+      
+      // Verify button is disabled
+      assertTrue(
+        html.contains("disabled=\"disabled\"")
+      )
+    }
+    // Add more tests...
+  )
+```
+
+## Migration Strategy
+
+1. Create the new components and services alongside existing ones
+2. Update the module to support both approaches during transition
+3. Switch the rendered view to use the new form component
+4. Remove the old validation endpoints and components once transition is complete
+
+## Benefits of This Approach
+
+1. **Clearer Separation of Concerns**: UI components focus purely on display, domain focuses on validation
+2. **Simpler Component Design**: Components don't need to know about validation rules
+3. **More Consistent UX**: Form errors are displayed together with a unified submission flow
+4. **Better Alignment with Domain**: Form maps directly to a domain command
+5. **Simplified Error Handling**: All errors are processed in one place
+6. **Easier Testing**: Pure components and isolated validation logic are easier to test
+7. **More Maintainable**: Changes to validation rules only need to happen in one place
+
+## Testing Strategy
+
+1. **Unit Tests**: 
+   - Test validation logic in isolation
+   - Test form component rendering with different view models
+   - Test error mapping and display
+
+2. **Integration Tests**:
+   - Test full submission flow with valid and invalid data
+   - Test form rendering with validation errors
+   - Test results display after successful submission
+
+3. **End-to-End Tests**:
+   - Test full user journeys for importing transactions
+   - Test error handling in real browser environment
