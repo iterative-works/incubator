@@ -63,6 +63,32 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
     override def validateAndProcess(
         command: TransactionImportCommand
     ): ZIO[Any, String, Either[ValidationErrors, ImportResults]] =
+        for
+            // Validate input
+            validationResult <- validateInput(command)
+            // If valid, process with delay (to show loading state)
+            result <- validationResult match
+                case Left(errors) => ZIO.succeed(Left(errors))
+                case Right(_) => 
+                    for
+                        // Mark as in progress
+                        _ <- ZIO.succeed {
+                            currentStatus = ImportStatus.InProgress
+                            importStartTime = Some(Instant.now())
+                        }
+                        // Add a 3 second delay to simulate networking/processing
+                        _ <- ZIO.sleep(java.time.Duration.ofSeconds(3))
+                        // Process the actual import after delay
+                        importResult <- generateImportResult(command)
+                    yield Right(importResult)
+        yield result
+    
+    /** Validates a transaction import command.
+      *
+      * @param command The command to validate
+      * @return Either validation errors or unit (if valid)
+      */
+    private def validateInput(command: TransactionImportCommand): ZIO[Any, String, Either[ValidationErrors, Unit]] =
         ZIO.attempt {
             // Parse dates to validate them
             val startDateResult = Try(LocalDate.parse(command.startDate))
@@ -114,62 +140,66 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
 
             val validationErrors = ValidationErrors(errors.result())
 
-            if !validationErrors.hasErrors then
-                // Start the import process
-                currentStatus = ImportStatus.InProgress
-                importStartTime = Some(Instant.now())
-
-                // For the mock, we're synchronously processing the import
-                // In a real implementation, this would likely be asynchronous
-                val result = activeScenario match
-                    case ImportScenario.SuccessfulImport =>
-                        // Random transaction count based on date range (1 to days between dates)
-                        val startDate = startDateResult.get
-                        val endDate = endDateResult.get
-                        val daysBetween =
-                            java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate).toInt + 1
-                        val transactionCount =
-                            if daysBetween <= 0 then 1 else (random.nextInt(daysBetween) + 1)
-
-                        val now = Instant.now()
-                        val importResults = ImportResults(
-                            transactionCount = transactionCount,
-                            errorMessage = None,
-                            startTime = importStartTime.getOrElse(now.minusSeconds(5)),
-                            endTime = Some(now)
-                        )
-                        lastImportResults = Some(importResults)
-                        currentStatus = ImportStatus.Completed
-                        Right(importResults)
-
-                    case ImportScenario.NoTransactions =>
-                        val now = Instant.now()
-                        val importResults = ImportResults(
-                            transactionCount = 0,
-                            errorMessage = None,
-                            startTime = importStartTime.getOrElse(now.minusSeconds(3)),
-                            endTime = Some(now)
-                        )
-                        lastImportResults = Some(importResults)
-                        currentStatus = ImportStatus.Completed
-                        Right(importResults)
-
-                    case ImportScenario.ErrorDuringImport =>
-                        val now = Instant.now()
-                        val importResults = ImportResults(
-                            transactionCount = 0,
-                            errorMessage = Some("Connection to Fio Bank failed: Network timeout"),
-                            startTime = importStartTime.getOrElse(now.minusSeconds(2)),
-                            endTime = Some(now)
-                        )
-                        lastImportResults = Some(importResults)
-                        currentStatus = ImportStatus.Error
-                        Right(importResults)
-
-                result
-            else
+            if validationErrors.hasErrors then
                 Left(validationErrors)
-            end if
+            else
+                Right(()) // Valid input
+        }.mapError(_.getMessage)
+    
+    /** Generates a result based on the active scenario.
+      * 
+      * @param command The import command
+      * @return The import results
+      */  
+    private def generateImportResult(command: TransactionImportCommand): ZIO[Any, String, ImportResults] =
+        ZIO.attempt {
+            val startDateResult = Try(LocalDate.parse(command.startDate)).getOrElse(LocalDate.now())
+            val endDateResult = Try(LocalDate.parse(command.endDate)).getOrElse(LocalDate.now())
+            
+            activeScenario match
+                case ImportScenario.SuccessfulImport =>
+                    // Random transaction count based on date range (1 to days between dates)
+                    val startDate = startDateResult
+                    val endDate = endDateResult
+                    val daysBetween =
+                        java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate).toInt + 1
+                    val transactionCount =
+                        if daysBetween <= 0 then 1 else (random.nextInt(daysBetween) + 1)
+
+                    val now = Instant.now()
+                    val importResults = ImportResults(
+                        transactionCount = transactionCount,
+                        errorMessage = None,
+                        startTime = importStartTime.getOrElse(now.minusSeconds(5)),
+                        endTime = Some(now)
+                    )
+                    lastImportResults = Some(importResults)
+                    currentStatus = ImportStatus.Completed
+                    importResults
+
+                case ImportScenario.NoTransactions =>
+                    val now = Instant.now()
+                    val importResults = ImportResults(
+                        transactionCount = 0,
+                        errorMessage = None,
+                        startTime = importStartTime.getOrElse(now.minusSeconds(3)),
+                        endTime = Some(now)
+                    )
+                    lastImportResults = Some(importResults)
+                    currentStatus = ImportStatus.Completed
+                    importResults
+
+                case ImportScenario.ErrorDuringImport =>
+                    val now = Instant.now()
+                    val importResults = ImportResults(
+                        transactionCount = 0,
+                        errorMessage = Some("Connection to Fio Bank failed: Network timeout"),
+                        startTime = importStartTime.getOrElse(now.minusSeconds(2)),
+                        endTime = Some(now)
+                    )
+                    lastImportResults = Some(importResults)
+                    currentStatus = ImportStatus.Error
+                    importResults
         }.mapError(_.getMessage)
 
     /** Get the current status of the import operation.

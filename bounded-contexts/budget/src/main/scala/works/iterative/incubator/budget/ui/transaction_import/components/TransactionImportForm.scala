@@ -1,6 +1,7 @@
 package works.iterative.incubator.budget.ui.transaction_import.components
 
 import works.iterative.incubator.budget.ui.transaction_import.models.*
+import works.iterative.incubator.budget.ui.transaction_import.styles.HtmxStyles
 import scalatags.Text.all.*
 
 /** Component for the transaction import form.
@@ -18,14 +19,17 @@ object TransactionImportForm:
       *   A Scalatags fragment representing the import form
       */
     def render(viewModel: TransactionImportFormViewModel): Frag =
-        form(
-            id := "transaction-import-form",
-            cls := "bg-white rounded-lg py-6 w-full",
-            attr("hx-post") := "/transactions/import/submit",
-            attr("hx-target") := "#transaction-import-container",
-            attr("hx-swap") := "outerHTML",
-            attr("hx-indicator") := "#loading-spinner" // Show spinner while form is submitting
-        )(
+        frag(
+            // Include HTMX-specific styles
+            HtmxStyles.getStyles,
+            
+            form(
+                id := "transaction-import-form",
+                cls := "bg-white rounded-lg py-6 w-full form",
+                attr("hx-post") := "/transactions/import/submit",
+                attr("hx-target") := "#transaction-import-container",
+                attr("hx-swap") := "outerHTML"
+            )(
             // Global error message if any
             viewModel.globalError.map { error =>
                 div(
@@ -77,20 +81,36 @@ object TransactionImportForm:
                 )
             ),
             
-            // Status indicator (if needed)
-            viewModel.importStatus match
-                case ImportStatus.NotStarted => ()
-                case status =>
-                    div(
-                        id := "status-indicator-container",
-                        cls := "mt-2 flex items-center justify-end",
-                        StatusIndicator.render(
-                            StatusIndicatorViewModel(
-                                status = status,
-                                isVisible = true
-                            )
+            // HTMX Loading indicator - will be shown during request
+            div(
+                cls := "htmx-indicator mt-4 flex items-center justify-center",
+                style := "display: none;" // Initially hidden, shown by HTMX during request
+            )(
+                StatusIndicator.render(
+                    StatusIndicatorViewModel(
+                        status = ImportStatus.InProgress,
+                        isVisible = true
+                    )
+                )
+            ),
+            
+            // Persistent status indicator - shown for completed or error states
+            (if viewModel.importStatus != ImportStatus.NotStarted && !viewModel.isSubmitting then
+                div(
+                    id := "status-indicator-container",
+                    cls := "mt-4 flex items-center justify-center"
+                )(
+                    StatusIndicator.render(
+                        StatusIndicatorViewModel(
+                            status = viewModel.importStatus,
+                            isVisible = true
                         )
                     )
+                )
+            else
+                frag() // Empty if not needed
+            )
+            )
         )
     end render
 end TransactionImportForm

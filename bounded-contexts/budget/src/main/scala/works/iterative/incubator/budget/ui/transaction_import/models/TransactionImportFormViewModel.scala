@@ -102,7 +102,11 @@ case class TransactionImportFormViewModel(
     def submitting: TransactionImportFormViewModel =
         this.copy(
             isSubmitting = true,
-            importStatus = ImportStatus.InProgress
+            importStatus = ImportStatus.InProgress,
+            // Clear any previous results or errors when starting a new submission
+            importResults = None,
+            globalError = None,
+            fieldErrors = Map.empty
         )
         
     /** Converts the view model to a domain command for validation and processing.

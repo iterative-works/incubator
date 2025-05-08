@@ -41,15 +41,42 @@ object ImportButton:
                 )
             )
 
-        // Loading spinner (visible when button has htmx-request class)
-        val loadingSpinner =
-            span(
-                id := "loading-spinner",
-                cls := "inline-block animate-spin mr-2 htmx-indicator",
-                style := "display: none;" // Initially hidden, htmx will show it during requests
-            )(
-                // SVG spinner icon
-                spinnerSvg
+        // Button content based on state
+        val buttonContent = if viewModel.isLoading then
+            // If already in loading state, show spinner
+            frag(
+                span(
+                    cls := "inline-block animate-spin mr-2"
+                )(
+                    // SVG spinner icon
+                    spinnerSvg
+                ),
+                "Importing..."
+            )
+        else 
+            // Normal state with HTMX loading indicator
+            frag(
+                // This spinner only shows during HTMX requests
+                span(
+                    cls := "inline-block animate-spin mr-2 htmx-indicator",
+                    style := "display: none;" // Initially hidden, htmx will show it during requests
+                )(
+                    // SVG spinner icon
+                    spinnerSvg
+                ),
+                // Button text changes during HTMX requests
+                span(
+                    cls := "htmx-indicator",
+                    style := "display: none;" // Initially hidden, htmx will show it during requests
+                )(
+                    "Importing..."
+                ),
+                // Normal text (hidden during HTMX requests)
+                span(
+                    cls := "htmx-indicator-inverse" // Will be hidden when htmx-indicator is shown
+                )(
+                    "Import Transactions"
+                )
             )
 
         // Main button element with conditional disabled attribute
@@ -66,8 +93,9 @@ object ImportButton:
             buttonAttrs
 
         button(finalAttrs*)(
-            loadingSpinner,
-            viewModel.buttonText,
+            // Use the dynamic button content we created
+            buttonContent,
+            // Keep the placeholder for layout balance
             placeholderSpinner
         )
     end render
