@@ -35,7 +35,7 @@ case class ImportButtonViewModel(
     /** Determines if the button should be disabled.
       *
       * @return
-      *   true if the button is either not enabled or is in loading state
+      *   true if the button is in loading state (always enabled regardless of validation)
       */
-    def isDisabled: Boolean = !isEnabled || isLoading || accountId.isEmpty
+    def isDisabled: Boolean = isLoading
 end ImportButtonViewModel

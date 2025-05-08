@@ -61,7 +61,9 @@ case class TransactionImportFormViewModel(
     def withValidationErrors(errors: ValidationErrors): TransactionImportFormViewModel =
         this.copy(
             fieldErrors = errors.errors,
-            globalError = errors.globalErrors.headOption
+            globalError = errors.globalErrors.headOption,
+            isSubmitting = false,
+            importStatus = ImportStatus.NotStarted // Reset status to not started when validation fails
         )
         
     /** Updates the view model with import results.

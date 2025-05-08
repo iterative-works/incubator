@@ -45,7 +45,8 @@ object ImportButton:
         val loadingSpinner =
             span(
                 id := "loading-spinner",
-                cls := "inline-block animate-spin mr-2 htmx-indicator"
+                cls := "inline-block animate-spin mr-2 htmx-indicator",
+                style := "display: none;" // Initially hidden, htmx will show it during requests
             )(
                 // SVG spinner icon
                 spinnerSvg

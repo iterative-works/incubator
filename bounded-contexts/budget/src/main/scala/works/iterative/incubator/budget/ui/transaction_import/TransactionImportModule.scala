@@ -44,80 +44,56 @@ class TransactionImportModule(
         .in(formBody[Map[String, String]])
         .in(header[Option[String]]("HX-Request").description("HTMX request header"))
 
-    /** GET endpoint for checking import status */
-    val importStatusEndpoint = baseEndpoint
-        .name("Import Status")
-        .description("Check the current status of an ongoing import")
-        .get
-        .in("status")
-
     /** Implementation of the GET endpoint for the initial form */
     private def getImportForm: ZIO[TransactionImportPresenter, String, Frag] =
         for
             viewModel <- TransactionImportPresenter.getImportViewModel()
         yield transactionImportView.renderImportForm(viewModel)
 
-    /** Implementation of the POST endpoint for form submission */
+    /** Implementation of the POST endpoint for form submission - simplified synchronous approach */
     private def submitImportForm(formData: Map[String, String], htxRequestHeader: Option[String])
         : ZIO[TransactionImportPresenter, String, Frag] =
         for
             // Parse form data
             command <- ZIO.succeed(TransactionImportCommand.fromFormData(formData))
-            // Get base view model from form data (not submitting yet)
-            baseViewModel = TransactionImportFormViewModel.fromFormData(formData)
+            // Get view model from form data and mark as submitting
+            baseViewModel = TransactionImportFormViewModel.fromFormData(formData).submitting
             
-            // Check if this is just a validation from HTMX field change or an actual form submission
-            isHtmxFieldChange = htxRequestHeader.isDefined && formData.get("_triggeredBy").isDefined
-            isActualSubmission = !isHtmxFieldChange
-            
-            // Only use submitting state for actual form submissions via the button
-            initialViewModel = if isActualSubmission then baseViewModel.submitting else baseViewModel
-            
-            // Validate the command regardless
+            // Validate and process the command (synchronously)
             result <- TransactionImportPresenter.validateAndProcess(command)
             
             // Create view model based on result
             viewModel = result match
                 case Left(errors) => 
-                    // If we have errors, don't show submitting state
-                    baseViewModel.withValidationErrors(errors)
+                    // If we have errors, show them in the form and reset status to NotStarted
+                    baseViewModel.copy(
+                        isSubmitting = false,
+                        importStatus = ImportStatus.NotStarted
+                    ).withValidationErrors(errors)
                 case Right(importResults) => 
-                    // Only process the import and show results if this is an actual submission
-                    if isActualSubmission then
-                        initialViewModel.withImportResults(importResults)
-                    else
-                        // For just validation, show the form is valid but don't process or show results
-                        baseViewModel
+                    // Show results directly in the form
+                    baseViewModel.withImportResults(importResults)
                         
-            // Check if this is an HTMX request
+            // Check if this is an HTMX request (for rendering)
             isHtmxRequest = htxRequestHeader.isDefined
         yield transactionImportView.renderImportForm(viewModel, isHtmxRequest)
-
-    /** Implementation for import status check */
-    private def getImportStatus: ZIO[TransactionImportPresenter, String, Frag] =
-        for
-            status <- TransactionImportPresenter.getImportStatus()
-        yield transactionImportView.renderImportStatus(status)
 
     // Server endpoints
     val importFormServerEndpoint = importFormEndpoint.zServerLogic(_ => getImportForm)
     val submitFormServerEndpoint = submitFormEndpoint.zServerLogic { case (formData, htxRequestHeader) => 
         submitImportForm(formData, htxRequestHeader) 
     }
-    val importStatusServerEndpoint = importStatusEndpoint.zServerLogic(_ => getImportStatus)
 
     // List of all endpoints for documentation
     override def endpoints = List(
         importFormEndpoint,
-        submitFormEndpoint,
-        importStatusEndpoint
+        submitFormEndpoint
     )
 
     // List of all server endpoints for routing
     override def serverEndpoints = List(
         importFormServerEndpoint,
-        submitFormServerEndpoint,
-        importStatusServerEndpoint
+        submitFormServerEndpoint
     )
 end TransactionImportModule
 

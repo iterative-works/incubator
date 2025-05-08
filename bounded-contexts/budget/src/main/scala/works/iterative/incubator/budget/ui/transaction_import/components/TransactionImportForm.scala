@@ -23,7 +23,8 @@ object TransactionImportForm:
             cls := "bg-white rounded-lg py-6 w-full",
             attr("hx-post") := "/transactions/import/submit",
             attr("hx-target") := "#transaction-import-container",
-            attr("hx-swap") := "outerHTML"
+            attr("hx-swap") := "outerHTML",
+            attr("hx-indicator") := "#loading-spinner" // Show spinner while form is submitting
         )(
             // Global error message if any
             viewModel.globalError.map { error =>
@@ -33,13 +34,6 @@ object TransactionImportForm:
                     error
                 )
             },
-            
-            // Hidden field to track which field triggered the HTMX update
-            input(
-                `type` := "hidden",
-                name := "_triggeredBy",
-                value := ""
-            ),
             
             // Account selector
             div(
@@ -74,7 +68,7 @@ object TransactionImportForm:
                 cls := "flex",
                 ImportButton.render(
                     ImportButtonViewModel(
-                        isEnabled = !viewModel.hasErrors,
+                        isEnabled = true, // Always enable the button regardless of validation
                         isLoading = viewModel.isSubmitting,
                         accountId = viewModel.selectedAccountId,
                         startDate = viewModel.startDate,
