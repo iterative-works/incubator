@@ -88,13 +88,13 @@ trait TransactionImportService:
   *   Repository for saving and retrieving transactions
   * @param importBatchRepository
   *   Repository for managing import batches
-  * @param fioBankService
-  *   Service for fetching transactions from Fio Bank
+  * @param bankTransactionService
+  *   Service for fetching transactions from a bank API
   */
 final case class TransactionImportServiceLive(
     transactionRepository: TransactionRepository,
     importBatchRepository: ImportBatchRepository,
-    fioBankService: FioBankService
+    bankTransactionService: BankTransactionService
 ) extends TransactionImportService:
 
   override def validateDateRange(
@@ -110,7 +110,7 @@ final case class TransactionImportServiceLive(
     else if startDate.plusDays(ImportBatch.MaxDateRangeDays).isBefore(endDate) then
       ZIO.fail(
         InvalidDateRange(
-          s"Date range cannot exceed ${ImportBatch.MaxDateRangeDays} days (Fio Bank API limitation)"
+          s"Date range cannot exceed ${ImportBatch.MaxDateRangeDays} days (bank API limitation)"
         )
       )
     else
@@ -208,7 +208,7 @@ final case class TransactionImportServiceLive(
       endDate: LocalDate,
       importBatchId: ImportBatchId
   ): ZIO[Any, TransactionImportError, List[Transaction]] =
-    fioBankService
+    bankTransactionService
       .fetchTransactions(accountId, startDate, endDate)
       .mapError(err => BankApiError(s"Failed to fetch transactions from bank: ${err.getMessage}", Some(err)))
       .flatMap { transactions =>
@@ -307,18 +307,18 @@ object TransactionImportService:
   /** Creates a live implementation of TransactionImportService.
     *
     * @return
-    *   A ZLayer that requires TransactionRepository, ImportBatchRepository, and FioBankService, and
+    *   A ZLayer that requires TransactionRepository, ImportBatchRepository, and BankTransactionService, and
     *   provides a TransactionImportService
     */
-  val live: ZLayer[TransactionRepository & ImportBatchRepository & FioBankService, Nothing, TransactionImportService] =
+  val live: ZLayer[TransactionRepository & ImportBatchRepository & BankTransactionService, Nothing, TransactionImportService] =
     ZLayer {
       for
         transactionRepository <- ZIO.service[TransactionRepository]
         importBatchRepository <- ZIO.service[ImportBatchRepository]
-        fioBankService <- ZIO.service[FioBankService]
+        bankTransactionService <- ZIO.service[BankTransactionService]
       yield TransactionImportServiceLive(
         transactionRepository,
         importBatchRepository,
-        fioBankService
+        bankTransactionService
       )
     }

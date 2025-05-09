@@ -1,20 +1,20 @@
 package works.iterative.incubator.budget.infrastructure.adapter
 
 import works.iterative.incubator.budget.domain.model.*
-import works.iterative.incubator.budget.domain.service.FioBankService
+import works.iterative.incubator.budget.domain.service.BankTransactionService
 import java.time.{Instant, LocalDate}
 import java.util.Currency
 import zio.*
 import scala.util.Random
 
-/** Mock implementation of FioBankService for testing and development purposes.
+/** Mock implementation of BankTransactionService for testing and development purposes.
   *
   * This implementation generates random transactions for a specified date range.
   *
   * Category: Mock Adapter
   * Layer: Infrastructure
   */
-final case class MockFioBankService() extends FioBankService:
+final case class MockBankTransactionService() extends BankTransactionService:
   private val random = new Random()
 
   override def fetchTransactions(
@@ -60,13 +60,13 @@ final case class MockFioBankService() extends FioBankService:
       }
     }
 
-/** Companion object for MockFioBankService.
+/** Companion object for MockBankTransactionService.
   */
-object MockFioBankService:
-  /** Creates a mock implementation of FioBankService.
+object MockBankTransactionService:
+  /** Creates a mock implementation of BankTransactionService.
     *
     * @return
-    *   A ZLayer that provides a FioBankService
+    *   A ZLayer that provides a BankTransactionService
     */
-  val layer: ULayer[FioBankService] =
-    ZLayer.succeed(MockFioBankService())
+  val layer: ULayer[BankTransactionService] =
+    ZLayer.succeed(MockBankTransactionService())

@@ -77,7 +77,7 @@ object TransactionImportServiceSpec extends ZIOSpecDefault:
         endDate = today
         result <- TransactionImportService.importTransactions(testAccountId, startDate, endDate)
       yield assert(result.status)(equalTo(ImportStatus.Completed)) &&
-        assert(result.transactionCount)(equalTo(TestFioBankService.TestTransactionCount)) &&
+        assert(result.transactionCount)(equalTo(TestBankTransactionService.TestTransactionCount)) &&
         assert(result.errorMessage)(isNone)
     }.provide(
       InMemoryTransactionRepository.layer,
@@ -186,75 +186,4 @@ object TransactionImportServiceSpec extends ZIOSpecDefault:
       FioBankServiceNormal.layer,
       TransactionImportService.live
     )
-  )
-
-/** Shared constants for test FioBankService implementations.
-  */
-object TestFioBankService:
-  val TestTransactionCount = 10
-
-  /** Generates test transactions with the given account ID and date range.
-    */
-  def generateTransactions(
-      accountId: AccountId,
-      startDate: LocalDate,
-      count: Int
-  ): List[Transaction] =
-    List.tabulate(count) { i =>
-      Transaction(
-        id = TransactionId.generate(),
-        accountId = accountId,
-        date = startDate.plusDays(i % 7),
-        amount = Money(BigDecimal(-100 * (i + 1)), Currency.getInstance("CZK")),
-        description = s"Test transaction $i",
-        counterparty = Some(s"Test Merchant $i"),
-        counterAccount = Some(s"123456789/$i"),
-        reference = Some(s"REF$i"),
-        importBatchId = ImportBatchId.generate(),
-        status = TransactionStatus.Imported,
-        createdAt = Instant.now(),
-        updatedAt = Instant.now()
-      )
-    }
-
-/** Normal implementation of FioBankService for successful test cases.
-  */
-object FioBankServiceNormal:
-  val layer: ULayer[FioBankService] = ZLayer.succeed(
-    new FioBankService {
-      override def fetchTransactions(
-          accountId: AccountId,
-          startDate: LocalDate,
-          endDate: LocalDate
-      ): ZIO[Any, Throwable, List[Transaction]] =
-        ZIO.succeed(TestFioBankService.generateTransactions(accountId, startDate, TestFioBankService.TestTransactionCount))
-    }
-  )
-
-/** FioBankService implementation that simulates empty transaction lists.
-  */
-object FioBankServiceEmpty:
-  val layer: ULayer[FioBankService] = ZLayer.succeed(
-    new FioBankService {
-      override def fetchTransactions(
-          accountId: AccountId,
-          startDate: LocalDate,
-          endDate: LocalDate
-      ): ZIO[Any, Throwable, List[Transaction]] =
-        ZIO.succeed(List.empty)
-    }
-  )
-
-/** FioBankService implementation that simulates errors.
-  */
-object FioBankServiceError:
-  val layer: ULayer[FioBankService] = ZLayer.succeed(
-    new FioBankService {
-      override def fetchTransactions(
-          accountId: AccountId,
-          startDate: LocalDate,
-          endDate: LocalDate
-      ): ZIO[Any, Throwable, List[Transaction]] =
-        ZIO.fail(new RuntimeException("Simulated bank API error"))
-    }
   )
