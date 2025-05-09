@@ -1,9 +1,8 @@
-package works.iterative.incubator.budget.application.service
+package works.iterative.incubator.budget.ui.transaction_import
 
 import works.iterative.incubator.budget.domain.model.{AccountId, ImportBatch, ImportBatchId}
 import works.iterative.incubator.budget.domain.service.*
 import works.iterative.incubator.budget.domain.service.TransactionImportError.*
-import works.iterative.incubator.budget.ui.transaction_import.TransactionImportPresenter
 import works.iterative.incubator.budget.ui.transaction_import.models.*
 import java.time.{Instant, LocalDate}
 import zio.*
@@ -22,8 +21,8 @@ import works.iterative.incubator.budget.domain.model.{ImportStatus => DomainImpo
   * @param accountId
   *   The account ID to use for imports (hardcoded for now, will be configurable in future)
   *
-  * Category: Application Service
-  * Layer: Application
+  * Category: Presenter
+  * Layer: UI/Presentation
   */
 final case class TransactionImportPresenterLive(
     transactionImportService: TransactionImportService,

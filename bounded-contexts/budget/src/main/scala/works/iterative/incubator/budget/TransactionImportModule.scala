@@ -1,12 +1,12 @@
 package works.iterative.incubator.budget
 
-import works.iterative.incubator.budget.application.service.TransactionImportPresenterLive
 import works.iterative.incubator.budget.domain.service.{FioBankService, TransactionImportService}
 import works.iterative.incubator.budget.domain.repository.{ImportBatchRepository, TransactionRepository}
 import works.iterative.incubator.budget.infrastructure.adapter.*
 import works.iterative.incubator.budget.ui.transaction_import.{
   TransactionImportPresenter, 
-  MockTransactionImportPresenter
+  MockTransactionImportPresenter,
+  TransactionImportPresenterLive
 }
 import zio.*
 
