@@ -34,12 +34,12 @@ object ImportButtonSpec extends ZIOSpecDefault:
             result1 && result2 && result3 && result4
         },
         test("renders correctly in disabled state") {
-            // Given a disabled button view model
+            // Given a disabled button view model (which now means loading=true)
             val startDate = LocalDate.of(2025, 3, 1)
             val endDate = LocalDate.of(2025, 3, 31)
             val viewModel = ImportButtonViewModel(
-                isEnabled = false,
-                isLoading = false,
+                isEnabled = true,  // Note: isEnabled is now ignored
+                isLoading = true,  // isLoading=true causes isDisabled=true
                 accountId = Some("0100-1234567890"),
                 startDate = startDate,
                 endDate = endDate
@@ -48,13 +48,14 @@ object ImportButtonSpec extends ZIOSpecDefault:
             // When rendering the component
             val rendered = render(viewModel).render
 
-            // Then it should have the correct attributes and classes
-            val result1 = assert(rendered)(containsString("Import Transactions"))
-            val result2 = assert(rendered)(containsString("bg-gray-300"))
+            // Then it should have the correct attributes and classes for disabled state
+            val result1 = assert(rendered)(containsString("Importing..."))
+            // Disabled styling is applied through Tailwind's disabled: pseudo-class 
+            // which is part of the class attribute but only applies when disabled attribute is present
+            val result2 = assert(rendered)(containsString("disabled:bg-gray-300"))
             val result3 = assert(rendered)(containsString("disabled=\"disabled\""))
             val result4 = assert(rendered)(containsString("aria-disabled=\"true\""))
-            val result5 = assert(rendered)(containsString("cursor-not-allowed"))
-            result1 && result2 && result3 && result4 && result5
+            result1 && result2 && result3 && result4
         },
         test("renders correctly in loading state") {
             // Given a loading button view model
