@@ -56,12 +56,16 @@ object AccountIdSpec extends ZIOSpecDefault:
                         e.getMessage.contains("Bank account ID must not be empty")
                     ),
 
-        test("generate should create valid AccountId"):
-            val id = AccountId.generate()
+        test("constructor should create valid AccountId"):
+            val bankId = "testbank"
+            val accountId = "test123"
+            val id = AccountId(bankId, accountId)
             assertTrue(
                 id.bankId.nonEmpty &&
                 id.bankAccountId.nonEmpty &&
-                id.value.contains("-")
+                id.value.contains("-") &&
+                id.bankId == bankId &&
+                id.bankAccountId == accountId
             ),
 
         test("fromString should parse valid composite ID"):

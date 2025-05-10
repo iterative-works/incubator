@@ -28,13 +28,11 @@ import java.time.{Instant, LocalDate}
   *   When this transaction record was created
   * @param updatedAt
   *   When this transaction record was last updated
-  * 
-  * Category: Entity
-  * Layer: Domain
+  *
+  * Category: Entity Layer: Domain
   */
 case class Transaction(
     id: TransactionId,
-    accountId: AccountId,
     date: LocalDate,
     amount: Money,
     description: String,
@@ -46,6 +44,8 @@ case class Transaction(
     createdAt: Instant,
     updatedAt: Instant
 ):
+    val accountId: AccountId = id.sourceAccount
+
     /** Updates the transaction's status.
       *
       * @param newStatus
@@ -128,7 +128,7 @@ object Transaction:
       *   Either a valid Transaction or an error message
       */
     def create(
-        accountId: AccountId,
+        id: TransactionId,
         date: LocalDate,
         amount: Money,
         description: String,
@@ -138,9 +138,7 @@ object Transaction:
         importBatchId: ImportBatchId
     ): Either[String, Transaction] =
         // Validate input
-        if accountId == null then
-            Left("Account ID must not be null")
-        else if date == null then
+        if date == null then
             Left("Date must not be null")
         else if date.isAfter(LocalDate.now) then
             Left("Transaction date cannot be in the future")
@@ -152,13 +150,11 @@ object Transaction:
             Left("Import batch ID must not be null")
         else
             val now = Instant.now
-            val id = TransactionId.generate()
 
             // Create new transaction with all data validated
             Right(
                 Transaction(
                     id = id,
-                    accountId = accountId,
                     date = date,
                     amount = amount,
                     description = description.trim,

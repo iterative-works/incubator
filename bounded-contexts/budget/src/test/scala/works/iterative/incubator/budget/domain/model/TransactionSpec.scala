@@ -9,6 +9,7 @@ import java.util.Currency
 object TransactionSpec extends ZIOSpecDefault:
     // Sample data for testing
     private val accountId = AccountId("bank123", "account456")
+    private val transactionId = TransactionId(accountId, "tx123456")
     private val importBatchId = ImportBatchId("bank123-account456", 1L)
     private val transactionDate = LocalDate.of(2025, 3, 15)
     private val czk = Currency.getInstance("CZK")
@@ -18,7 +19,7 @@ object TransactionSpec extends ZIOSpecDefault:
         // Factory method tests
         test("create should succeed with valid inputs") {
             val result = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = transactionDate,
                 amount = amount,
                 description = "Groceries",
@@ -38,23 +39,9 @@ object TransactionSpec extends ZIOSpecDefault:
                 ) == TransactionStatus.Imported
             )
         },
-        test("create should fail with null accountId") {
-            val result = Transaction.create(
-                accountId = null,
-                date = transactionDate,
-                amount = amount,
-                description = "Groceries",
-                importBatchId = importBatchId
-            )
-
-            assertTrue(
-                result.isLeft,
-                result.left.getOrElse("").contains("Account ID")
-            )
-        },
         test("create should fail with null date") {
             val result = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = null,
                 amount = amount,
                 description = "Groceries",
@@ -69,7 +56,7 @@ object TransactionSpec extends ZIOSpecDefault:
         test("create should fail with future date") {
             val futureDate = LocalDate.now().plusDays(1)
             val result = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = futureDate,
                 amount = amount,
                 description = "Groceries",
@@ -83,7 +70,7 @@ object TransactionSpec extends ZIOSpecDefault:
         },
         test("create should fail with null amount") {
             val result = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = transactionDate,
                 amount = null,
                 description = "Groceries",
@@ -97,7 +84,7 @@ object TransactionSpec extends ZIOSpecDefault:
         },
         test("create should fail with empty description") {
             val result = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = transactionDate,
                 amount = amount,
                 description = "",
@@ -111,7 +98,7 @@ object TransactionSpec extends ZIOSpecDefault:
         },
         test("create should fail with null importBatchId") {
             val result = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = transactionDate,
                 amount = amount,
                 description = "Groceries",
@@ -125,7 +112,7 @@ object TransactionSpec extends ZIOSpecDefault:
         },
         test("create should trim description and optional strings") {
             val result = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = transactionDate,
                 amount = amount,
                 description = "  Groceries  ",
@@ -145,7 +132,7 @@ object TransactionSpec extends ZIOSpecDefault:
         },
         test("create should filter out empty optional strings") {
             val result = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = transactionDate,
                 amount = amount,
                 description = "Groceries",
@@ -166,7 +153,7 @@ object TransactionSpec extends ZIOSpecDefault:
         // Entity method tests
         test("updateStatus should change status and update timestamp") {
             val transactionResult = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = transactionDate,
                 amount = amount,
                 description = "Groceries",
@@ -191,7 +178,7 @@ object TransactionSpec extends ZIOSpecDefault:
         },
         test("updateDescription should update description and timestamp with valid input") {
             val transactionResult = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = transactionDate,
                 amount = amount,
                 description = "Groceries",
@@ -216,7 +203,7 @@ object TransactionSpec extends ZIOSpecDefault:
         },
         test("updateDescription should fail with empty description") {
             val transactionResult = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = transactionDate,
                 amount = amount,
                 description = "Groceries",
@@ -237,7 +224,7 @@ object TransactionSpec extends ZIOSpecDefault:
         },
         test("updateCounterparty should update counterparty and timestamp") {
             val transactionResult = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = transactionDate,
                 amount = amount,
                 description = "Groceries",
@@ -262,7 +249,7 @@ object TransactionSpec extends ZIOSpecDefault:
         },
         test("updateCounterparty should set to None for empty string") {
             val transactionResult = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = transactionDate,
                 amount = amount,
                 description = "Groceries",
@@ -281,7 +268,7 @@ object TransactionSpec extends ZIOSpecDefault:
         },
         test("isExpense should return true for negative amounts") {
             val transactionResult = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = transactionDate,
                 amount = Money(BigDecimal(-100), czk),
                 description = "Groceries",
@@ -297,7 +284,7 @@ object TransactionSpec extends ZIOSpecDefault:
         },
         test("isIncome should return true for positive amounts") {
             val transactionResult = Transaction.create(
-                accountId = accountId,
+                id = transactionId,
                 date = transactionDate,
                 amount = Money(BigDecimal(100), czk),
                 description = "Salary",

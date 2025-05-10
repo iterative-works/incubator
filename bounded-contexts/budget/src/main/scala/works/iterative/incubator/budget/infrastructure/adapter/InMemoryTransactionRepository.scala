@@ -62,7 +62,7 @@ final case class InMemoryTransactionRepository(
     txRef.get.map { transactions =>
       transactions.values
         .filter { tx =>
-          tx.accountId == accountId &&
+          tx.id.sourceAccount == accountId &&
           !tx.date.isBefore(startDate) &&
           !tx.date.isAfter(endDate)
         }

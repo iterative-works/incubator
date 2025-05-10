@@ -1,8 +1,8 @@
 package works.iterative.incubator.budget.domain.service
 
 import works.iterative.incubator.budget.domain.model.*
-import works.iterative.incubator.budget.domain.service.TransactionImportError
 import works.iterative.incubator.budget.domain.service.TransactionImportError.InvalidDateRange
+import works.iterative.incubator.budget.infrastructure.adapter.MockBankTransactionService
 import java.time.{Instant, LocalDate}
 import java.util.Currency
 import zio.*
@@ -21,15 +21,14 @@ object TestBankTransactionService:
   ): List[Transaction] =
     List.tabulate(count) { i =>
       Transaction(
-        id = TransactionId.generate(),
-        accountId = accountId,
+        id = MockBankTransactionService.generateRandomTransactionId(),
         date = startDate.plusDays(i % 7),
         amount = Money(BigDecimal(-100 * (i + 1)), Currency.getInstance("CZK")),
         description = s"Test transaction $i",
         counterparty = Some(s"Test Merchant $i"),
         counterAccount = Some(s"123456789/$i"),
         reference = Some(s"REF$i"),
-        importBatchId = ImportBatchId.generate(),
+        importBatchId = MockBankTransactionService.generateRandomBatchId(),
         status = TransactionStatus.Imported,
         createdAt = Instant.now(),
         updatedAt = Instant.now()

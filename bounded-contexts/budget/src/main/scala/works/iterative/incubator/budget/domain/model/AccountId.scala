@@ -26,18 +26,6 @@ case class AccountId(bankId: String, bankAccountId: String):
     override def toString: String = value
 
 object AccountId:
-    /** Generates a new random AccountId.
-      * This method is provided for backward compatibility and testing.
-      * In production, use the primary constructor with actual bank ID and bank account ID.
-      *
-      * @return
-      *   A new account ID with a random values
-      */
-    def generate(): AccountId = AccountId(
-        bankId = UUID.randomUUID().toString.take(8),
-        bankAccountId = UUID.randomUUID().toString
-    )
-
     /** Creates an AccountId from a composite string in the format "bankId-bankAccountId".
       *
       * @param s

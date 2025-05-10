@@ -136,7 +136,7 @@ object TransactionImportServiceSpec extends ZIOSpecDefault:
 
     test("should fail when batch ID doesn't exist") {
       for
-        nonExistentId <- ZIO.succeed(ImportBatchId.generate())
+        nonExistentId <- ZIO.succeed(MockBankTransactionService.generateRandomBatchId())
         result <- TransactionImportService.getImportStatus(nonExistentId).exit
       yield assert(result)(fails(isSubtype[ImportBatchError](anything)))
     }.provide(

@@ -46,27 +46,20 @@ object ImportBatchIdSpec extends ZIOSpecDefault:
                         e.getMessage.contains("Sequence number must be positive")
                     ),
 
-        test("generate should create valid ImportBatchId with specified accountId"):
+        test("constructor should create valid ImportBatchId"):
             val accountId = "bank1-account123"
-            val id = ImportBatchId.generate(accountId)
+            val sequenceNumber = 1L
+            val id = ImportBatchId(accountId, sequenceNumber)
             assertTrue(
                 id.accountId == accountId &&
-                id.sequenceNumber > 0
+                id.sequenceNumber == sequenceNumber
             ),
 
-        test("generate without arguments should create valid ImportBatchId"):
-            val id = ImportBatchId.generate()
-            assertTrue(
-                id.accountId.nonEmpty &&
-                id.sequenceNumber > 0 &&
-                id.value.contains("-")
-            ),
-            
-        test("generate should increment sequence numbers"):
+        test("manually created IDs with sequential numbers should look like incrementing sequence"):
             val accountId = "bank1-account123"
-            val id1 = ImportBatchId.generate(accountId)
-            val id2 = ImportBatchId.generate(accountId)
-            val id3 = ImportBatchId.generate(accountId)
+            val id1 = ImportBatchId(accountId, 1L)
+            val id2 = ImportBatchId(accountId, 2L)
+            val id3 = ImportBatchId(accountId, 3L)
             assertTrue(
                 id1.sequenceNumber < id2.sequenceNumber &&
                 id2.sequenceNumber < id3.sequenceNumber
@@ -75,7 +68,7 @@ object ImportBatchIdSpec extends ZIOSpecDefault:
         test("fromString should parse valid composite ID"):
             val accountId = "bank1account123" // Use a simple ID without dashes
             val sequenceNumber = 42L
-            val idString = s"$accountId-$sequenceNumber" 
+            val idString = s"$accountId-$sequenceNumber"
             val result = ImportBatchId.fromString(idString)
             assertTrue(
                 result.isRight &&

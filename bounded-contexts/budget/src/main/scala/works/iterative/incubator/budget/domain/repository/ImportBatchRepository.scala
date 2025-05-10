@@ -78,6 +78,14 @@ trait ImportBatchRepository:
         startDate: LocalDate,
         endDate: LocalDate
     ): ZIO[Any, String, List[ImportBatch]]
+
+    /** Generates the next sequence number for import batches for a given account.
+      * This is used to create unique ImportBatchId instances.
+      *
+      * @param accountId The account ID to generate the sequence number for
+      * @return A ZIO effect that returns the next sequence number or an error string
+      */
+    def nextSequenceNumber(accountId: AccountId): ZIO[Any, String, Long]
 end ImportBatchRepository
 
 /** Companion object for ImportBatchRepository.
@@ -157,4 +165,40 @@ object ImportBatchRepository:
         endDate: LocalDate
     ): ZIO[ImportBatchRepository, String, List[ImportBatch]] =
         ZIO.serviceWithZIO(_.findByDateRange(accountId, startDate, endDate))
+
+    /** Accesses the repository to generate the next sequence number for import batches.
+      *
+      * @param accountId The account ID to generate the sequence number for
+      * @return A ZIO effect that requires ImportBatchRepository and returns the next sequence number or an error string
+      */
+    def nextSequenceNumber(accountId: AccountId): ZIO[ImportBatchRepository, String, Long] =
+        ZIO.serviceWithZIO(_.nextSequenceNumber(accountId))
+
+    /** Creates a new import batch with an automatically generated ID.
+      * This method combines repository access with domain entity creation.
+      *
+      * @param accountId The source account
+      * @param startDate Start date of the import range
+      * @param endDate End date of the import range
+      * @return A ZIO effect that requires ImportBatchRepository and returns the created ImportBatch or an error string
+      */
+    def createBatch(
+        accountId: AccountId,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): ZIO[ImportBatchRepository, String, ImportBatch] =
+        for {
+            // Generate the next sequence number for this account
+            seqNum <- nextSequenceNumber(accountId)
+
+            // Create the import batch ID
+            batchId = ImportBatchId(accountId.toString.take(8), seqNum)
+
+            // Create the import batch entity
+            batchEither = ImportBatch.create(accountId, startDate, endDate, batchId)
+            batch <- ZIO.fromEither(batchEither)
+
+            // Save the batch to the repository
+            _ <- save(batch)
+        } yield batch
 end ImportBatchRepository

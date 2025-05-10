@@ -7,16 +7,16 @@ import zio.test.Assertion.*
 object TransactionIdSpec extends ZIOSpecDefault:
     def spec = suite("TransactionId")(
         test("create should create TransactionId with valid inputs"):
-            val sourceAccountId = "bank1-account123"
+            val accountId = AccountId("bank1", "account123")
             val bankTransactionId = "tx987654"
-            val id = TransactionId(sourceAccountId, bankTransactionId)
+            val id = TransactionId(accountId, bankTransactionId)
             assertTrue(
-                id.sourceAccountId == sourceAccountId &&
+                id.sourceAccount == accountId &&
                 id.bankTransactionId == bankTransactionId &&
-                id.value == s"$sourceAccountId-$bankTransactionId"
+                id.value == s"${accountId.toString}-$bankTransactionId"
             ),
 
-        test("create should reject null sourceAccountId"):
+        test("create should reject null sourceAccount"):
             try
                 // Using _ to indicate we don't care about the result
                 val _ = TransactionId(null, "tx123")
@@ -24,12 +24,13 @@ object TransactionIdSpec extends ZIOSpecDefault:
             catch
                 case e: IllegalArgumentException =>
                     assertTrue(
-                        e.getMessage.contains("Source account ID must not be null")
+                        e.getMessage.contains("Source account must not be null")
                     ),
 
         test("create should reject null bankTransactionId"):
             try
-                val _ = TransactionId("bank1-123", null)
+                val accountId = AccountId("bank1", "account123")
+                val _ = TransactionId(accountId, null)
                 assertNever("Should have thrown exception but didn't")
             catch
                 case e: IllegalArgumentException =>
@@ -37,19 +38,10 @@ object TransactionIdSpec extends ZIOSpecDefault:
                         e.getMessage.contains("Bank transaction ID must not be null")
                     ),
 
-        test("create should reject empty sourceAccountId"):
-            try
-                val _ = TransactionId("", "tx123")
-                assertNever("Should have thrown exception but didn't")
-            catch
-                case e: IllegalArgumentException =>
-                    assertTrue(
-                        e.getMessage.contains("Source account ID must not be empty")
-                    ),
-
         test("create should reject empty bankTransactionId"):
             try
-                val _ = TransactionId("bank1-123", "")
+                val accountId = AccountId("bank1", "account123")
+                val _ = TransactionId(accountId, "")
                 assertNever("Should have thrown exception but didn't")
             catch
                 case e: IllegalArgumentException =>
@@ -57,22 +49,25 @@ object TransactionIdSpec extends ZIOSpecDefault:
                         e.getMessage.contains("Bank transaction ID must not be empty")
                     ),
 
-        test("generate should create valid TransactionId"):
-            val id = TransactionId.generate()
+        test("random transaction ID should be valid"):
+            import works.iterative.incubator.budget.infrastructure.adapter.MockBankTransactionService
+            val id = MockBankTransactionService.generateRandomTransactionId()
             assertTrue(
-                id.sourceAccountId.nonEmpty &&
+                id.sourceAccount != null &&
                 id.bankTransactionId.nonEmpty &&
                 id.value.contains("-")
             ),
 
-        test("fromString should parse valid composite ID"):
-            val sourceAccountId = "bank1account123" // Use a simple ID without dashes
+        test("fromString should parse valid composite ID in new format"):
+            val bankId = "bank1"
+            val accountId = "account123"
             val bankTransactionId = "tx987654"
-            val idString = s"$sourceAccountId-$bankTransactionId"
+            val idString = s"$bankId-$accountId-$bankTransactionId"
             val result = TransactionId.fromString(idString)
             assertTrue(
                 result.isRight &&
-                result.toOption.get.sourceAccountId == sourceAccountId &&
+                result.toOption.get.sourceAccount.bankId == bankId &&
+                result.toOption.get.sourceAccount.bankAccountId == accountId &&
                 result.toOption.get.bankTransactionId == bankTransactionId
             ),
 
@@ -97,33 +92,36 @@ object TransactionIdSpec extends ZIOSpecDefault:
                 result.swap.toOption.get.contains("Invalid composite ID format")
             ),
 
-        test("value method should combine sourceAccountId and bankTransactionId"):
-            val sourceAccountId = "bank1-account123"
+        test("value method should combine sourceAccount and bankTransactionId"):
+            val accountId = AccountId("bank1", "account123")
             val bankTransactionId = "tx987654"
-            val id = TransactionId(sourceAccountId, bankTransactionId)
+            val id = TransactionId(accountId, bankTransactionId)
             assertTrue(
-                id.value == s"$sourceAccountId-$bankTransactionId"
+                id.value == s"${accountId.toString}-$bankTransactionId"
             ),
 
         test("toString should return the same as value"):
-            val sourceAccountId = "bank1-account123"
+            val accountId = AccountId("bank1", "account123")
             val bankTransactionId = "tx987654"
-            val id = TransactionId(sourceAccountId, bankTransactionId)
+            val id = TransactionId(accountId, bankTransactionId)
             assertTrue(
                 id.toString == id.value
             ),
 
         test("Different TransactionIds should not be equal"):
-            val id1 = TransactionId("bank1-123", "tx1")
-            val id2 = TransactionId("bank1-123", "tx2")
-            val id3 = TransactionId("bank2-123", "tx1")
+            val accountId1 = AccountId("bank1", "account123")
+            val accountId2 = AccountId("bank2", "account123")
+            val id1 = TransactionId(accountId1, "tx1")
+            val id2 = TransactionId(accountId1, "tx2")
+            val id3 = TransactionId(accountId2, "tx1")
             assertTrue(
                 id1 != id2 && id1 != id3 && id2 != id3
             ),
 
         test("Same TransactionIds should be equal"):
-            val id1 = TransactionId("bank1-123", "tx1")
-            val id2 = TransactionId("bank1-123", "tx1")
+            val accountId = AccountId("bank1", "account123")
+            val id1 = TransactionId(accountId, "tx1")
+            val id2 = TransactionId(accountId, "tx1")
             assertTrue(
                 id1 == id2
             )

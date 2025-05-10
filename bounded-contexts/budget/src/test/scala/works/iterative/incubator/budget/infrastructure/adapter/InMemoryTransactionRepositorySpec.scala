@@ -6,22 +6,21 @@ import zio.*
 import zio.test.*
 import zio.test.Assertion.*
 import java.time.{Instant, LocalDate}
-import java.util.Currency
+import java.util.{Currency, UUID}
 
 object InMemoryTransactionRepositorySpec extends ZIOSpecDefault:
   // Sample data for testing
   private val accountId = AccountId("bank123", "account456")
-  private val importBatchId = ImportBatchId.generate()
+  private val importBatchId = MockBankTransactionService.generateRandomBatchId()
   private val transactionDate = LocalDate.now().minusDays(7)
-  
+
   // Create a test transaction
   private def createTestTransaction(
-    id: TransactionId = TransactionId.generate(),
+    id: TransactionId = TransactionId(accountId, UUID.randomUUID().toString), // Use the test accountId
     status: TransactionStatus = TransactionStatus.Imported
   ): Transaction =
     Transaction(
       id = id,
-      accountId = accountId,
       date = transactionDate,
       amount = Money(BigDecimal(-100), Currency.getInstance("CZK")),
       description = "Test transaction",
@@ -47,7 +46,7 @@ object InMemoryTransactionRepositorySpec extends ZIOSpecDefault:
     test("should return None for non-existent ID") {
       for
         repo <- ZIO.service[TransactionRepository]
-        nonExistentId = TransactionId.generate()
+        nonExistentId = MockBankTransactionService.generateRandomTransactionId()
         result <- repo.findById(nonExistentId)
       yield assert(result)(isNone)
     },
@@ -114,23 +113,23 @@ object InMemoryTransactionRepositorySpec extends ZIOSpecDefault:
     test("should handle concurrent saves of transactions with the same ID") {
       for
         repo <- ZIO.service[TransactionRepository]
-        txId = TransactionId.generate()
-        
+        txId = MockBankTransactionService.generateRandomTransactionId()
+
         // Create multiple transactions with the same ID but different statuses
         tx1 = createTestTransaction(id = txId, status = TransactionStatus.Imported)
         tx2 = createTestTransaction(id = txId, status = TransactionStatus.Categorized)
         tx3 = createTestTransaction(id = txId, status = TransactionStatus.Validated)
-        
+
         // Execute concurrent saves
         fiber1 <- repo.save(tx1).fork
         fiber2 <- repo.save(tx2).fork
         fiber3 <- repo.save(tx3).fork
-        
+
         // Wait for all saves to complete
         _ <- fiber1.join
         _ <- fiber2.join
         _ <- fiber3.join
-        
+
         // Get the transaction to see which status was saved
         result <- repo.findById(txId)
       yield

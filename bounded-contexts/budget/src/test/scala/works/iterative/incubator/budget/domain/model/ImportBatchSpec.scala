@@ -11,6 +11,14 @@ object ImportBatchSpec extends ZIOSpecDefault:
     private val accountId = AccountId("bank123", "account456")
     private val validStartDate = LocalDate.now().minusDays(30)
     private val validEndDate = LocalDate.now().minusDays(15)
+    private val testBatchId = ImportBatchId("test-batch", 1L)
+
+    // Counter for generating unique batch IDs in tests
+    private var sequenceCounter = 1L
+    private def nextSequence(): Long = {
+        sequenceCounter += 1
+        sequenceCounter
+    }
 
     def spec = suite("ImportBatch")(
         // Factory method tests
@@ -18,7 +26,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val result = ImportBatch.create(
                 accountId = accountId,
                 startDate = validStartDate,
-                endDate = validEndDate
+                endDate = validEndDate,
+                batchId = testBatchId
             )
 
             assertTrue(
@@ -36,7 +45,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val result = ImportBatch.create(
                 accountId = null,
                 startDate = validStartDate,
-                endDate = validEndDate
+                endDate = validEndDate,
+                batchId = testBatchId
             )
 
             assertTrue(
@@ -48,7 +58,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val result = ImportBatch.create(
                 accountId = accountId,
                 startDate = null,
-                endDate = validEndDate
+                endDate = validEndDate,
+                batchId = testBatchId
             )
 
             assertTrue(
@@ -60,7 +71,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val result = ImportBatch.create(
                 accountId = accountId,
                 startDate = validStartDate,
-                endDate = null
+                endDate = null,
+                batchId = testBatchId
             )
 
             assertTrue(
@@ -72,7 +84,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val result = ImportBatch.create(
                 accountId = accountId,
                 startDate = validEndDate,
-                endDate = validStartDate
+                endDate = validStartDate,
+                batchId = testBatchId
             )
 
             assertTrue(
@@ -85,7 +98,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val result = ImportBatch.create(
                 accountId = accountId,
                 startDate = futureDate,
-                endDate = futureDate.plusDays(5)
+                endDate = futureDate.plusDays(5),
+                batchId = testBatchId
             )
 
             assertTrue(
@@ -98,7 +112,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val result = ImportBatch.create(
                 accountId = accountId,
                 startDate = validStartDate,
-                endDate = futureDate
+                endDate = futureDate,
+                batchId = testBatchId
             )
 
             assertTrue(
@@ -114,7 +129,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val result = ImportBatch.create(
                 accountId = accountId,
                 startDate = startDate,
-                endDate = endDate
+                endDate = endDate,
+                batchId = testBatchId
             )
 
             assertTrue(
@@ -129,7 +145,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val batchResult = ImportBatch.create(
                 accountId = accountId,
                 startDate = validStartDate,
-                endDate = validEndDate
+                endDate = validEndDate,
+                batchId = testBatchId.copy(sequenceNumber = nextSequence())
             )
 
             assertTrue(batchResult.isRight) && {
@@ -154,7 +171,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val batchResult = ImportBatch.create(
                 accountId = accountId,
                 startDate = validStartDate,
-                endDate = validEndDate
+                endDate = validEndDate,
+                batchId = testBatchId.copy(sequenceNumber = nextSequence())
             )
 
             assertTrue(batchResult.isRight) && {
@@ -179,7 +197,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val batchResult = ImportBatch.create(
                 accountId = accountId,
                 startDate = validStartDate,
-                endDate = validEndDate
+                endDate = validEndDate,
+                batchId = testBatchId.copy(sequenceNumber = nextSequence())
             )
 
             assertTrue(batchResult.isRight) && {
@@ -212,7 +231,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val batchResult = ImportBatch.create(
                 accountId = accountId,
                 startDate = validStartDate,
-                endDate = validEndDate
+                endDate = validEndDate,
+                batchId = testBatchId.copy(sequenceNumber = nextSequence())
             )
 
             assertTrue(batchResult.isRight) && {
@@ -231,7 +251,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val batchResult = ImportBatch.create(
                 accountId = accountId,
                 startDate = validStartDate,
-                endDate = validEndDate
+                endDate = validEndDate,
+                batchId = testBatchId.copy(sequenceNumber = nextSequence())
             )
 
             assertTrue(batchResult.isRight) && {
@@ -258,7 +279,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val batchResult = ImportBatch.create(
                 accountId = accountId,
                 startDate = validStartDate,
-                endDate = validEndDate
+                endDate = validEndDate,
+                batchId = testBatchId.copy(sequenceNumber = nextSequence())
             )
 
             assertTrue(batchResult.isRight) && {
@@ -285,7 +307,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val batchResult = ImportBatch.create(
                 accountId = accountId,
                 startDate = validStartDate,
-                endDate = validEndDate
+                endDate = validEndDate,
+                batchId = testBatchId.copy(sequenceNumber = nextSequence())
             )
 
             assertTrue(batchResult.isRight) && {
@@ -299,7 +322,8 @@ object ImportBatchSpec extends ZIOSpecDefault:
             val batchResult = ImportBatch.create(
                 accountId = accountId,
                 startDate = validStartDate,
-                endDate = validEndDate
+                endDate = validEndDate,
+                batchId = testBatchId.copy(sequenceNumber = nextSequence())
             )
 
             assertTrue(batchResult.isRight) && {

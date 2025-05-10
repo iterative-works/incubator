@@ -14,7 +14,8 @@ import zio.*
   * Layer: Infrastructure
   */
 final case class InMemoryImportBatchRepository(
-    batchesRef: Ref[Map[ImportBatchId, ImportBatch]]
+    batchesRef: Ref[Map[ImportBatchId, ImportBatch]],
+    sequenceCountersRef: Ref[Map[String, Long]]
 ) extends ImportBatchRepository:
 
   /** Saves an import batch.
@@ -99,12 +100,27 @@ final case class InMemoryImportBatchRepository(
         .sortBy(_.createdAt)
     }
 
+  /** Generates the next sequence number for import batches for a given account.
+    * This method is thread-safe and ensures that sequence numbers are unique per account.
+    *
+    * @param accountId The account ID to generate the sequence number for
+    * @return A ZIO effect that returns the next sequence number
+    */
+  override def nextSequenceNumber(accountId: AccountId): ZIO[Any, String, Long] =
+    sequenceCountersRef.modify { counters =>
+      val accountKey = accountId.toString
+      val currentSeq = counters.getOrElse(accountKey, 0L)
+      val nextSeq = currentSeq + 1L
+      val updatedCounters = counters + (accountKey -> nextSeq)
+      (nextSeq, updatedCounters)
+    }
+
 /** Companion object for InMemoryImportBatchRepository.
   */
 object InMemoryImportBatchRepository:
   /** Creates an in-memory implementation of ImportBatchRepository.
     *
-    * Initializes a thread-safe Ref containing an empty Map for storing batches.
+    * Initializes thread-safe Refs containing empty Maps for storing batches and sequence counters.
     *
     * @return
     *   A ZLayer that provides an ImportBatchRepository
@@ -113,6 +129,7 @@ object InMemoryImportBatchRepository:
     ZLayer.scoped {
       for {
         batchesRef <- Ref.make(Map.empty[ImportBatchId, ImportBatch])
-        repo = InMemoryImportBatchRepository(batchesRef)
+        sequenceCountersRef <- Ref.make(Map.empty[String, Long])
+        repo = InMemoryImportBatchRepository(batchesRef, sequenceCountersRef)
       } yield repo
     }
