@@ -1,7 +1,5 @@
 package works.iterative.incubator.budget.domain.model
 
-import java.util.UUID
-
 /** Value object that uniquely identifies a financial account in the system.
   * Uses a composite natural identifier that combines the bank identifier
   * and the bank account number for better traceability and integration.

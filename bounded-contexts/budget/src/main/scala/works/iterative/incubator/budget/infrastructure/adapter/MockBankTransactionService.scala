@@ -84,7 +84,8 @@ final case class MockBankTransactionService() extends BankTransactionService:
     override def fetchTransactions(
         accountId: AccountId,
         startDate: LocalDate,
-        endDate: LocalDate
+        endDate: LocalDate,
+        importBatchId: ImportBatchId
     ): ZIO[Any, Throwable, List[Transaction]] =
         ZIO.succeed {
             // Generate 1-5 transactions per day in the range
@@ -117,7 +118,7 @@ final case class MockBankTransactionService() extends BankTransactionService:
                     counterparty = counterparty,
                     counterAccount = Some(s"2345678901/${random.nextInt(10000)}"),
                     reference = Some(s"REF${random.nextInt(1000000)}"),
-                    importBatchId = MockBankTransactionService.generateRandomBatchId(),
+                    importBatchId = importBatchId,
                     status = TransactionStatus.Imported,
                     createdAt = Instant.now(),
                     updatedAt = Instant.now()

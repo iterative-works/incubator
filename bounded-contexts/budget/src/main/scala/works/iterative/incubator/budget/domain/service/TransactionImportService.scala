@@ -226,10 +226,10 @@ final case class TransactionImportServiceLive(
         accountId: AccountId,
         startDate: LocalDate,
         endDate: LocalDate,
-        importBatchId: ImportBatchId // Not used, but kept for backward compatibility
+        importBatchId: ImportBatchId
     ): ZIO[Any, TransactionImportError, List[Transaction]] =
         bankTransactionService
-            .fetchTransactions(accountId, startDate, endDate)
+            .fetchTransactions(accountId, startDate, endDate, importBatchId)
             .mapError(err =>
                 BankApiError(
                     s"Failed to fetch transactions from bank: ${err.getMessage}",

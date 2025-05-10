@@ -1,7 +1,6 @@
 package works.iterative.incubator.budget.ui.transaction_import.models
 
 import java.time.LocalDate
-import works.iterative.incubator.budget.domain.model.AccountId
 
 /** View model for the transaction import page.
   *

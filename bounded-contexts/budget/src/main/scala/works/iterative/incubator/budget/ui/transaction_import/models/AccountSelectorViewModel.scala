@@ -1,7 +1,5 @@
 package works.iterative.incubator.budget.ui.transaction_import.models
 
-import works.iterative.incubator.budget.domain.model.AccountId
-
 /** Represents a selectable account with display information.
   *
   * @param id

@@ -1,12 +1,11 @@
 package works.iterative.incubator.budget.ui.transaction_import
 
-import works.iterative.incubator.budget.domain.model.{AccountId, ImportBatch, ImportBatchId}
+import works.iterative.incubator.budget.domain.model.{AccountId, ImportBatchId}
 import works.iterative.incubator.budget.domain.service.*
 import works.iterative.incubator.budget.domain.service.TransactionImportError.*
 import works.iterative.incubator.budget.ui.transaction_import.models.*
-import java.time.{Instant, LocalDate}
+import java.time.LocalDate
 import zio.*
-import scala.util.Try
 
 // Import domain ImportStatus with a different name to avoid conflict
 import works.iterative.incubator.budget.domain.model.{ImportStatus => DomainImportStatus}
@@ -112,7 +111,7 @@ final case class TransactionImportPresenterLive(
         // Fields are validated, so we can safely use .get
         val startDate = startDateResult.get
         val endDate = endDateResult.get
-        val accountId = accountIdResult.right.get
+        val accountId = accountIdResult.getOrElse(throw new IllegalStateException("AccountId should be valid at this point"))
         
         // Execute the actual import
         processImport(accountId, startDate, endDate)

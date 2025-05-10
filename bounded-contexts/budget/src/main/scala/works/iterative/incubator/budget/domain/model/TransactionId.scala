@@ -1,7 +1,5 @@
 package works.iterative.incubator.budget.domain.model
 
-import java.util.UUID
-
 /** Value object that uniquely identifies a transaction in the system. Uses a composite natural
   * identifier that combines the source account identifier and the bank's transaction identifier for
   * better traceability and deduplication.

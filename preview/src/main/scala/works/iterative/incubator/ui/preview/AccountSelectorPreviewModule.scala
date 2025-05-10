@@ -4,7 +4,6 @@ import works.iterative.tapir.BaseUri
 import scalatags.Text.all.*
 import zio.*
 import works.iterative.incubator.budget.ui.transaction_import.models.AccountSelectorViewModel
-import works.iterative.incubator.budget.ui.transaction_import.models.AccountOption
 import works.iterative.incubator.budget.ui.transaction_import.components.AccountSelector
 
 /** Preview module for the AccountSelector component
