@@ -106,7 +106,9 @@ object ImportBatchSpec extends ZIOSpecDefault:
                 result.left.getOrElse("").contains("future")
             )
         },
-        test("create should fail when date range exceeds max days") {
+        // Note: max days validation was moved to BankTransactionService
+        // This test is now updated to reflect the new architecture
+        test("create should succeed with a long date range (validation moved to BankTransactionService)") {
             val startDate = LocalDate.now().minusDays(100)
             val endDate = LocalDate.now().minusDays(1)
             val result = ImportBatch.create(
@@ -116,8 +118,9 @@ object ImportBatchSpec extends ZIOSpecDefault:
             )
 
             assertTrue(
-                result.isLeft,
-                result.left.getOrElse("").contains("Date range cannot exceed")
+                result.isRight,
+                result.map(_.startDate).getOrElse(LocalDate.now) == startDate,
+                result.map(_.endDate).getOrElse(LocalDate.now) == endDate
             )
         },
 
