@@ -3,7 +3,7 @@ package works.iterative.incubator.budget.domain.service
 import works.iterative.incubator.budget.domain.model.*
 import works.iterative.incubator.budget.domain.repository.*
 import works.iterative.incubator.budget.domain.service.TransactionImportError.*
-import java.time.{Instant, LocalDate}
+import java.time.LocalDate
 import zio.*
 
 /** Service for importing transactions from a bank into the system.
@@ -15,13 +15,11 @@ import zio.*
   * Layer: Domain
   */
 trait TransactionImportService:
-  /** Validates a date range based on business rules.
+  /** Validates a date range for a specific account based on bank-specific rules.
+    * This delegates validation to the appropriate bank transaction service.
     *
-    * Validation includes:
-    *   - Start date is not after end date
-    *   - Neither date is in the future
-    *   - Range is not more than 90 days (Fio Bank API limitation)
-    *
+    * @param accountId
+    *   The account ID to validate for
     * @param startDate
     *   The start date of the range
     * @param endDate
@@ -30,6 +28,24 @@ trait TransactionImportService:
     *   A ZIO effect that completes successfully if the date range is valid, or fails with an
     *   InvalidDateRange error if invalid
     */
+  def validateDateRange(
+      accountId: AccountId,
+      startDate: LocalDate,
+      endDate: LocalDate
+  ): ZIO[Any, TransactionImportError, Unit]
+
+  /** Validates a date range without account context.
+    *
+    * @deprecated Use validateDateRange(accountId, startDate, endDate) instead
+    * @param startDate
+    *   The start date of the range
+    * @param endDate
+    *   The end date of the range
+    * @return
+    *   A ZIO effect that completes successfully if the date range is valid, or fails with an
+    *   InvalidDateRange error if invalid
+    */
+  @deprecated("Use validateDateRange with accountId parameter instead", "2025.05")
   def validateDateRange(
       startDate: LocalDate,
       endDate: LocalDate
@@ -97,24 +113,26 @@ final case class TransactionImportServiceLive(
     bankTransactionService: BankTransactionService
 ) extends TransactionImportService:
 
+  /** Delegates date range validation to the bank transaction service.
+    * Each bank may have different validation rules based on the account.
+    */
+  override def validateDateRange(
+      accountId: AccountId,
+      startDate: LocalDate,
+      endDate: LocalDate
+  ): ZIO[Any, TransactionImportError, Unit] =
+    bankTransactionService.validateDateRangeForAccount(accountId, startDate, endDate)
+
+  /** Legacy validation method without account context.
+    *
+    * @deprecated Use validateDateRange with accountId parameter instead
+    */
+  @deprecated("Use validateDateRange with accountId parameter instead", "2025.05")
   override def validateDateRange(
       startDate: LocalDate,
       endDate: LocalDate
   ): ZIO[Any, TransactionImportError, Unit] =
-    if startDate == null || endDate == null then
-      ZIO.fail(InvalidDateRange("Both start and end dates are required"))
-    else if startDate.isAfter(endDate) then
-      ZIO.fail(InvalidDateRange("Start date cannot be after end date"))
-    else if startDate.isAfter(LocalDate.now) || endDate.isAfter(LocalDate.now) then
-      ZIO.fail(InvalidDateRange("Dates cannot be in the future"))
-    else if startDate.plusDays(ImportBatch.MaxDateRangeDays).isBefore(endDate) then
-      ZIO.fail(
-        InvalidDateRange(
-          s"Date range cannot exceed ${ImportBatch.MaxDateRangeDays} days (bank API limitation)"
-        )
-      )
-    else
-      ZIO.unit
+    bankTransactionService.validateDateRange(startDate, endDate)
 
   override def importTransactions(
       accountId: AccountId,
@@ -122,10 +140,12 @@ final case class TransactionImportServiceLive(
       endDate: LocalDate
   ): ZIO[Any, TransactionImportError, ImportBatch] =
     for
-      // Step 1: Validate the date range
-      _ <- validateDateRange(startDate, endDate)
+      // Step 1: Validate the date range through the bank service
+      // Use account-aware validation to apply bank-specific rules
+      _ <- validateDateRange(accountId, startDate, endDate)
 
       // Step 2: Create an import batch record
+      // We can safely create the batch since we've already validated the date range
       initialBatch <- ZIO
         .fromEither(ImportBatch.create(accountId, startDate, endDate))
         .mapError(msg => InvalidDateRange(msg))
@@ -197,8 +217,6 @@ final case class TransactionImportServiceLive(
     *   The start date of the range
     * @param endDate
     *   The end date of the range
-    * @param importBatchId
-    *   The ID of the current import batch
     * @return
     *   A ZIO effect that returns a list of transactions or an error
     */
@@ -206,11 +224,16 @@ final case class TransactionImportServiceLive(
       accountId: AccountId,
       startDate: LocalDate,
       endDate: LocalDate,
-      importBatchId: ImportBatchId
+      importBatchId: ImportBatchId // Not used, but kept for backward compatibility
   ): ZIO[Any, TransactionImportError, List[Transaction]] =
     bankTransactionService
       .fetchTransactions(accountId, startDate, endDate)
-      .mapError(err => BankApiError(s"Failed to fetch transactions from bank: ${err.getMessage}", Some(err)))
+      .mapError(err =>
+        BankApiError(
+          s"Failed to fetch transactions from bank: ${err.getMessage}",
+          Some(err)
+        )
+      )
       .flatMap { transactions =>
         if transactions.isEmpty then
           ZIO.fail(NoTransactionsFound(startDate, endDate))
@@ -237,14 +260,18 @@ final case class TransactionImportServiceLive(
         .mapError(msg => ImportBatchError(s"Failed to mark batch as failed: $msg", None))
       _ <- importBatchRepository
         .save(failedBatch)
-        .mapError(err => ImportBatchError(s"Failed to save failed batch status: $err", None))
+        .mapError(err =>
+          ImportBatchError(s"Failed to save failed batch status: $err", None)
+        )
     yield failedBatch
 
 /** Companion object for TransactionImportService.
   */
 object TransactionImportService:
-  /** Validates a date range based on business rules.
+  /** Validates a date range for a specific account based on bank-specific business rules.
     *
+    * @param accountId
+    *   The account ID to validate for
     * @param startDate
     *   The start date of the range
     * @param endDate
@@ -253,6 +280,25 @@ object TransactionImportService:
     *   A ZIO effect that requires TransactionImportService and completes successfully if the date
     *   range is valid, or fails with an InvalidDateRange error if invalid
     */
+  def validateDateRange(
+      accountId: AccountId,
+      startDate: LocalDate,
+      endDate: LocalDate
+  ): ZIO[TransactionImportService, TransactionImportError, Unit] =
+    ZIO.serviceWithZIO(_.validateDateRange(accountId, startDate, endDate))
+
+  /** Validates a date range without account context.
+    *
+    * @deprecated Use validateDateRange with accountId parameter instead
+    * @param startDate
+    *   The start date of the range
+    * @param endDate
+    *   The end date of the range
+    * @return
+    *   A ZIO effect that requires TransactionImportService and completes successfully if the date
+    *   range is valid, or fails with an InvalidDateRange error if invalid
+    */
+  @deprecated("Use validateDateRange with accountId parameter instead", "2025.05")
   def validateDateRange(
       startDate: LocalDate,
       endDate: LocalDate
@@ -307,10 +353,14 @@ object TransactionImportService:
   /** Creates a live implementation of TransactionImportService.
     *
     * @return
-    *   A ZLayer that requires TransactionRepository, ImportBatchRepository, and BankTransactionService, and
-    *   provides a TransactionImportService
+    *   A ZLayer that requires TransactionRepository, ImportBatchRepository, and
+    *   BankTransactionService, and provides a TransactionImportService
     */
-  val live: ZLayer[TransactionRepository & ImportBatchRepository & BankTransactionService, Nothing, TransactionImportService] =
+  val live: ZLayer[
+    TransactionRepository & ImportBatchRepository & BankTransactionService,
+    Nothing,
+    TransactionImportService
+  ] =
     ZLayer {
       for
         transactionRepository <- ZIO.service[TransactionRepository]

@@ -26,9 +26,8 @@ import java.time.{Instant, LocalDate}
   *   When this import batch record was created
   * @param updatedAt
   *   When this import batch record was last updated
-  * 
-  * Category: Entity
-  * Layer: Domain
+  *
+  * Category: Entity Layer: Domain
   */
 case class ImportBatch(
     id: ImportBatchId,
@@ -117,10 +116,9 @@ case class ImportBatch(
 end ImportBatch
 
 object ImportBatch:
-    /** Maximum allowed date range for import in days */
-    val MaxDateRangeDays = 90
-
-    /** Creates a new import batch with validation.
+    /** Creates a new import batch with basic validation. Note: Date range validation should be done
+      * with BankTransactionService.validateDateRange() before calling this method, as different
+      * banks have different date range constraints.
       *
       * @param accountId
       *   ID of the source account
@@ -136,7 +134,7 @@ object ImportBatch:
         startDate: LocalDate,
         endDate: LocalDate
     ): Either[String, ImportBatch] =
-        // Input validation
+        // Basic input validation
         if accountId == null then
             Left("Account ID must not be null")
         else if startDate == null then
@@ -147,8 +145,6 @@ object ImportBatch:
             Left("Start date cannot be after end date")
         else if startDate.isAfter(LocalDate.now) || endDate.isAfter(LocalDate.now) then
             Left("Dates cannot be in the future")
-        else if startDate.plusDays(MaxDateRangeDays).isBefore(endDate) then
-            Left(s"Date range cannot exceed $MaxDateRangeDays days")
         else
             val now = Instant.now
             val id = ImportBatchId.generate()

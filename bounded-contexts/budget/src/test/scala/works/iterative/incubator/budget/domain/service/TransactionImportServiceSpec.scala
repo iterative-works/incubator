@@ -31,7 +31,7 @@ object TransactionImportServiceSpec extends ZIOSpecDefault:
         today <- ZIO.succeed(LocalDate.now)
         startDate = today.minusDays(7)
         endDate = today
-        result <- TransactionImportService.validateDateRange(startDate, endDate).exit
+        result <- TransactionImportService.validateDateRange(testAccountId, startDate, endDate).exit
       yield assert(result)(succeeds(isUnit))
     },
 
@@ -40,7 +40,7 @@ object TransactionImportServiceSpec extends ZIOSpecDefault:
         today <- ZIO.succeed(LocalDate.now)
         endDate = today.minusDays(7)
         startDate = today
-        result <- TransactionImportService.validateDateRange(startDate, endDate).exit
+        result <- TransactionImportService.validateDateRange(testAccountId, startDate, endDate).exit
       yield assert(result)(fails(isSubtype[InvalidDateRange](anything)))
     },
 
@@ -49,16 +49,17 @@ object TransactionImportServiceSpec extends ZIOSpecDefault:
         today <- ZIO.succeed(LocalDate.now)
         startDate = today
         endDate = today.plusDays(1)
-        result <- TransactionImportService.validateDateRange(startDate, endDate).exit
+        result <- TransactionImportService.validateDateRange(testAccountId, startDate, endDate).exit
       yield assert(result)(fails(isSubtype[InvalidDateRange](anything)))
     },
 
-    test("should fail when range exceeds max days") {
+    test("should fail when range exceeds max days for the account's bank type") {
       for
         today <- ZIO.succeed(LocalDate.now)
+        // Create a date range that exceeds the max days (90 days for Fio Bank)
         startDate = today.minusDays(100)
         endDate = today
-        result <- TransactionImportService.validateDateRange(startDate, endDate).exit
+        result <- TransactionImportService.validateDateRange(testAccountId, startDate, endDate).exit
       yield assert(result)(fails(isSubtype[InvalidDateRange](anything)))
     }
   ).provide(

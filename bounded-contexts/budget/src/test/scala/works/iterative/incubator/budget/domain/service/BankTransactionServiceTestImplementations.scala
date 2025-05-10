@@ -1,6 +1,8 @@
 package works.iterative.incubator.budget.domain.service
 
 import works.iterative.incubator.budget.domain.model.*
+import works.iterative.incubator.budget.domain.service.TransactionImportError
+import works.iterative.incubator.budget.domain.service.TransactionImportError.InvalidDateRange
 import java.time.{Instant, LocalDate}
 import java.util.Currency
 import zio.*
@@ -39,6 +41,46 @@ object TestBankTransactionService:
 object FioBankServiceNormal:
   val layer: ULayer[BankTransactionService] = ZLayer.succeed(
     new BankTransactionService {
+      /** Maximum allowed date range by bank type */
+      val MaxDateRangeDays = Map(
+        "fio" -> 90,
+        "mock" -> 45,
+        "default" -> 30
+      )
+
+      /** Bank-specific date validation based on account ID */
+      override protected def validateBankSpecificDateRange(
+          accountId: AccountId,
+          startDate: LocalDate,
+          endDate: LocalDate
+      ): ZIO[Any, TransactionImportError, Unit] =
+        // Get the max days based on bank ID
+        val maxDays = MaxDateRangeDays.getOrElse(accountId.bankId, MaxDateRangeDays("default"))
+
+        if startDate.plusDays(maxDays).isBefore(endDate) then
+          ZIO.fail(InvalidDateRange(
+            s"Date range cannot exceed $maxDays days (${accountId.bankId} bank limitation)"
+          ))
+        else
+          ZIO.unit
+
+      /** Legacy validation method for backward compatibility */
+      @deprecated("Use validateDateRangeForAccount instead", "2025.05")
+      override def validateDateRange(
+          startDate: LocalDate,
+          endDate: LocalDate
+      ): ZIO[Any, TransactionImportError, Unit] =
+        // Use default validation with fixed max days for backward compatibility
+        super.validateDateRange(startDate, endDate).flatMap { _ =>
+          val defaultMaxDays = 90 // Fio Bank's limit
+          if startDate.plusDays(defaultMaxDays).isBefore(endDate) then
+            ZIO.fail(InvalidDateRange(
+              s"Date range cannot exceed $defaultMaxDays days (test bank limitation)"
+            ))
+          else
+            ZIO.unit
+        }
+
       override def fetchTransactions(
           accountId: AccountId,
           startDate: LocalDate,
@@ -53,6 +95,13 @@ object FioBankServiceNormal:
 object FioBankServiceEmpty:
   val layer: ULayer[BankTransactionService] = ZLayer.succeed(
     new BankTransactionService {
+      /** Bank-specific validation is just using default implementation for empty test */
+      override protected def validateBankSpecificDateRange(
+          accountId: AccountId,
+          startDate: LocalDate,
+          endDate: LocalDate
+      ): ZIO[Any, TransactionImportError, Unit] = ZIO.unit
+
       override def fetchTransactions(
           accountId: AccountId,
           startDate: LocalDate,
@@ -67,6 +116,13 @@ object FioBankServiceEmpty:
 object FioBankServiceError:
   val layer: ULayer[BankTransactionService] = ZLayer.succeed(
     new BankTransactionService {
+      /** Bank-specific validation is just using default implementation for error test */
+      override protected def validateBankSpecificDateRange(
+          accountId: AccountId,
+          startDate: LocalDate,
+          endDate: LocalDate
+      ): ZIO[Any, TransactionImportError, Unit] = ZIO.unit
+
       override def fetchTransactions(
           accountId: AccountId,
           startDate: LocalDate,
