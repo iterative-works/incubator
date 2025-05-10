@@ -21,9 +21,11 @@ object TransactionImportPresenterLiveSpec extends ZIOSpecDefault:
     test("should get initial view model") {
       for
         viewModel <- TransactionImportPresenter.getImportViewModel()
-      yield assert(viewModel.importStatus)(equalTo(ImportStatus.NotStarted)) &&
-        assert(viewModel.startDate)(equalTo(LocalDate.now().withDayOfMonth(1))) &&
-        assert(viewModel.endDate)(equalTo(LocalDate.now()))
+      yield assertTrue(
+        viewModel.importStatus == ImportStatus.NotStarted,
+        viewModel.startDate == LocalDate.now().withDayOfMonth(1),
+        viewModel.endDate == LocalDate.now()
+      )
     },
 
     test("should validate form with valid data") {
@@ -51,10 +53,10 @@ object TransactionImportPresenterLiveSpec extends ZIOSpecDefault:
           endDate = endDate.format(formatter)
         )
         result <- TransactionImportPresenter.validateAndProcess(command)
-      yield {
-        assert(result.isLeft)(isTrue) &&
-        assert(result.left.toOption.flatMap(_.errors.get("dateRange")).isDefined)(isTrue)
-      }
+      yield assertTrue(
+        result.isLeft,
+        result.left.toOption.flatMap(_.errors.get("dateRange")).isDefined
+      )
     },
     
     test("should validate form with invalid account id") {
@@ -68,10 +70,10 @@ object TransactionImportPresenterLiveSpec extends ZIOSpecDefault:
           endDate = endDate.format(formatter)
         )
         result <- TransactionImportPresenter.validateAndProcess(command)
-      yield {
-        assert(result.isLeft)(isTrue) &&
-        assert(result.left.toOption.flatMap(_.errors.get("accountId")).isDefined)(isTrue)
-      }
+      yield assertTrue(
+        result.isLeft,
+        result.left.toOption.flatMap(_.errors.get("accountId")).isDefined
+      )
     },
 
     test("should process import with valid data") {
@@ -85,10 +87,10 @@ object TransactionImportPresenterLiveSpec extends ZIOSpecDefault:
           endDate = endDate.format(formatter)
         )
         result <- TransactionImportPresenter.validateAndProcess(command)
-      yield assert(result.isRight)(isTrue) &&
-        assert(result.toOption.map(_.transactionCount).getOrElse(0))(
-          equalTo(TestBankTransactionService.TestTransactionCount)
-        )
+      yield assertTrue(
+        result.isRight,
+        result.toOption.map(_.transactionCount).getOrElse(0) == TestBankTransactionService.TestTransactionCount
+      )
     },
 
     test("should get import status") {
