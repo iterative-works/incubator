@@ -118,19 +118,34 @@ Scenario: Handle Fio Bank API connection failure
    - Include audit logging for all token access operations
 
 ### API Endpoints
-Based on the existing FioClient implementation:
+Based on the existing FioClient implementation and Fio Bank API v1.0.0:
 
 1. Date Range Endpoint: `/periods/${token}/${dateFrom}/${dateTo}/transactions.json`
    - For retrieving transactions within a specific date range
    - Example URL: `https://fioapi.fio.cz/v1/rest/periods/TOKEN/2025-04-01/2025-04-15/transactions.json`
+   - Date format must be YYYY-MM-DD
 
 2. New Transactions Endpoint: `/last/${token}/transactions.json`
    - For retrieving all new transactions since the last fetch
    - Example URL: `https://fioapi.fio.cz/v1/rest/last/TOKEN/transactions.json`
+   - The API automatically handles tracking the last seen transaction
 
 3. Set Last Date Endpoint: `/set-last-date/${token}/${date}/`
    - For setting a bookmark date for future transaction fetching
    - Example URL: `https://fioapi.fio.cz/v1/rest/set-last-date/TOKEN/2025-04-15/`
+   - Useful for forcing the API to only return transactions after a certain date
+
+### API Error Handling
+
+The Fio API can return various HTTP status codes that need to be handled:
+
+1. `200 OK` - Successful response
+2. `409 Conflict` - Rate limiting error (too many requests)
+3. `400 Bad Request` - Invalid parameters
+4. `401 Unauthorized` - Invalid token
+5. `500 Internal Server Error` - Server-side error
+
+Rate limiting is particularly important - the API allows only 1 request per 30 seconds per token. Our implementation must include appropriate retry mechanisms with backoff.
 
 ### API Response Structure
 ```json
@@ -167,17 +182,33 @@ Based on the existing FioClient implementation:
 ```
 
 ### Column Mapping
-The following are the key fields from the Fio Bank API that need to be mapped to our domain model:
+The following are the fields from the Fio Bank API that need to be mapped to our domain model:
 
-| Column ID | Fio Field Name | Maps To Domain Field |
-|-----------|----------------|-----------------------|
-| 0 | Datum | Transaction.date |
-| 1 | Objem | Transaction.amount |
-| 2 | Protiúčet | Transaction.counterAccount |
-| 10 | Název protiúčtu | Transaction.counterparty |
-| 8 | Typ | Part of Transaction.description |
-| 25 | Komentář | Part of Transaction.description |
-| 22 | ID pohybu | Used to generate Transaction.id |
+| Column ID | Fio Field Name | Data Type | Maps To Domain Field | Notes |
+|-----------|----------------|-----------|----------------------|-------|
+| 0 | Datum | String | Transaction.date | Format: "YYYY-MM-DD+HHMM", requires parsing |
+| 1 | Objem | Number | Transaction.amount | Transaction amount (can be positive or negative) |
+| 2 | Protiúčet | String | Transaction.counterAccount | Counter account number (may be empty) |
+| 3 | Kód banky | String | Part of Transaction.counterAccount | Bank code to append to counter account |
+| 4 | KS | String | Transaction.reference | Constant symbol |
+| 5 | VS | String | Transaction.reference | Variable symbol |
+| 6 | SS | String | Transaction.reference | Specific symbol |
+| 7 | Uživatelská identifikace | String | - | User identification (optional) |
+| 8 | Typ | String | Part of Transaction.description | Transaction type description |
+| 10 | Název protiúčtu | String | Transaction.counterparty | Counter account name |
+| 12 | Název banky | String | - | Bank name (optional) |
+| 14 | Měna | String | Transaction.amount.currency | Currency code (e.g., "CZK") |
+| 17 | ID pokynu | Number | - | Instruction ID (optional) |
+| 22 | ID pohybu | Number | Used to generate Transaction.id | Unique transaction identifier |
+| 25 | Komentář | String | Part of Transaction.description | Comment/memo field (optional) |
+| 26 | BIC | String | - | BIC/SWIFT code (optional) |
+
+Notes:
+- Some columns may be missing for certain transaction types
+- The implementation should handle null/empty values appropriately
+- Multiple reference fields (KS, VS, SS) might need to be combined
+- The transaction description should typically combine columns 8 (type) and 25 (comment)
+- Date values need to be parsed from the format with timezone offset
 
 ## Implementation Structure
 The implementation should consist of the following components:
@@ -207,6 +238,9 @@ The implementation should consist of the following components:
    - Adapt data models from existing `FioCodecs` implementation
    - Maps Fio transaction format to domain Transaction model
    - Handles currency conversion and date formatting
+   - Processes different column data types (String, Number, Date)
+   - Handles potentially missing or null column values
+   - Combines multiple fields for references and descriptions
 
 6. **FioBankTransactionService** - Adapter implementing BankTransactionService
    - Uses FioApiClient to fetch data
@@ -234,10 +268,36 @@ The implementation should consist of the following components:
 
 ## Test Plan
 1. Unit tests for FioApiClient with mocked HTTP responses
+   - Test different API endpoints
+   - Test error handling for different HTTP response codes
+   - Test rate limiting behavior
+   - Test timeout handling
+
 2. Unit tests for FioTokenManager with mock encryption
+   - Test token retrieval and caching
+   - Test encryption/decryption functionality
+   - Test error handling for missing tokens
+   - Test audit logging functionality
+
 3. Unit tests for FioMappers with example JSON data
-4. Unit tests for FioTransactionService with mocked client
+   - Test mapping with complete transaction data
+   - Test mapping with missing optional fields
+   - Test date parsing with different formats and timezones
+   - Test reference field combination
+   - Test description field generation
+
+4. Unit tests for FioBankTransactionService with mocked client
+   - Test successful transaction import
+   - Test empty transaction list handling
+   - Test error propagation
+   - Test date range validation
+   - Test proper error transformation to domain errors
+
 5. Integration tests with the real Fio Bank API (conditionally run when credentials are available)
+   - Test with real API responses
+   - Test with real tokens
+   - Test real data mapping to domain models
+   - Verify rate limiting handling
 
 ## Estimated Effort
 - 1 day for initial implementation
