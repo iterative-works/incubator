@@ -39,7 +39,7 @@ Before we begin implementation, let's set up our working environment:
   - Uses appropriate database indices for optimized queries
   - Follows functional programming principles with ZIO effect management
   - Includes comprehensive database schema migration scripts
-- **Implementation Guide**:
+- **Implementation Guide** - these guides are in obsidian vault, use get_vault_file to retrieve these, and please do:
   - [Repository Implementation Guide](/+Encounters/architecture/guides/repository_implementation_guide.md) - For domain-driven repository implementation
   - [Repository Interface Implementation Guide](/+Encounters/architecture/guides/repository_interface_implementation_guide.md) - For repository interfaces design
 
@@ -114,11 +114,11 @@ CREATE TABLE transactions (
   FOREIGN KEY (import_batch_id) REFERENCES import_batches(id)
 );
 
-CREATE INDEX idx_transactions_source_account_date 
+CREATE INDEX idx_transactions_source_account_date
   ON transactions(source_account_id, transaction_date);
-CREATE INDEX idx_transactions_import_batch 
+CREATE INDEX idx_transactions_import_batch
   ON transactions(import_batch_id);
-CREATE INDEX idx_transactions_status 
+CREATE INDEX idx_transactions_status
   ON transactions(status);
 ```
 
@@ -138,11 +138,11 @@ CREATE TABLE import_batches (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
-CREATE INDEX idx_import_batches_account_id 
+CREATE INDEX idx_import_batches_account_id
   ON import_batches(account_id);
-CREATE INDEX idx_import_batches_dates 
+CREATE INDEX idx_import_batches_dates
   ON import_batches(start_date, end_date);
-CREATE INDEX idx_import_batches_status 
+CREATE INDEX idx_import_batches_status
   ON import_batches(status);
 ```
 
