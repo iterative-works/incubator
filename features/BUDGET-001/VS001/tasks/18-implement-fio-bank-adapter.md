@@ -1,49 +1,45 @@
-# Task 18: Implement Fio Bank Infrastructure Adapter
+# BDD-Driven Implementation Step: Implement Fio Bank Infrastructure Adapter
 
-## Component Type
-Infrastructure Adapter
+As my AI development partner, I need your help implementing step 18: Implement Fio Bank Infrastructure Adapter from our feature implementation plan for BUDGET-001-VS001.
 
-## Component Name
-`FioBankTransactionService`
+## Workflow Setup
+Before we begin implementation, let's set up our working environment:
 
-## Package Location
-`works.iterative.incubator.budget.infrastructure.adapter.fio`
+1. **Branch Management**:
+   - Check if a branch named `feature/BUDGET-001-VS001-step18` already exists
+   - If it doesn't exist, create this branch from the branch `feature/BUDGET-001-VS001`
+   - Switch to this branch for our implementation
 
-## Purpose
-Create an infrastructure adapter that connects to the Fio Bank API, fetches transactions for a given date range, and transforms them into our domain model. This component will implement the `BankTransactionService` interface and provide Fio Bank-specific functionality.
+## Component Details
 
-## Key Behaviors
-1. Validate date ranges according to Fio Bank constraints (maximum 90 days)
-2. Connect to the Fio Bank API using proper authentication
-3. Fetch transactions for a specified date range
-4. Transform Fio Bank API responses into domain `Transaction` models
-5. Handle API errors and transform them into domain-specific errors
-6. Support secure token storage and management for account-specific tokens
-
-## Dependencies
-1. `BankTransactionService` interface (domain service)
-2. `Transaction` domain model
-3. `AccountId` domain model
-4. `ImportBatchId` domain model
-5. `TransactionImportError` error model
-6. STTP library for HTTP requests
-7. zio-json library for JSON processing
-
-## Acceptance Criteria
-1. Successfully validates date ranges according to Fio Bank rules (max 90 days)
-2. Properly connects to Fio Bank API with authentication
-3. Correctly translates Fio Bank transaction data to domain model
-4. Handles and appropriately transforms all API errors
-5. Securely manages account-specific API tokens
-6. Follows functional programming principles with ZIO effect management
-7. Includes proper logging and error reporting
-
-## Implementation Guide
-Follow the Ports and Adapters pattern with a focus on:
-1. Clean separation between API client (technical concerns) and service adapter (domain translation)
-2. Pure functional approach with explicit error handling via ZIO effects
-3. Secure handling of sensitive credentials with account-specific tokens
-4. Thorough error mapping from API-level to domain-level errors
+- **Component Type**: Infrastructure Adapter
+- **Component Name**: `FioBankTransactionService`
+- **Package Location**: `works.iterative.incubator.budget.infrastructure.adapter.fio` in `bounded-contexts/budget`
+- **Purpose**: Create an infrastructure adapter that connects to the Fio Bank API, fetches transactions for a given date range, and transforms them into our domain model. This component will implement the `BankTransactionService` interface and provide Fio Bank-specific functionality.
+- **Key Behaviors**:
+  - Validate date ranges according to Fio Bank constraints (maximum 90 days)
+  - Connect to the Fio Bank API using proper authentication
+  - Fetch transactions for a specified date range
+  - Transform Fio Bank API responses into domain `Transaction` models
+  - Handle API errors and transform them into domain-specific errors
+  - Support secure token storage and management for account-specific tokens
+- **Dependencies**:
+  - `BankTransactionService` interface (domain service)
+  - `Transaction` domain model
+  - `AccountId` domain model
+  - `ImportBatchId` domain model
+  - `TransactionImportError` error model
+  - STTP library for HTTP requests
+  - zio-json library for JSON processing
+- **Acceptance Criteria**:
+  - Successfully validates date ranges according to Fio Bank rules (max 90 days)
+  - Properly connects to Fio Bank API with authentication
+  - Correctly translates Fio Bank transaction data to domain model
+  - Handles and appropriately transforms all API errors
+  - Securely manages account-specific API tokens
+  - Follows functional programming principles with ZIO effect management
+  - Includes proper logging and error reporting
+- **Implementation Guide**: Ports and Adapters pattern with functional core & clean separation
 
 ## Reference Implementation
 We have existing Fio client code that can be leveraged for this implementation:
@@ -59,8 +55,10 @@ We have existing Fio client code that can be leveraged for this implementation:
    - Defines the data model for API responses
    - Handles various value types in the transaction data
 
-## Relevant Scenarios
+## Supported Scenarios
+
 This component supports these scenarios from the feature file:
+
 ```gherkin
 Scenario: Successfully import transactions for a date range
   Given I am on the transaction import page
@@ -94,7 +92,33 @@ Scenario: Handle Fio Bank API connection failure
   And the import should not be recorded in the import history
 ```
 
+## Implementation Requirements
+
+### Domain Model Requirements
+| Component | Behavior | Connected Scenarios |
+|-----------|----------|---------------------|
+| FioBankTransactionService | Connect to Fio Bank API | All scenarios |
+| FioBankTransactionService | Validate date ranges | All scenarios |
+| FioBankTransactionService | Map API responses to domain model | All scenarios |
+| FioBankTransactionService | Handle errors appropriately | "Error during import" scenario |
+| FioTokenManager | Secure token storage and retrieval | All scenarios |
+| FioMappers | Transform API data to domain objects | All scenarios |
+
+### External System Interactions
+| System | Endpoint | Purpose | Connection Method |
+|--------|----------|---------|------------------|
+| Fio Bank API | `/periods/${token}/${dateFrom}/${dateTo}/transactions.json` | Fetch transactions for date range | HTTPS GET request |
+| Fio Bank API | `/last/${token}/transactions.json` | Fetch new transactions | HTTPS GET request |
+| Fio Bank API | `/set-last-date/${token}/${date}/` | Set bookmark date | HTTPS GET request |
+
+### Implementation Risks and Considerations
+- Rate limiting: Fio API allows only 1 request per 30 seconds per token
+- Token security: Must encrypt sensitive API tokens
+- Error handling: Different HTTP status codes must be properly handled
+- Missing data: Some fields may be missing in the API response
+
 ## Technical Details
+
 ### Token Storage
 1. **Account-specific Token Management**:
    - Store tokens in a separate `fio_account` table with a relationship to source accounts
@@ -259,14 +283,7 @@ The implementation should consist of the following components:
    - Concrete implementation with all dependencies
    - ZLayer for providing the service
 
-## Security Considerations
-1. Secure token storage with encryption
-2. No hardcoded credentials in code
-3. Account-specific token management
-4. Detailed audit logging for API access
-5. Proper error handling to avoid exposing sensitive information
-
-## Test Plan
+## Test Considerations
 1. Unit tests for FioApiClient with mocked HTTP responses
    - Test different API endpoints
    - Test error handling for different HTTP response codes
@@ -299,6 +316,19 @@ The implementation should consist of the following components:
    - Test real data mapping to domain models
    - Verify rate limiting handling
 
+## Current Project State
+
+We have already implemented the domain model entities and interfaces, as well as mock implementations for testing UI components. This implementation will replace the mock implementation with a real adapter that connects to the Fio Bank API.
+
+## Implementation Plan
+
+1. Create a new package `works.iterative.incubator.budget.infrastructure.adapter.fio`
+2. Implement all required components following the structure outlined above
+3. Ensure all security considerations are properly addressed
+4. Add comprehensive unit tests
+5. Verify integration with existing components
+6. Update documentation
+
 ## Estimated Effort
 - 1 day for initial implementation
 - 0.5 day for token management implementation
@@ -311,3 +341,12 @@ The implementation should consist of the following components:
 3. Integrate with the transaction import UI components
 4. Implement error handling in the UI
 5. Set up proper logging and monitoring
+
+## Expected worfklow
+
+1. Setup the branch
+2. Implement the changes in the task description
+3. Make sure compilation works with `sbtn compile` and fix any errors
+4. Make sure tests work with `sbtn test` and fix any errors
+5. Make sure there are no warnings with `sbtn printWarnings` and fix these, if any
+6. Reformat the code using `sbt scalafmtAll`
