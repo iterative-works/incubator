@@ -8,7 +8,7 @@
 | 2. UI Prototype Implementation | Completed | Team | 2025-05-02 | 2025-05-04 | 2025-05-04 |
 | 3. User Experience Validation | Completed | Team | 2025-05-05 | 2025-05-05 | 2025-05-05 |
 | 4. Domain Discovery & Implementation | Completed | Team | 2025-05-06 | 2025-05-08 | 2025-05-06 |
-| 5. Infrastructure Implementation | Not Started | Team | - | - | - |
+| 5. Infrastructure Implementation | In Progress | Team | 2025-05-12 | 2025-05-15 | - |
 | 6. End-to-End Integration | Not Started | Team | - | - | - |
 | 7. Testing & Refinement | Not Started | Team | - | - | - |
 
@@ -16,9 +16,9 @@
 
 | Scenario | UI | Validation | Domain | Infrastructure | E2E Testing | Status |
 |----------|----|-----------:|--------|---------------|-------------|--------|
-| Successful import of transactions from Fio Bank | ✅ | ❌ | ❌ | ❌ | ❌ | UI Completed |
-| Import with no new transactions | ✅ | ❌ | ❌ | ❌ | ❌ | UI Completed |
-| Error during import from Fio Bank | ✅ | ❌ | ❌ | ❌ | ❌ | UI Completed |
+| Successful import of transactions from Fio Bank | ✅ | ❌ | ✅ | ❌ | ❌ | Domain Implementation |
+| Import with no new transactions | ✅ | ❌ | ✅ | ❌ | ❌ | Domain Implementation |
+| Error during import from Fio Bank | ✅ | ❌ | ✅ | ❌ | ❌ | Domain Implementation |
 
 ## Current Blocking Issues
 
@@ -34,11 +34,14 @@
 4. ✅ Create mock import service with test data - Team - 2025-05-04
 5. ✅ Implement HTTP endpoints for UI interactions - Team - 2025-05-04
 6. ✅ Schedule initial user feedback session - Team - 2025-05-05
-7. Define domain entities and value objects - Team - 2025-05-06
-8. Implement TransactionImportService - Team - 2025-05-06
-9. Create FioBankService interface - Team - 2025-05-07
-10. Define repository interfaces - Team - 2025-05-07
-11. Write domain-level tests - Team - 2025-05-08
+7. ✅ Define domain entities and value objects - Team - 2025-05-06
+8. ✅ Implement TransactionImportService - Team - 2025-05-06
+9. ✅ Create FioBankService interface - Team - 2025-05-07
+10. ✅ Define repository interfaces - Team - 2025-05-07
+11. ✅ Write domain-level tests - Team - 2025-05-08
+12. Implement Fio Bank infrastructure adapter - Team - 2025-05-12
+13. Implement repository interfaces for transactions and import batches - Team - 2025-05-13
+14. Implement end-to-end integration - Team - 2025-05-14
 
 ## UI Prototype Implementation Checklist
 
