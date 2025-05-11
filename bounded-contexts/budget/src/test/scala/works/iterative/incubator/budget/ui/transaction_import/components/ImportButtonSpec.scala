@@ -4,7 +4,6 @@ import zio.test.*
 import zio.test.Assertion.*
 import works.iterative.incubator.budget.ui.transaction_import.models.ImportButtonViewModel
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import works.iterative.incubator.budget.ui.transaction_import.components.ImportButton.render
 
 /** Tests for the ImportButton component.
@@ -38,8 +37,8 @@ object ImportButtonSpec extends ZIOSpecDefault:
             val startDate = LocalDate.of(2025, 3, 1)
             val endDate = LocalDate.of(2025, 3, 31)
             val viewModel = ImportButtonViewModel(
-                isEnabled = true,  // Note: isEnabled is now ignored
-                isLoading = true,  // isLoading=true causes isDisabled=true
+                isEnabled = true, // Note: isEnabled is now ignored
+                isLoading = true, // isLoading=true causes isDisabled=true
                 accountId = Some("0100-1234567890"),
                 startDate = startDate,
                 endDate = endDate
@@ -50,7 +49,7 @@ object ImportButtonSpec extends ZIOSpecDefault:
 
             // Then it should have the correct attributes and classes for disabled state
             val result1 = assert(rendered)(containsString("Importing..."))
-            // Disabled styling is applied through Tailwind's disabled: pseudo-class 
+            // Disabled styling is applied through Tailwind's disabled: pseudo-class
             // which is part of the class attribute but only applies when disabled attribute is present
             val result2 = assert(rendered)(containsString("disabled:bg-gray-300"))
             val result3 = assert(rendered)(containsString("disabled=\"disabled\""))

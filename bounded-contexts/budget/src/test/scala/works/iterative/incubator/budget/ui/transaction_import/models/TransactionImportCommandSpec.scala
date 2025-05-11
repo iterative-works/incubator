@@ -2,7 +2,6 @@ package works.iterative.incubator.budget.ui.transaction_import.models
 
 import zio.test.*
 import java.time.LocalDate
-import scala.util.Success
 
 /** Test suite for TransactionImportCommand.
   *

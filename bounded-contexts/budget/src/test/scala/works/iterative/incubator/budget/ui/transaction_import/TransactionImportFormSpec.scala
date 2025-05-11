@@ -2,7 +2,6 @@ package works.iterative.incubator.budget.ui.transaction_import
 
 import works.iterative.incubator.budget.ui.transaction_import.models.*
 import works.iterative.incubator.budget.ui.transaction_import.components.*
-import works.iterative.incubator.budget.domain.model.AccountId
 import zio.test.*
 import java.time.{Instant, LocalDate}
 import java.time.temporal.ChronoUnit
