@@ -6,8 +6,8 @@ import zio.*
 import works.iterative.incubator.budget.ui.transaction_import.models.AccountSelectorViewModel
 import works.iterative.incubator.budget.ui.transaction_import.components.AccountSelector
 
-/** Preview module for the AccountSelector component
-  * Shows the component in various states for testing and development
+/** Preview module for the AccountSelector component Shows the component in various states for
+  * testing and development
   */
 class AccountSelectorPreviewModule(
     val appShell: PreviewAppShell,
@@ -177,7 +177,9 @@ class AccountSelectorPreviewModule(
                                         cls := "bg-gray-100 p-4 rounded overflow-x-auto text-sm",
                                         code(
                                             s"""AccountSelectorViewModel(
-                                               |  accounts = ${state.viewModel.accounts.map(a => s"AccountOption(${a.id}, ${a.name})").mkString("[", ", ", "]")},
+                                               |  accounts = ${state.viewModel.accounts.map(a =>
+                                                  s"AccountOption(${a.id}, ${a.name})"
+                                              ).mkString("[", ", ", "]")},
                                                |  selectedAccountId = ${state.viewModel.selectedAccountId},
                                                |  validationError = ${state.viewModel.validationError}
                                                |)
@@ -215,7 +217,7 @@ class AccountSelectorPreviewModule(
                                     "Return to states list"
                                 )
                             )
-                    ),
+                ),
                 currentPath = currentPath
             )
         }

@@ -102,9 +102,10 @@ object StatusIndicator:
     private def statusContainerClass(viewModel: StatusIndicatorViewModel): String =
         viewModel.status match
             case ImportStatus.NotStarted => "bg-gray-100 text-gray-800"
-            case ImportStatus.InProgress => "bg-blue-100 text-blue-800 animate-pulse border-2 border-blue-500 shadow-md"
-            case ImportStatus.Completed  => "bg-green-100 text-green-800 border-2 border-green-500"
-            case ImportStatus.Error      => "bg-red-100 text-red-800 border-2 border-red-500"
+            case ImportStatus.InProgress =>
+                "bg-blue-100 text-blue-800 animate-pulse border-2 border-blue-500 shadow-md"
+            case ImportStatus.Completed => "bg-green-100 text-green-800 border-2 border-green-500"
+            case ImportStatus.Error     => "bg-red-100 text-red-800 border-2 border-red-500"
     end statusContainerClass
 
 end StatusIndicator

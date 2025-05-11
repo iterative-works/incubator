@@ -7,8 +7,7 @@ package works.iterative.incubator.budget.ui.transaction_import.models
   * @param globalErrors
   *   List of errors that apply to the entire form/command rather than specific fields
   *
-  * Category: Domain Model
-  * Layer: Domain
+  * Category: Domain Model Layer: Domain
   */
 case class ValidationErrors(
     errors: Map[String, String] = Map.empty,

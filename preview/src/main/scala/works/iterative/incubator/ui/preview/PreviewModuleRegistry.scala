@@ -49,25 +49,25 @@ class PreviewModuleRegistry(
             options = Http4sServerOptions.default,
             module = dateRangeSelectorPreviewModule
         )
-        
+
     private val importButtonWebModule =
         TapirWebModuleAdapter.adapt[PreviewEnv](
             options = Http4sServerOptions.default,
             module = importButtonPreviewModule
         )
-        
+
     private val resultsPanelWebModule =
         TapirWebModuleAdapter.adapt[PreviewEnv](
             options = Http4sServerOptions.default,
             module = resultsPanelPreviewModule
         )
-        
+
     private val statusIndicatorWebModule =
         TapirWebModuleAdapter.adapt[PreviewEnv](
             options = Http4sServerOptions.default,
             module = statusIndicatorPreviewModule
         )
-        
+
     private val accountSelectorWebModule =
         TapirWebModuleAdapter.adapt[PreviewEnv](
             options = Http4sServerOptions.default,

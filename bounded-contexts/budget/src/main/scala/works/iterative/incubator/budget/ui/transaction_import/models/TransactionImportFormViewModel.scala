@@ -3,8 +3,8 @@ package works.iterative.incubator.budget.ui.transaction_import.models
 import java.time.LocalDate
 import scala.util.Try
 
-/** View model for the transaction import form.
-  * Combines all form fields, validation state, and import results into a single cohesive model.
+/** View model for the transaction import form. Combines all form fields, validation state, and
+  * import results into a single cohesive model.
   *
   * @param accounts
   *   List of available accounts to choose from
@@ -25,8 +25,7 @@ import scala.util.Try
   * @param importResults
   *   Optional results of the import operation
   *
-  * Category: View Model
-  * Layer: UI/Presentation
+  * Category: View Model Layer: UI/Presentation
   */
 case class TransactionImportFormViewModel(
     // Form data
@@ -34,11 +33,11 @@ case class TransactionImportFormViewModel(
     selectedAccountId: Option[String] = None,
     startDate: LocalDate = LocalDate.now().withDayOfMonth(1),
     endDate: LocalDate = LocalDate.now(),
-    
+
     // Validation errors
     fieldErrors: Map[String, String] = Map.empty,
     globalError: Option[String] = None,
-    
+
     // State
     isSubmitting: Boolean = false,
     importStatus: ImportStatus = ImportStatus.NotStarted,
@@ -50,7 +49,7 @@ case class TransactionImportFormViewModel(
       *   true if there are field or global errors
       */
     def hasErrors: Boolean = fieldErrors.nonEmpty || globalError.isDefined
-    
+
     /** Updates the view model with validation errors.
       *
       * @param errors
@@ -63,9 +62,10 @@ case class TransactionImportFormViewModel(
             fieldErrors = errors.errors,
             globalError = errors.globalErrors.headOption,
             isSubmitting = false,
-            importStatus = ImportStatus.NotStarted // Reset status to not started when validation fails
+            importStatus =
+                ImportStatus.NotStarted // Reset status to not started when validation fails
         )
-        
+
     /** Updates the view model with import results.
       *
       * @param results
@@ -79,7 +79,7 @@ case class TransactionImportFormViewModel(
             importStatus = ImportStatus.Completed,
             isSubmitting = false
         )
-        
+
     /** Updates the view model with an error message.
       *
       * @param error
@@ -93,7 +93,7 @@ case class TransactionImportFormViewModel(
             importStatus = ImportStatus.Error,
             isSubmitting = false
         )
-        
+
     /** Updates the view model to indicate that form submission is in progress.
       *
       * @return
@@ -108,7 +108,7 @@ case class TransactionImportFormViewModel(
             globalError = None,
             fieldErrors = Map.empty
         )
-        
+
     /** Converts the view model to a domain command for validation and processing.
       *
       * @return
@@ -136,13 +136,14 @@ object TransactionImportFormViewModel:
             .getOrElse(LocalDate.now().withDayOfMonth(1))
         val endDate = Try(LocalDate.parse(formData.getOrElse("endDate", "")))
             .getOrElse(LocalDate.now())
-            
+
         TransactionImportFormViewModel(
             selectedAccountId = Option(formData.getOrElse("accountId", "")).filter(_.nonEmpty),
             startDate = startDate,
             endDate = endDate
         )
-    
+    end fromFormData
+
     /** Creates a view model with default values.
       *
       * @return

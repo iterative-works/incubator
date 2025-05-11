@@ -23,7 +23,10 @@ object DateRangeSelectorSpec extends ZIOSpecDefault:
             // Then it should contain expected elements
             val result1 = assert(rendered)(containsString("<input type=\"date\" id=\"startDate\""))
             val result2 = assert(rendered)(containsString("<input type=\"date\" id=\"endDate\""))
-            val result3 = assert(rendered)(containsString("style=\"display: none\"")) // Error message should be hidden
+            val result3 =
+                assert(rendered)(
+                    containsString("style=\"display: none\"")
+                ) // Error message should be hidden
             result1 && result2 && result3
         },
         test("renders correctly with error when start date is after end date") {

@@ -4,8 +4,8 @@ import works.iterative.incubator.budget.ui.transaction_import.models.DateRangeSe
 import scalatags.Text.all.*
 import java.time.format.DateTimeFormatter
 
-/** Component for selecting a date range for transaction imports.
-  * Displays date inputs for start and end dates and error messages if any.
+/** Component for selecting a date range for transaction imports. Displays date inputs for start and
+  * end dates and error messages if any.
   */
 object DateRangeSelector:
     /** Renders a date range selector component.

@@ -4,27 +4,35 @@ import scalatags.Text.all.*
 import works.iterative.server.http.ScalatagsViteSupport
 import scala.annotation.unused
 
-/**
- * App shell for the preview server
- * Provides a consistent layout with navigation sidebar for all preview pages
- */
+/** App shell for the preview server Provides a consistent layout with navigation sidebar for all
+  * preview pages
+  */
 class PreviewAppShell(@unused viteSupport: ScalatagsViteSupport):
-    
-    /**
-     * Wraps content in the preview app shell with navigation sidebar
-     * 
-     * @param pageTitle The title of the page
-     * @param content The main content to wrap
-     * @param currentPath The current path for highlighting navigation
-     * @return A complete HTML page with proper layout
-     */
+
+    /** Wraps content in the preview app shell with navigation sidebar
+      *
+      * @param pageTitle
+      *   The title of the page
+      * @param content
+      *   The main content to wrap
+      * @param currentPath
+      *   The current path for highlighting navigation
+      * @return
+      *   A complete HTML page with proper layout
+      */
     def wrap(pageTitle: String, content: Frag, currentPath: String = ""): Frag =
         html(
             head(
                 meta(charset := "UTF-8"),
-                meta(name := "viewport", attr("content") := "width=device-width, initial-scale=1.0"),
+                meta(
+                    name := "viewport",
+                    attr("content") := "width=device-width, initial-scale=1.0"
+                ),
                 tag("title")(s"Component Preview: $pageTitle"),
-                link(rel := "stylesheet", href := "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"),
+                link(
+                    rel := "stylesheet",
+                    href := "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+                ),
                 script(src := "https://unpkg.com/htmx.org@1.9.4"),
                 tag("style")("""
                     .sidebar { width: 280px; }

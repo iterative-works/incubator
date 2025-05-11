@@ -12,8 +12,7 @@ import zio.*
 
 /** Repository interface for Transaction entities.
   *
-  * Category: Repository Interface
-  * Layer: Domain
+  * Category: Repository Interface Layer: Domain
   */
 trait TransactionRepository:
     /** Saves a transaction to the repository.

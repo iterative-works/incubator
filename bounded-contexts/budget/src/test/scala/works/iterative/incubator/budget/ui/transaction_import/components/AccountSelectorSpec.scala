@@ -2,7 +2,10 @@ package works.iterative.incubator.budget.ui.transaction_import.components
 
 import zio.test.*
 import zio.test.Assertion.*
-import works.iterative.incubator.budget.ui.transaction_import.models.{AccountSelectorViewModel, AccountOption}
+import works.iterative.incubator.budget.ui.transaction_import.models.{
+    AccountSelectorViewModel,
+    AccountOption
+}
 import works.iterative.incubator.budget.ui.transaction_import.components.AccountSelector.render
 
 /** Tests for the AccountSelector component.
@@ -35,7 +38,6 @@ object AccountSelectorSpec extends ZIOSpecDefault:
             val result5 = assert(rendered)(containsString("border-gray-300")) // No error border
             result1 && result2 && result3 && result4 && result5
         },
-        
         test("should render with an account selected") {
             // Given a view model with a selected account
             val selectedAccountId = "0100-1234567890"
@@ -50,11 +52,13 @@ object AccountSelectorSpec extends ZIOSpecDefault:
 
             // Then it should contain expected elements and mark the selected account
             val result1 = assert(rendered)(containsString(s"value=\"$selectedAccountId\" selected"))
-            val result2 = assert(rendered)(not(containsString("value=\"\" selected"))) // Default option not selected
+            val result2 =
+                assert(rendered)(
+                    not(containsString("value=\"\" selected"))
+                ) // Default option not selected
             val result3 = assert(rendered)(containsString("Fio Bank - Main Account"))
             result1 && result2 && result3
         },
-        
         test("should render with validation error") {
             // Given a view model with a validation error
             val errorMessage = "Please select an account"
@@ -73,7 +77,6 @@ object AccountSelectorSpec extends ZIOSpecDefault:
             val result3 = assert(rendered)(containsString("border-red-500")) // Error border
             result1 && result2 && result3
         },
-        
         test("should render all account options from the view model") {
             // Given a view model with multiple accounts
             val viewModel = AccountSelectorViewModel(
@@ -91,7 +94,6 @@ object AccountSelectorSpec extends ZIOSpecDefault:
             val result3 = assert(rendered)(containsString("Komerční banka - Savings"))
             result1 && result2 && result3
         },
-        
         test("should not have HTMX attributes after refactoring") {
             // Given a valid view model
             val viewModel = AccountSelectorViewModel(
@@ -107,7 +109,6 @@ object AccountSelectorSpec extends ZIOSpecDefault:
             // since we've moved validation to the form level
             assert(rendered)(not(containsString("hx-post=")))
         },
-        
         test("should render appropriate heading") {
             // Given a view model
             val viewModel = AccountSelectorViewModel(

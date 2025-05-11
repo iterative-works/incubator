@@ -7,12 +7,11 @@ import zio.config.typesafe.TypesafeConfigProvider
 import works.iterative.server.http.impl.blaze.BlazeHttpServer
 import works.iterative.server.http.ScalatagsViteSupport
 
-/**
- * Entry point for the Component Preview Server
- * A simplified test server that displays UI components in isolation
- */
+/** Entry point for the Component Preview Server A simplified test server that displays UI
+  * components in isolation
+  */
 object PreviewServerMain extends ZIOAppDefault:
-    
+
     def configuredLogger(
         loadConfig: => ZIO[Any, Config.Error, ConsoleLoggerConfig]
     ): ZLayer[Any, Config.Error, Unit] =

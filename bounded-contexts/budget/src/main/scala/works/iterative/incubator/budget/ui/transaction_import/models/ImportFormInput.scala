@@ -24,7 +24,7 @@ case class ImportFormInput(
       */
     def toLocalDates: (LocalDate, LocalDate) =
         (LocalDate.parse(startDate), LocalDate.parse(endDate))
-        
+
     /** Convert string accountId to AccountId domain object.
       *
       * @return

@@ -69,7 +69,7 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
             // If valid, process with delay (to show loading state)
             result <- validationResult match
                 case Left(errors) => ZIO.succeed(Left(errors))
-                case Right(_) => 
+                case Right(_) =>
                     for
                         // Mark as in progress
                         _ <- ZIO.succeed {
@@ -82,13 +82,16 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
                         importResult <- generateImportResult(command)
                     yield Right(importResult)
         yield result
-    
+
     /** Validates a transaction import command.
       *
-      * @param command The command to validate
-      * @return Either validation errors or unit (if valid)
+      * @param command
+      *   The command to validate
+      * @return
+      *   Either validation errors or unit (if valid)
       */
-    private def validateInput(command: TransactionImportCommand): ZIO[Any, String, Either[ValidationErrors, Unit]] =
+    private def validateInput(command: TransactionImportCommand)
+        : ZIO[Any, String, Either[ValidationErrors, Unit]] =
         ZIO.attempt {
             // Parse dates to validate them
             val startDateResult = Try(LocalDate.parse(command.startDate))
@@ -144,18 +147,22 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
                 Left(validationErrors)
             else
                 Right(()) // Valid input
+            end if
         }.mapError(_.getMessage)
-    
+
     /** Generates a result based on the active scenario.
-      * 
-      * @param command The import command
-      * @return The import results
-      */  
-    private def generateImportResult(command: TransactionImportCommand): ZIO[Any, String, ImportResults] =
+      *
+      * @param command
+      *   The import command
+      * @return
+      *   The import results
+      */
+    private def generateImportResult(command: TransactionImportCommand)
+        : ZIO[Any, String, ImportResults] =
         ZIO.attempt {
             val startDateResult = Try(LocalDate.parse(command.startDate)).getOrElse(LocalDate.now())
             val endDateResult = Try(LocalDate.parse(command.endDate)).getOrElse(LocalDate.now())
-            
+
             activeScenario match
                 case ImportScenario.SuccessfulImport =>
                     // Random transaction count based on date range (1 to days between dates)
@@ -200,6 +207,7 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
                     lastImportResults = Some(importResults)
                     currentStatus = ImportStatus.Error
                     importResults
+            end match
         }.mapError(_.getMessage)
 
     /** Get the current status of the import operation.

@@ -51,38 +51,41 @@ class TransactionImportModule(
         yield transactionImportView.renderImportForm(viewModel)
 
     /** Implementation of the POST endpoint for form submission - simplified synchronous approach */
-    private def submitImportForm(formData: Map[String, String], htxRequestHeader: Option[String])
-        : ZIO[TransactionImportPresenter, String, Frag] =
+    private def submitImportForm(
+        formData: Map[String, String],
+        htxRequestHeader: Option[String]
+    ): ZIO[TransactionImportPresenter, String, Frag] =
         for
             // Parse form data
             command <- ZIO.succeed(TransactionImportCommand.fromFormData(formData))
             // Get view model from form data and mark as submitting
             baseViewModel = TransactionImportFormViewModel.fromFormData(formData).submitting
-            
+
             // Validate and process the command (synchronously)
             result <- TransactionImportPresenter.validateAndProcess(command)
-            
+
             // Create view model based on result
             viewModel = result match
-                case Left(errors) => 
+                case Left(errors) =>
                     // If we have errors, show them in the form and reset status to NotStarted
                     baseViewModel.copy(
                         isSubmitting = false,
                         importStatus = ImportStatus.NotStarted
                     ).withValidationErrors(errors)
-                case Right(importResults) => 
+                case Right(importResults) =>
                     // Show results directly in the form
                     baseViewModel.withImportResults(importResults)
-                        
+
             // Check if this is an HTMX request (for rendering)
             isHtmxRequest = htxRequestHeader.isDefined
         yield transactionImportView.renderImportForm(viewModel, isHtmxRequest)
 
     // Server endpoints
     val importFormServerEndpoint = importFormEndpoint.zServerLogic(_ => getImportForm)
-    val submitFormServerEndpoint = submitFormEndpoint.zServerLogic { case (formData, htxRequestHeader) => 
-        submitImportForm(formData, htxRequestHeader) 
-    }
+    val submitFormServerEndpoint =
+        submitFormEndpoint.zServerLogic { case (formData, htxRequestHeader) =>
+            submitImportForm(formData, htxRequestHeader)
+        }
 
     // List of all endpoints for documentation
     override def endpoints = List(

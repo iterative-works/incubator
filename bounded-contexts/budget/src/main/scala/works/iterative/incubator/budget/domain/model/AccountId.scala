@@ -1,11 +1,10 @@
 package works.iterative.incubator.budget.domain.model
 
-/** Value object that uniquely identifies a financial account in the system.
-  * Uses a composite natural identifier that combines the bank identifier
-  * and the bank account number for better traceability and integration.
+/** Value object that uniquely identifies a financial account in the system. Uses a composite
+  * natural identifier that combines the bank identifier and the bank account number for better
+  * traceability and integration.
   *
-  * Category: Value Object
-  * Layer: Domain
+  * Category: Value Object Layer: Domain
   */
 case class AccountId(bankId: String, bankAccountId: String):
     require(bankId != null, "Bank ID must not be null")
@@ -14,14 +13,17 @@ case class AccountId(bankId: String, bankAccountId: String):
     require(bankAccountId.nonEmpty, "Bank account ID must not be empty")
 
     /** The combined unique identifier
-      * @return a string representation of the composite ID
+      * @return
+      *   a string representation of the composite ID
       */
     def value: String = s"$bankId-$bankAccountId"
 
     /** String representation of this identifier
-      * @return the same as value
+      * @return
+      *   the same as value
       */
     override def toString: String = value
+end AccountId
 
 object AccountId:
     /** Creates an AccountId from a composite string in the format "bankId-bankAccountId".
@@ -44,12 +46,16 @@ object AccountId:
                 Left("Bank account ID part must not be empty")
             else
                 Right(AccountId(parts(0), parts(1)))
+            end if
 
     /** Creates an AccountId for the specified bank and bank account.
       *
-      * @param bankId The ID of the bank
-      * @param bankAccountId The bank's account ID or number
-      * @return A new AccountId
+      * @param bankId
+      *   The ID of the bank
+      * @param bankAccountId
+      *   The bank's account ID or number
+      * @return
+      *   A new AccountId
       */
     def create(bankId: String, bankAccountId: String): Either[String, AccountId] =
         try

@@ -15,10 +15,9 @@ object ImportBatchSpec extends ZIOSpecDefault:
 
     // Counter for generating unique batch IDs in tests
     private var sequenceCounter = 1L
-    private def nextSequence(): Long = {
+    private def nextSequence(): Long =
         sequenceCounter += 1
         sequenceCounter
-    }
 
     def spec = suite("ImportBatch")(
         // Factory method tests
@@ -123,7 +122,9 @@ object ImportBatchSpec extends ZIOSpecDefault:
         },
         // Note: max days validation was moved to BankTransactionService
         // This test is now updated to reflect the new architecture
-        test("create should succeed with a long date range (validation moved to BankTransactionService)") {
+        test(
+            "create should succeed with a long date range (validation moved to BankTransactionService)"
+        ) {
             val startDate = LocalDate.now().minusDays(100)
             val endDate = LocalDate.now().minusDays(1)
             val result = ImportBatch.create(

@@ -70,11 +70,13 @@ object TransactionId:
 
     /** Generates a random TransactionId for testing purposes.
       *
-      * @return A new random TransactionId
+      * @return
+      *   A new random TransactionId
       */
     def generate(): TransactionId =
         val randomBankId = java.util.UUID.randomUUID().toString.take(8)
         val randomAccountId = java.util.UUID.randomUUID().toString.take(12)
         val randomTxId = java.util.UUID.randomUUID().toString
         TransactionId(AccountId(randomBankId, randomAccountId), randomTxId)
+    end generate
 end TransactionId

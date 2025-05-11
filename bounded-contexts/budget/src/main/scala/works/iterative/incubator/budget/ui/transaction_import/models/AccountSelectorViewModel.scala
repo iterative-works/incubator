@@ -30,8 +30,8 @@ case class AccountSelectorViewModel(
 /** Companion object for AccountSelectorViewModel.
   */
 object AccountSelectorViewModel:
-    /** Default list of accounts for demonstration purposes.
-      * In a real implementation, these would come from a repository.
+    /** Default list of accounts for demonstration purposes. In a real implementation, these would
+      * come from a repository.
       */
     val defaultAccounts: List[AccountOption] = List(
         AccountOption("0100-1234567890", "Fio Bank - Main Account"),

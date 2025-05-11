@@ -4,8 +4,8 @@ import works.iterative.incubator.budget.domain.model.AccountId
 import java.time.LocalDate
 import scala.util.Try
 
-/** Command object representing a transaction import request.
-  * Encapsulates all data needed for validation and processing of an import operation.
+/** Command object representing a transaction import request. Encapsulates all data needed for
+  * validation and processing of an import operation.
   *
   * @param accountId
   *   The ID of the account to import transactions from
@@ -14,8 +14,7 @@ import scala.util.Try
   * @param endDate
   *   The end date for the transaction import range
   *
-  * Category: Domain Command
-  * Layer: Domain/Application
+  * Category: Domain Command Layer: Domain/Application
   */
 case class TransactionImportCommand(
     accountId: String,

@@ -7,8 +7,8 @@ import works.iterative.incubator.budget.ui.transaction_import.models.StatusIndic
 import works.iterative.incubator.budget.ui.transaction_import.models.ImportStatus
 import works.iterative.incubator.budget.ui.transaction_import.components.StatusIndicator
 
-/** Preview module for the StatusIndicator component
-  * Shows the component in various states for development and testing
+/** Preview module for the StatusIndicator component Shows the component in various states for
+  * development and testing
   */
 class StatusIndicatorPreviewModule(
     val appShell: PreviewAppShell,

@@ -5,8 +5,7 @@ import scalatags.Text.all.*
 
 /** Component for triggering transaction import with loading state.
   *
-  * Category: View
-  * Layer: UI/Presentation
+  * Category: View Layer: UI/Presentation
   */
 object ImportButton:
     /** Renders an import button component.
@@ -53,7 +52,7 @@ object ImportButton:
                 ),
                 "Importing..."
             )
-        else 
+        else
             // Normal state with HTMX loading indicator
             frag(
                 // This spinner only shows during HTMX requests

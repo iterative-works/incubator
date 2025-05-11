@@ -22,8 +22,7 @@ import java.time.LocalDate
   * @param accountValidationError
   *   Optional error message related to account selection validation
   *
-  * Category: View Model
-  * Layer: UI/Presentation
+  * Category: View Model Layer: UI/Presentation
   */
 case class ImportPageViewModel(
     accounts: List[AccountOption] = AccountSelectorViewModel.defaultAccounts,
@@ -64,7 +63,7 @@ case class ImportPageViewModel(
     def showResults: Boolean =
         importStatus == ImportStatus.Completed ||
             importStatus == ImportStatus.Error
-            
+
     /** Gets the account selector view model.
       *
       * @return
