@@ -39,7 +39,10 @@ Before we begin implementation, let's set up our working environment:
   - Securely manages account-specific API tokens
   - Follows functional programming principles with ZIO effect management
   - Includes proper logging and error reporting
-- **Implementation Guide**: Ports and Adapters pattern with functional core & clean separation
+- **Implementation Guide** - retrieve these guides using get_vault_file tool:
+  - [Infrastructure Adapter Guide](/+Encounters/architecture/guides/infrastructure_adapter_guide.md) - For implementation of the adapter
+  - [Ports & Adapters Patterns Guide](/+Encounters/architecture/guides/ports_adapters_patterns_guide.md) - For maintaining clean boundaries between domain and infrastructure
+  - [ZIO Service Pattern Guide](/+Encounters/architecture/guides/zio_service_pattern_guide.md) - For implementing the service with proper ZIO patterns
 
 ## Reference Implementation
 We have existing Fio client code that can be leveraged for this implementation:
