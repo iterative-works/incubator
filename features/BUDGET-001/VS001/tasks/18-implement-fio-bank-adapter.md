@@ -45,6 +45,20 @@ Follow the Ports and Adapters pattern with a focus on:
 3. Secure handling of sensitive credentials with account-specific tokens
 4. Thorough error mapping from API-level to domain-level errors
 
+## Reference Implementation
+We have existing Fio client code that can be leveraged for this implementation:
+
+1. **FioClient**: https://github.com/iterative-works/incubator/blob/7b75cb102a1e9e254be374c820c717048bb699f5/bounded-contexts/fio/src/main/scala/works/iterative/incubator/fio/infrastructure/client/FioClient.scala
+   - Contains the core API interaction logic
+   - Implements methods for fetching transactions by date range and for new transactions
+   - Uses STTP for HTTP requests
+   - Includes error handling for API interactions
+
+2. **FioCodecs**: https://github.com/iterative-works/incubator/blob/7b75cb102a1e9e254be374c820c717048bb699f5/bounded-contexts/fio/src/main/scala/works/iterative/incubator/fio/infrastructure/client/FioCodecs.scala
+   - Contains the JSON decoders using zio-json
+   - Defines the data model for API responses
+   - Handles various value types in the transaction data
+
 ## Relevant Scenarios
 This component supports these scenarios from the feature file:
 ```gherkin
@@ -104,6 +118,8 @@ Scenario: Handle Fio Bank API connection failure
    - Include audit logging for all token access operations
 
 ### API Endpoints
+Based on the existing FioClient implementation:
+
 1. Date Range Endpoint: `/periods/${token}/${dateFrom}/${dateTo}/transactions.json`
    - For retrieving transactions within a specific date range
    - Example URL: `https://fioapi.fio.cz/v1/rest/periods/TOKEN/2025-04-01/2025-04-15/transactions.json`
@@ -111,6 +127,10 @@ Scenario: Handle Fio Bank API connection failure
 2. New Transactions Endpoint: `/last/${token}/transactions.json`
    - For retrieving all new transactions since the last fetch
    - Example URL: `https://fioapi.fio.cz/v1/rest/last/TOKEN/transactions.json`
+
+3. Set Last Date Endpoint: `/set-last-date/${token}/${date}/`
+   - For setting a bookmark date for future transaction fetching
+   - Example URL: `https://fioapi.fio.cz/v1/rest/set-last-date/TOKEN/2025-04-15/`
 
 ### API Response Structure
 ```json
@@ -163,6 +183,7 @@ The following are the key fields from the Fio Bank API that need to be mapped to
 The implementation should consist of the following components:
 
 1. **FioApiClient** - Low-level HTTP client for Fio Bank API
+   - Reuse logic from existing `FioClient` implementation
    - Handles HTTP requests and authentication
    - Parses JSON responses using zio-json
    - Maps API errors to client-specific errors
@@ -182,11 +203,12 @@ The implementation should consist of the following components:
    - Saves and retrieves FioAccount records
    - Implements database encryption logic
 
-5. **FioMappers** - Utility for mapping between Fio model and domain model 
+5. **FioMappers** - Utility for mapping between Fio model and domain model
+   - Adapt data models from existing `FioCodecs` implementation
    - Maps Fio transaction format to domain Transaction model
    - Handles currency conversion and date formatting
 
-6. **FioTransactionService** - Adapter implementing BankTransactionService
+6. **FioBankTransactionService** - Adapter implementing BankTransactionService
    - Uses FioApiClient to fetch data
    - Uses FioTokenManager to retrieve tokens
    - Uses FioMappers to convert data
@@ -199,7 +221,7 @@ The implementation should consist of the following components:
    - Retry policies
    - Security settings
 
-8. **FioTransactionServiceLive** - Live implementation
+8. **FioBankTransactionServiceLive** - Live implementation
    - Concrete implementation with all dependencies
    - ZLayer for providing the service
 
