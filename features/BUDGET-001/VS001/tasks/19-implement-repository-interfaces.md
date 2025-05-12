@@ -41,7 +41,7 @@ Before we begin implementation, let's set up our working environment:
   - Includes comprehensive database schema migration scripts
 - **Implementation Guide** - these guides are in obsidian vault, use get_vault_file to retrieve these, and please do:
   - [Repository Implementation Guide](/+Encounters/architecture/guides/repository_implementation_guide.md) - For domain-driven repository implementation
-  - [Repository Interface Implementation Guide](/+Encounters/architecture/guides/repository_interface_implementation_guide.md) - For repository interfaces design
+  - [IW Support SQL DB Guide](/Docs/iw_sqldb_support_guide.md) - Detailed guide on how we do the SQL DB access and integration
 
 ## Supported Scenarios
 
