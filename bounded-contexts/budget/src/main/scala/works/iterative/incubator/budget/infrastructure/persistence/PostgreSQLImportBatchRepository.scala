@@ -20,7 +20,17 @@ class PostgreSQLImportBatchRepository(xa: Transactor) extends ImportBatchReposit
       */
     override def save(importBatch: ImportBatch): ZIO[Any, String, Unit] =
         xa.transact {
-            repo.insert(ImportBatchMapper.toDTO(importBatch))
+            // Convert to DTO
+            val dto = ImportBatchMapper.toDTO(importBatch)
+
+            // Check if the record already exists
+            val existingBatch = repo.findById(dto.id)
+
+            // If it exists, update it; otherwise, insert it
+            if existingBatch.isDefined then
+                repo.update(dto)
+            else
+                repo.insert(dto)
         }.mapError(e => s"Failed to save import batch: ${e.getMessage}")
 
     /** Finds an import batch by its ID.
