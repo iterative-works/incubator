@@ -113,7 +113,7 @@ object PostgreSQLRepositoriesIT extends ZIOSpecDefault:
                         mostRecent.get.id == importBatchId
                     )
                 }
-            ),
+            ) @@ MigrateAspects.migrateOnce,
             suite("TransactionRepository")(
                 test("should store and retrieve a transaction") {
                     for
@@ -188,7 +188,7 @@ object PostgreSQLRepositoriesIT extends ZIOSpecDefault:
                         retrieved.get.status == TransactionStatus.Categorized
                     )
                 }
-            ),
+            ) @@ MigrateAspects.migrateOnce,
             suite("Transaction and ImportBatch integration")(
                 test("should handle related operations between repositories") {
                     for
@@ -253,9 +253,9 @@ object PostgreSQLRepositoriesIT extends ZIOSpecDefault:
                         retrievedBatch.get.endTime.isDefined
                     )
                 }
-            )
-        ) @@ TestAspect.withLiveClock @@ MigrateAspects.migrate @@ TestAspect.sequential
-    ).provideSome[Scope](
+            ) @@ MigrateAspects.migrateOnce
+        ) @@ TestAspect.withLiveClock @@ TestAspect.sequential
+    ).provideSomeShared[Scope](
         PostgreSQLTestingLayers.flywayMigrationServiceLayer,
         repositoriesLayer
     )
