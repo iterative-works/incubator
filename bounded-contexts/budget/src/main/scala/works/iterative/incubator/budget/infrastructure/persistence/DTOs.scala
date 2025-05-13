@@ -55,3 +55,16 @@ case class ImportBatchDTO(
     createdAt: Instant,
     updatedAt: Instant
 ) derives DbCodec
+
+/** DTO for the fio_accounts table */
+@SqlName("fio_accounts")
+@Table(PostgresDbType, SqlNameMapper.CamelToSnakeCase)
+case class FioAccountDTO(
+    id: Long,
+    sourceAccountId: String,
+    encryptedToken: String,
+    lastSyncTime: Option[Instant],
+    lastFetchedId: Option[Long],
+    createdAt: Instant,
+    updatedAt: Instant
+) derives DbCodec

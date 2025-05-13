@@ -1,6 +1,7 @@
 package works.iterative.incubator.budget.infrastructure.persistence
 
 import works.iterative.incubator.budget.domain.model.*
+import works.iterative.incubator.budget.infrastructure.adapter.fio.FioAccount
 import java.util.Currency
 
 /** Mappers for converting between domain entities and database DTOs.
@@ -97,3 +98,33 @@ object ImportBatchMapper:
             updatedAt = dto.updatedAt
         )
 end ImportBatchMapper
+
+object FioAccountMapper:
+    /** Converts a domain FioAccount entity to a FioAccountDTO for database storage.
+      */
+    def toDTO(entity: FioAccount): FioAccountDTO =
+        FioAccountDTO(
+            id = entity.id,
+            sourceAccountId = entity.sourceAccountId.toString,
+            encryptedToken = entity.encryptedToken,
+            lastSyncTime = entity.lastSyncTime,
+            lastFetchedId = entity.lastFetchedId,
+            createdAt = entity.createdAt,
+            updatedAt = entity.updatedAt
+        )
+
+    /** Converts a FioAccountDTO from the database to a domain FioAccount entity.
+      */
+    def toDomain(dto: FioAccountDTO): Either[String, FioAccount] =
+        for
+            accountId <- AccountId.fromString(dto.sourceAccountId)
+        yield FioAccount(
+            id = dto.id,
+            sourceAccountId = accountId,
+            encryptedToken = dto.encryptedToken,
+            lastSyncTime = dto.lastSyncTime,
+            lastFetchedId = dto.lastFetchedId,
+            createdAt = dto.createdAt,
+            updatedAt = dto.updatedAt
+        )
+end FioAccountMapper

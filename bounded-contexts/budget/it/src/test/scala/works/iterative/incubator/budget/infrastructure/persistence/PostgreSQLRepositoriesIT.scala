@@ -4,6 +4,7 @@ import zio.*
 import zio.test.*
 import works.iterative.incubator.budget.domain.model.*
 import works.iterative.incubator.budget.domain.repository.*
+import works.iterative.incubator.budget.infrastructure.adapter.fio.*
 import works.iterative.sqldb.testing.PostgreSQLTestingLayers
 import works.iterative.sqldb.testing.MigrateAspects
 import works.iterative.sqldb.FlywayMigrationService
@@ -61,8 +62,22 @@ object PostgreSQLRepositoriesIT extends ZIOSpecDefault:
         )
     end createTestTransaction
 
+    // Create a test Fio account
+    def createTestFioAccount(id: Long = 1L): FioAccount =
+        val now = Instant.now
+        FioAccount(
+            id = id,
+            sourceAccountId = accountId,
+            encryptedToken = "encrypted_token_1234567890",
+            lastSyncTime = None,
+            lastFetchedId = None,
+            createdAt = now,
+            updatedAt = now
+        )
+    end createTestFioAccount
+
     // Combined repository layer for testing
-    val repositoriesLayer = RepositoryModule.repositories
+    val repositoriesLayer = RepositoryModule.allRepositories
 
     def spec = (
         suite("PostgreSQL Repository Integration Tests")(
@@ -186,6 +201,102 @@ object PostgreSQLRepositoriesIT extends ZIOSpecDefault:
                         count > 0,
                         retrieved.isDefined,
                         retrieved.get.status == TransactionStatus.Categorized
+                    )
+                }
+            ) @@ MigrateAspects.migrateOnce,
+            suite("FioAccountRepository")(
+                test("should store and retrieve a FioAccount") {
+                    for
+                        // Get repository service
+                        repo <- ZIO.service[FioAccountRepository]
+
+                        // Create test data
+                        fioAccount = createTestFioAccount()
+
+                        // Save the account
+                        _ <- repo.save(fioAccount)
+
+                        // Retrieve the account
+                        retrieved <- repo.findById(fioAccount.id)
+                    yield assertTrue(
+                        retrieved.isDefined,
+                        retrieved.get.id == fioAccount.id,
+                        retrieved.get.sourceAccountId == accountId,
+                        retrieved.get.encryptedToken == "encrypted_token_1234567890",
+                        retrieved.get.lastSyncTime.isEmpty,
+                        retrieved.get.lastFetchedId.isEmpty
+                    )
+                },
+                test("should find FioAccount by source account ID") {
+                    for
+                        // Get repository service
+                        repo <- ZIO.service[FioAccountRepository]
+
+                        // Find by source account ID
+                        account <- repo.findBySourceAccountId(accountId)
+                    yield assertTrue(
+                        account.isDefined,
+                        account.get.sourceAccountId == accountId
+                    )
+                },
+                test("should update an existing FioAccount") {
+                    for
+                        // Get repository service
+                        repo <- ZIO.service[FioAccountRepository]
+
+                        // Retrieve the account first
+                        account <- repo.findById(1L).map(_.getOrElse(createTestFioAccount()))
+
+                        // Update the account with sync information
+                        now = Instant.now
+                        updatedAccount = account.updateSyncState(now, 12345L)
+
+                        // Save the updated account
+                        _ <- repo.save(updatedAccount)
+
+                        // Retrieve the updated account
+                        retrieved <- repo.findById(1L)
+                    yield assertTrue(
+                        retrieved.isDefined,
+                        retrieved.get.lastSyncTime.isDefined,
+                        retrieved.get.lastFetchedId.isDefined,
+                        retrieved.get.lastFetchedId.get == 12345L
+                    )
+                },
+                test("should generate an ID greater than 0") {
+                    for
+                        // Get repository service
+                        repo <- ZIO.service[FioAccountRepository]
+
+                        // Generate new ID
+                        id <- repo.nextId()
+                    yield assertTrue(
+                        // We expect the ID to be greater than 0
+                        id > 0
+                    )
+                },
+                test("should create a new account with a generated ID") {
+                    for
+                        // Get repository service
+                        repo <- ZIO.service[FioAccountRepository]
+
+                        // Get next ID
+                        nextId <- repo.nextId()
+
+                        // Create a new account
+                        newAccount <- FioAccountRepository.createAccount(
+                            AccountId("fio", "another-account"),
+                            "new_encrypted_token_9876543210"
+                        )
+
+                        // Retrieve the newly created account
+                        retrieved <- repo.findById(newAccount.id)
+                    yield assertTrue(
+                        retrieved.isDefined,
+                        retrieved.get.id == nextId,
+                        retrieved.get.sourceAccountId.bankId == "fio",
+                        retrieved.get.sourceAccountId.bankAccountId == "another-account",
+                        retrieved.get.encryptedToken == "new_encrypted_token_9876543210"
                     )
                 }
             ) @@ MigrateAspects.migrateOnce,
