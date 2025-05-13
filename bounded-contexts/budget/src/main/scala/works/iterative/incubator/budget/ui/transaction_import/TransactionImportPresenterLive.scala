@@ -202,19 +202,17 @@ final case class TransactionImportPresenterLive(
                 // For tests where we pass testAccountId.toString
                 if accountIdStr == this.accountId.toString then
                     Right(this.accountId)
-                else {
+                else
                     // Expected format: "bankId-accountId"
                     val parts = accountIdStr.split("-", 2)
                     if parts.length != 2 then
                         Left(
                             s"Invalid account ID format: $accountIdStr (expected format: bankId-accountId)"
                         )
-                    else {
+                    else
                         val (bankId, accountId) = (parts(0), parts(1))
                         Right(AccountId(bankId, accountId))
-                    }
                     end if
-                }
             catch
                 case _: Exception =>
                     Left(s"Invalid account ID: $accountIdStr")

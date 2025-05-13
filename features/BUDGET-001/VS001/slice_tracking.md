@@ -16,9 +16,9 @@
 
 | Scenario | UI | Validation | Domain | Infrastructure | E2E Testing | Status |
 |----------|----|-----------:|--------|---------------|-------------|--------|
-| Successful import of transactions from Fio Bank | ✅ | ❌ | ✅ | ❌ | ❌ | Domain Implementation |
-| Import with no new transactions | ✅ | ❌ | ✅ | ❌ | ❌ | Domain Implementation |
-| Error during import from Fio Bank | ✅ | ❌ | ✅ | ❌ | ❌ | Domain Implementation |
+| Successful import of transactions from Fio Bank | ✅ | ❌ | ✅ | ⚙️ | ❌ | Infrastructure Implementation |
+| Import with no new transactions | ✅ | ❌ | ✅ | ⚙️ | ❌ | Infrastructure Implementation |
+| Error during import from Fio Bank | ✅ | ❌ | ✅ | ⚙️ | ❌ | Infrastructure Implementation |
 
 ## Current Blocking Issues
 
@@ -39,7 +39,7 @@
 9. ✅ Create FioBankService interface - Team - 2025-05-07
 10. ✅ Define repository interfaces - Team - 2025-05-07
 11. ✅ Write domain-level tests - Team - 2025-05-08
-12. Implement Fio Bank infrastructure adapter - Team - 2025-05-12
+12. ✅ Implement Fio Bank infrastructure adapter - Team - 2025-05-12
 13. Implement repository interfaces for transactions and import batches - Team - 2025-05-13
 14. Implement end-to-end integration - Team - 2025-05-14
 
