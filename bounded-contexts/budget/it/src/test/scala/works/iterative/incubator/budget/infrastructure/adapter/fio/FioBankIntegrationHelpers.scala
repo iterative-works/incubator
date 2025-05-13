@@ -1,10 +1,7 @@
 package works.iterative.incubator.budget.infrastructure.adapter.fio
 
 import works.iterative.incubator.budget.domain.model.*
-import works.iterative.incubator.budget.domain.service.{
-    BankTransactionService,
-    TransactionImportError
-}
+import works.iterative.incubator.budget.domain.service.BankTransactionService
 import zio.*
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -46,16 +43,12 @@ object FioBankIntegrationHelpers:
 
     /** Standard test configuration for integration tests.
       */
-    val testConfig = FioConfig(
-        baseUrl = "https://fioapi.fio.cz/v1/rest",
-        maxDateRangeDays = 90,
-        connectionTimeoutSeconds = 10,
-        requestTimeoutSeconds = 30,
-        maxRetries = 1,
-        initialBackoffSeconds = 1,
-        maxBackoffSeconds = 5,
-        encryptionKey = "test-integration-key-for-testing-only"
-    )
+    val testConfig = FioConfig.defaultConfig("test-integration-key-for-testing-only")
+
+    val mockConfigProvider =
+        Runtime.setConfigProvider(
+            ConfigProvider.fromMap(Map("fio_encryptionKey" -> testConfig.encryptionKey))
+        )
 
     /** Sample account ID for testing.
       */
@@ -84,8 +77,7 @@ object FioBankIntegrationHelpers:
       */
     def createTestLayer(token: String): ZLayer[Any, Throwable, BankTransactionService] =
         ZLayer.make[BankTransactionService](
-            // Config layer
-            ZLayer.succeed(testConfig),
+            mockConfigProvider,
 
             // Repository layer
             ZLayer.fromZIO(for
@@ -102,7 +94,9 @@ object FioBankIntegrationHelpers:
                 tokenCacheRef <- Ref.make(Map.empty[String, String])
                 encryptionKey = testConfig.encryptionKey.getBytes("UTF-8").take(32)
                 tokenManager = FioTokenManagerLive(repo, encryptionKey, tokenCacheRef)
-                _ <- tokenManager.storeToken(testAccountId, token).mapError(e => new RuntimeException(e))
+                _ <- tokenManager.storeToken(testAccountId, token).mapError(e =>
+                    new RuntimeException(e)
+                )
             yield tokenManager),
 
             // Service layer

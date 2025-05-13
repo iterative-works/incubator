@@ -1,14 +1,13 @@
 package works.iterative.incubator.budget.infrastructure.adapter.fio
 
 import works.iterative.incubator.budget.domain.model.*
-import works.iterative.incubator.budget.domain.service.BankTransactionService
 import works.iterative.incubator.budget.domain.service.TransactionImportError
 import works.iterative.incubator.budget.domain.service.TransactionImportError.*
 import works.iterative.incubator.budget.infrastructure.adapter.fio.FioModels.*
 import zio.*
 import zio.test.*
 import zio.test.Assertion.*
-import java.time.{LocalDate, Instant}
+import java.time.LocalDate
 
 /** Test specification for FioBankTransactionService.
   */
@@ -40,7 +39,7 @@ object FioBankTransactionServiceSpec extends ZIOSpecDefault:
     )
 
     // Default configuration for testing
-    val testConfig = FioConfig.defaultConfig
+    val testConfig = FioConfig.defaultConfig("test-encryption-token")
 
     // Manual mock for FioApiClient
     def createMockApiClient(transactions: List[FioTransaction] = List.empty): FioApiClient =

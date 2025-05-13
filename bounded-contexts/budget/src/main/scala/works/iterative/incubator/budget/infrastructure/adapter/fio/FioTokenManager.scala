@@ -300,10 +300,10 @@ object FioTokenManager:
       * @return
       *   A ZLayer that provides a FioTokenManager
       */
-    val layer: ZLayer[FioAccountRepository & FioConfig, Throwable, FioTokenManager] =
+    val layer: ZLayer[FioAccountRepository, Throwable, FioTokenManager] =
         ZLayer {
             for
-                config <- ZIO.service[FioConfig]
+                config <- ZIO.config[FioConfig]
                 repository <- ZIO.service[FioAccountRepository]
                 bytes <- ZIO.attempt(config.encryptionKey.getBytes("UTF-8"))
                 // Ensure the key is exactly 32 bytes (AES-256)

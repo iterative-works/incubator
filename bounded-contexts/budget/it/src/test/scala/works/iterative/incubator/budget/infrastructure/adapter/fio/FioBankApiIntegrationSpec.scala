@@ -1,8 +1,6 @@
 package works.iterative.incubator.budget.infrastructure.adapter.fio
 
 import works.iterative.incubator.budget.domain.model.*
-import works.iterative.incubator.budget.domain.service.BankTransactionService
-import works.iterative.incubator.budget.domain.service.TransactionImportError
 import works.iterative.incubator.budget.infrastructure.adapter.fio.FioModels.*
 import zio.*
 import zio.test.*
@@ -82,7 +80,7 @@ object FioBankApiIntegrationSpec extends ZIOSpecDefault:
     def createService(apiClient: FioApiClient, tokenManager: FioTokenManager) =
         FioBankTransactionServiceLive(fioTestConfig, apiClient, tokenManager)
 
-    /** Helper to apply a test aspect to skip the test conditionally based on token availability 
+    /** Helper to apply a test aspect to skip the test conditionally based on token availability
       */
     def skipIfNoToken = if !canRunIntegrationTests then ignore else identity
 
@@ -98,7 +96,6 @@ object FioBankApiIntegrationSpec extends ZIOSpecDefault:
                     tokenAvailable = canRunIntegrationTests
                 yield assertTrue(tokenAvailable) // Test will be skipped if not available
             } @@ skipIfNoToken,
-            
             test("should retrieve token from environment with proper value") {
                 for
                     tokenOpt <- ZIO.succeed(getFioToken)
@@ -106,7 +103,6 @@ object FioBankApiIntegrationSpec extends ZIOSpecDefault:
                         .orElseFail("FIO_TOKEN not found")
                 yield assertTrue(token.nonEmpty && token.length > 10)
             } @@ skipIfNoToken,
-            
             test("should connect to Fio API and fetch transactions") {
                 for
                     tokenOpt <- ZIO.succeed(getFioToken)
@@ -143,7 +139,6 @@ object FioBankApiIntegrationSpec extends ZIOSpecDefault:
                     transactionsResponse.isInstanceOf[List[FioTransaction]]
                 )
             } @@ skipIfNoToken,
-            
             test("should correctly map Fio data to domain model") {
                 for
                     tokenOpt <- ZIO.succeed(getFioToken)
@@ -159,13 +154,18 @@ object FioBankApiIntegrationSpec extends ZIOSpecDefault:
                     startDate = today.minus(7, ChronoUnit.DAYS)
 
                     // Skip actual API call to avoid rate limits and create simulated data
-                    _ <- ZIO.logInfo("Rate limit protection: Using simulated data instead of real API call")
+                    _ <- ZIO.logInfo(
+                        "Rate limit protection: Using simulated data instead of real API call"
+                    )
 
                     // Import java.util.Currency
                     _ = java.util.Currency.getInstance("CZK") // Get a real Currency instance
 
                     // Create sample transaction ID that includes the account ID
-                    mockTransactionId <- ZIO.fromEither(TransactionId.create(testAccountId, "fio-12345")).orElseFail("Failed to create transaction ID")
+                    mockTransactionId <- ZIO.fromEither(TransactionId.create(
+                        testAccountId,
+                        "fio-12345"
+                    )).orElseFail("Failed to create transaction ID")
 
                     // Create a sample transaction for testing mapping using the factory method
                     transactionEither = Transaction.create(
@@ -180,7 +180,9 @@ object FioBankApiIntegrationSpec extends ZIOSpecDefault:
                     )
 
                     // Handle potential validation errors
-                    mockTransaction <- ZIO.fromEither(transactionEither).orElseFail("Failed to create mock transaction")
+                    mockTransaction <- ZIO.fromEither(transactionEither).orElseFail(
+                        "Failed to create mock transaction"
+                    )
 
                     // Use a list with one mock transaction
                     transactions = List(mockTransaction)
@@ -210,7 +212,6 @@ object FioBankApiIntegrationSpec extends ZIOSpecDefault:
                     )
                 )
             } @@ skipIfNoToken,
-            
             test("should validate date range constraints") {
                 for
                     tokenOpt <- ZIO.succeed(getFioToken)
@@ -232,9 +233,11 @@ object FioBankApiIntegrationSpec extends ZIOSpecDefault:
                         // The validation logic is now implemented directly here
                         val maxDays = 90 // Hard-coded constraint
 
-                        if (daysDiff > maxDays) {
-                            throw new RuntimeException(s"Date range cannot exceed $maxDays days (found $daysDiff days)")
-                        }
+                        if daysDiff > maxDays then
+                            throw new RuntimeException(
+                                s"Date range cannot exceed $maxDays days (found $daysDiff days)"
+                            )
+                        end if
 
                         "Validation unexpectedly succeeded"
                     }.exit
@@ -242,11 +245,10 @@ object FioBankApiIntegrationSpec extends ZIOSpecDefault:
                     // Log validation result
                     _ <- ZIO.logInfo(s"Validation result: $validationResult")
                 yield
-                    // Should fail with proper error message
-                    assertTrue(validationResult.isFailure) &&
+                // Should fail with proper error message
+                assertTrue(validationResult.isFailure) &&
                     assert(validationResult.toString)(containsString("cannot exceed 90 days"))
             } @@ skipIfNoToken,
-            
             test("should handle invalid token errors") {
                 // Testing error cases with invalid tokens shouldn't need a real token
                 // This test verifies that API failures are properly handled
@@ -259,17 +261,18 @@ object FioBankApiIntegrationSpec extends ZIOSpecDefault:
 
                     // Create a simulated API error directly instead of making a real API call
                     // This is more reliable than testing with a real invalid token which may have unpredictable behavior
-                    errorResult = Exit.fail(new Exception("Simulated API error: Invalid token or authentication failure"))
+                    errorResult = Exit.fail(new Exception(
+                        "Simulated API error: Invalid token or authentication failure"
+                    ))
 
                     // Log the simulated error
                     _ <- ZIO.logInfo(s"Using simulated API error: ${errorResult}")
                 yield
-                    // Verify the exit is a failure (this will always be true for our simulated error)
-                    assertTrue(errorResult.isFailure) &&
+                // Verify the exit is a failure (this will always be true for our simulated error)
+                assertTrue(errorResult.isFailure) &&
                     // Checking that error handling is in place
                     assert(errorResult.toString)(containsString("Invalid token"))
             } @@ skipIfNoToken,
-            
             test("should correctly handle date formats") {
                 // Create a test of date parsing that doesn't require an API token
                 // Test our date parsers with sample date strings from Fio API
@@ -307,7 +310,8 @@ object FioBankApiIntegrationSpec extends ZIOSpecDefault:
                         d.getMonth.getValue == 5 && d.getDayOfMonth == 1 && d.getYear == 2025
                     )
                 )
+                end for
             }
         ) @@ withLiveEnvironment // This aspect ensures we can access real environment variables
-          @@ sequential        // Run tests in sequence to avoid API rate limiting issues
+            @@ sequential // Run tests in sequence to avoid API rate limiting issues
 end FioBankApiIntegrationSpec

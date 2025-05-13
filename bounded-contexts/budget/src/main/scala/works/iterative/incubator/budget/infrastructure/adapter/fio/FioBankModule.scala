@@ -18,11 +18,10 @@ object FioBankModule:
       */
     val inMemory: ULayer[BankTransactionService] =
         ZLayer.make[BankTransactionService](
-            FioConfig.layer,
             InMemoryFioAccountRepository.layer,
-            FioApiClient.live,
+            FioApiClient.live.orDie,
             FioTokenManager.layer.orDie,
-            FioBankTransactionService.layer
+            FioBankTransactionService.layer.orDie
         )
 
     /** Creates a production-ready implementation with all services.
@@ -32,12 +31,11 @@ object FioBankModule:
       * @return
       *   A ZLayer that provides all Fio Bank services with production implementations
       */
-    def live(
-        config: FioConfig
-    ): ZLayer[FioAccountRepository, Throwable, BankTransactionService] =
+    val live: ZLayer[FioAccountRepository, Throwable, BankTransactionService] =
         ZLayer.fromZIO {
             for
                 repo <- ZIO.service[FioAccountRepository]
+                config <- ZIO.config[FioConfig]
                 apiClient = FioApiClientLive(config)
                 tokenManagerRef <- Ref.make(Map.empty[String, String])
                 tokenManager = FioTokenManagerLive(

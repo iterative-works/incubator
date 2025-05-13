@@ -39,7 +39,7 @@ case class FioConfig(
   */
 object FioConfig:
     /** Default configuration values. */
-    val defaultConfig = FioConfig(
+    def defaultConfig(encryptionKey: String) = FioConfig(
         baseUrl = "https://fioapi.fio.cz/v1/rest",
         maxDateRangeDays = 90,
         connectionTimeoutSeconds = 10,
@@ -47,8 +47,23 @@ object FioConfig:
         maxRetries = 3,
         initialBackoffSeconds = 5,
         maxBackoffSeconds = 60,
-        encryptionKey = "default-key-must-be-replaced-in-production" // Should be overridden
+        encryptionKey = encryptionKey
     )
+
+    given config: Config[FioConfig] =
+        import Config.*
+        (string("baseUrl").withDefault("https://fioapi.fio.cz/v1/rest") zip int(
+            "maxDateRangeDays"
+        ).withDefault(90) zip
+            int("connectionTimeoutSeconds").withDefault(10) zip
+            int("requestTimeoutSeconds").withDefault(30) zip
+            int("maxRetries").withDefault(3) zip
+            int("initialBackoffSeconds").withDefault(5) zip
+            int("maxBackoffSeconds").withDefault(60) zip
+            string("encryptionKey")).nested("fio").map(
+            FioConfig.apply
+        )
+    end config
 
     /** Creates a ZIO schedule for retry with exponential backoff based on config.
       *
@@ -60,8 +75,8 @@ object FioConfig:
     def retrySchedule(config: FioConfig): Schedule[Any, Throwable, Any] =
         val filter: Throwable => Boolean = {
             case _: java.net.ConnectException       => true
-            case _: java.io.IOException             => true
             case _: java.net.SocketTimeoutException => true
+            case _: java.io.IOException             => true
             case e: Throwable
                 if e.getMessage != null &&
                     (e.getMessage.contains("status code: 409") ||
@@ -75,20 +90,4 @@ object FioConfig:
             .whileInput(filter) &&
         Schedule.recurs(config.maxRetries.toLong)
     end retrySchedule
-
-    /** Creates a layer with the default configuration.
-      *
-      * @return
-      *   A ZLayer providing FioConfig
-      */
-    val layer: ULayer[FioConfig] = ZLayer.succeed(defaultConfig)
-
-    /** Creates a layer with a custom configuration.
-      *
-      * @param config
-      *   The custom configuration
-      * @return
-      *   A ZLayer providing FioConfig
-      */
-    def live(config: FioConfig): ULayer[FioConfig] = ZLayer.succeed(config)
 end FioConfig

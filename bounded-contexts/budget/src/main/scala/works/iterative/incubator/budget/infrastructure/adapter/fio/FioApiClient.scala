@@ -272,6 +272,10 @@ object FioApiClient:
       * @return
       *   A ZLayer that provides a FioApiClient
       */
-    val live: ZLayer[FioConfig, Nothing, FioApiClient] =
-        ZLayer.fromFunction(FioApiClientLive.apply)
+    val live: ZLayer[Any, Config.Error, FioApiClient] =
+        ZLayer {
+            for
+                config <- ZIO.config[FioConfig]
+            yield FioApiClientLive(config)
+        }
 end FioApiClient

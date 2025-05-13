@@ -4,7 +4,7 @@ import works.iterative.incubator.budget.domain.model.*
 import works.iterative.incubator.budget.infrastructure.adapter.fio.FioModels.*
 import zio.test.*
 import zio.test.Assertion.*
-import java.time.{LocalDate, Instant}
+import java.time.LocalDate
 import java.util.Currency
 
 object FioMappersSpec extends ZIOSpecDefault:

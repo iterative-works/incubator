@@ -4,7 +4,7 @@ import works.iterative.incubator.budget.domain.model.*
 import works.iterative.incubator.budget.domain.service.BankTransactionService
 import works.iterative.incubator.budget.domain.service.TransactionImportError
 import works.iterative.incubator.budget.domain.service.TransactionImportError.*
-import java.time.{LocalDate, Period, Instant}
+import java.time.{LocalDate, Period}
 import zio.*
 
 /** Fio Bank implementation of BankTransactionService.
@@ -135,8 +135,15 @@ object FioBankTransactionService:
       * @return
       *   A ZLayer that provides a BankTransactionService
       */
-    val layer: ZLayer[FioConfig & FioApiClient & FioTokenManager, Nothing, BankTransactionService] =
-        ZLayer.fromFunction(FioBankTransactionServiceLive.apply)
+    val layer: ZLayer[FioApiClient & FioTokenManager, Config.Error, BankTransactionService] =
+        ZLayer {
+            for
+                config <- ZIO.config[FioConfig]
+                client <- ZIO.service[FioApiClient]
+                tokenManager <- ZIO.service[FioTokenManager]
+            yield FioBankTransactionServiceLive(config, client, tokenManager)
+        }
+    end layer
 
     /** Convenience layer that includes all necessary downstream dependencies.
       *
@@ -144,10 +151,10 @@ object FioBankTransactionService:
       *   A ZLayer that provides a BankTransactionService
       */
     val fullLayer: ZLayer[FioAccountRepository, Throwable, BankTransactionService] =
-        ZLayer.fromZIO {
+        ZLayer {
             for
                 repo <- ZIO.service[FioAccountRepository]
-                config = FioConfig.defaultConfig
+                config <- ZIO.config[FioConfig]
                 apiClient = FioApiClientLive(config)
                 tokenManagerRef <- Ref.make(Map.empty[String, String])
                 tokenManager = FioTokenManagerLive(

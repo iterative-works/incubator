@@ -1,18 +1,20 @@
 package works.iterative.incubator.budget.infrastructure.persistence
 
 import works.iterative.incubator.budget.domain.model.AccountId
-import works.iterative.incubator.budget.infrastructure.adapter.fio.{FioAccount, FioAccountRepository}
+import works.iterative.incubator.budget.infrastructure.adapter.fio.{
+    FioAccount,
+    FioAccountRepository
+}
 import com.augustnagro.magnum.*
 import com.augustnagro.magnum.magzio.Transactor
 import zio.*
 import works.iterative.sqldb.PostgreSQLTransactor
 import java.time.Instant
-import scala.concurrent.duration.*
 
 /** PostgreSQL implementation of the FioAccountRepository interface.
   *
-  * This repository handles the persistence and retrieval of FioAccount entities
-  * using a PostgreSQL database.
+  * This repository handles the persistence and retrieval of FioAccount entities using a PostgreSQL
+  * database.
   */
 class PostgreSQLFioAccountRepository(xa: Transactor) extends FioAccountRepository:
     import PostgreSQLFioAccountRepository.repo
@@ -65,6 +67,7 @@ class PostgreSQLFioAccountRepository(xa: Transactor) extends FioAccountRepositor
                         case Left(error) =>
                             throw new RuntimeException(s"Failed to map FioAccount: $error")
                 case None => None
+            end match
         }.mapError(e => s"Failed to find FioAccount by source account ID: ${e.getMessage}")
 
     /** Generates a new ID for a FioAccount.
@@ -73,10 +76,10 @@ class PostgreSQLFioAccountRepository(xa: Transactor) extends FioAccountRepositor
         xa.transact {
             // Get all existing accounts
             val accounts = repo.findAll(Spec[FioAccountDTO])
-            
+
             // Find the maximum ID currently in use, or use 0 if no accounts exist
             val maxId = if accounts.isEmpty then 0L else accounts.map(_.id).max
-            
+
             // Return the next ID (max + 1)
             maxId + 1L
         }.mapError(e => s"Failed to generate next sequence number: ${e.getMessage}")
@@ -86,8 +89,8 @@ object PostgreSQLFioAccountRepository:
     /** Magnum repository for FioAccount entities */
     val repo = Repo[FioAccountDTO, FioAccountDTO, Long]
 
-    /** ZLayer that provides a PostgreSQLFioAccountRepository implementation
-      * requiring a PostgreSQLTransactor as a dependency.
+    /** ZLayer that provides a PostgreSQLFioAccountRepository implementation requiring a
+      * PostgreSQLTransactor as a dependency.
       */
     val layer: ZLayer[PostgreSQLTransactor, Nothing, FioAccountRepository] =
         ZLayer.fromFunction { (transactor: PostgreSQLTransactor) =>

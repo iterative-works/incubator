@@ -2,10 +2,9 @@ package works.iterative.incubator.budget.infrastructure.adapter.fio
 
 import works.iterative.incubator.budget.domain.model.*
 import works.iterative.incubator.budget.infrastructure.adapter.fio.FioModels.*
-import java.time.{LocalDate, Instant, ZoneId}
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Currency
-import zio.*
 
 /** Utility for mapping between Fio API models and domain models.
   *
