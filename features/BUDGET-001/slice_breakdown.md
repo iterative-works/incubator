@@ -6,7 +6,7 @@
 |---------|------|---------------|----------------|--------|-----------|-------|
 | VS001 | Basic Transaction Import | - Import transactions from Fio Bank<br>- Handle import with no transactions<br>- Handle import errors | Time Savings (5) | In Progress | Begin UI prototype development for DateRangeSelector component | Team |
 | VS003 | AI-Powered Categorization | - Auto-categorize transactions<br>- Handle ambiguous descriptions<br>- Batch categorization performance | Data Accuracy (4) | Not Started | - | - |
-| VS004 | Category Review & Modification | - Change transaction category<br>- Batch modify categories<br>- Filter by confidence score | Data Accuracy (4) | Not Started | - | - |
+| VS004 | Category Review & Modification | - Minimal transaction list view for category review<br>- Change transaction category<br>- Batch modify categories<br>- Filter by confidence score | Data Accuracy (4) | Not Started | - | - |
 | VS005 | YNAB Submission | - Submit transactions to YNAB<br>- Handle API errors<br>- Map to YNAB format | Reporting Speed (3) | Not Started | - | - |
 | VS002 | Transaction Management UI | - View transaction list<br>- Filter and sort transactions<br>- Search transactions | Time Savings (5) | Not Started | - | - |
 | VS006 | Duplicate Prevention | - Detect duplicates<br>- Prevent duplicate submission<br>- Handle conflicts | Data Accuracy (4) | Not Started | - | - |
@@ -51,7 +51,10 @@ graph TD
     VS003 --> VS007[VS007: Transaction Rules Creation]
     VS004 --> VS008[VS008: Transaction Tags Support]
     VS008 --> VS005
+    VS002 -.-> VS004[VS004: Category Review & Modification]
 ```
+
+> Note: VS004 includes a minimal transaction view for category review purposes only. When VS002 is implemented in Phase 2, it will enhance/replace this minimal view with full transaction management capabilities. The dotted line indicates this future enhancement.
 
 ## Document Information
 - **Created**: 2025-05-02

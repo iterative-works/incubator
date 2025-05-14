@@ -1,11 +1,13 @@
 # Vertical Slice: Category Review & Modification (VS-004)
 # Business Value: Enables human verification and correction of AI-assigned categories to ensure accuracy
 # UI Components:
+# - MinimalTransactionView (focused view for category review only)
 # - CategoryEditor
 # - BulkCategoryEditor
 # - CategoryHistoryView
 # Dependencies:
-# - Requires "AI-Powered Categorization" slice
+# - Requires "AI-Powered Categorization" slice (VS003)
+# - Includes a minimal transaction view for category review purposes (not the full VS002)
 
 @slice:category-review @value:high @phase:1
 Feature: Category Review and Modification
@@ -39,10 +41,19 @@ Feature: Category Review and Modification
     And I should see a warning that this will override existing categories
     And I should see a "Save All" button that is enabled when changes are made
 
+  # UI Component: MinimalTransactionView
+  @ui-prototype
+  Scenario: Validate minimal transaction view for category review
+    Given I am presented with the minimal transaction view prototype
+    Then I should see a focused list of transactions with essential information
+    And I should see columns for date, description, amount, category, and confidence score
+    And I should see basic filters for low confidence scores and uncategorized transactions
+    And I should be able to select transactions for category editing
+    
   # User Flow: Single Transaction Recategorization
   @user-flow
   Scenario: Modify the category of a single transaction
-    Given I am viewing a list of categorized transactions
+    Given I am viewing the minimal transaction list for category review
     When I click on the category field for a transaction with description "Coffee Shop" categorized as "Entertainment"
     Then I should see a dropdown of available YNAB categories
     When I type "food" in the search box
@@ -56,7 +67,7 @@ Feature: Category Review and Modification
   # User Flow: Bulk Transaction Recategorization
   @user-flow
   Scenario: Modify the category of multiple transactions at once
-    Given I am viewing a list of categorized transactions
+    Given I am viewing the minimal transaction list for category review
     When I select 5 transactions with different descriptions but similar nature
     And I click the "Bulk Edit" button
     Then I should see the bulk category editor
@@ -70,10 +81,10 @@ Feature: Category Review and Modification
   # Edge Case: Category Consistency Check
   @edge-case
   Scenario: System identifies inconsistent categorization patterns
-    Given I have 10 transactions with description containing "GROCERY"
+    Given I have 10 transactions with description containing "GROCERY" in the system
     And 8 of them are categorized as "Food & Dining"
     And 2 of them are categorized as "Gifts"
-    When I view the transaction list
+    When I view the minimal transaction list for category review
     Then the 2 inconsistently categorized transactions should be flagged
     And I should see a suggestion to "Align categories with similar transactions"
     When I click this suggestion
