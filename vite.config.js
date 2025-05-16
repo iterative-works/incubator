@@ -20,10 +20,6 @@ export default defineConfig(({ mode }) => {
           __dirname,
           `${appPath}/src/main/static/stylesheets`,
         ),
-        "ynab-importer": path.resolve(
-          __dirname,
-          `${appPath}/ynab-importer/web/src/main/static`,
-        ),
       },
     },
     // base: "/front/",
@@ -32,10 +28,6 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: path.resolve(__dirname, "main.js"),
-          "ynab-importer": path.resolve(
-            __dirname,
-            `${appPath}/ynab-importer/web/src/main/static/js/main.js`,
-          ),
         },
       },
       outDir: "./target/vite",
@@ -51,14 +43,14 @@ export default defineConfig(({ mode }) => {
         theme: {
           extend: {
             colors: {
-              'ynab-blue': '#1E88E5',
-              'ynab-green': '#2E7D32',
-              'ynab-red': '#D32F2F',
-              'ynab-gray': '#757575',
+              "ynab-blue": "#1E88E5",
+              "ynab-green": "#2E7D32",
+              "ynab-red": "#D32F2F",
+              "ynab-gray": "#757575",
             },
             animation: {
-              'spin-slow': 'spin 3s linear infinite',
-            }
+              "spin-slow": "spin 3s linear infinite",
+            },
           },
         },
         plugins: [typography, forms],

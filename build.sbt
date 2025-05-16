@@ -1,4 +1,5 @@
 import com.typesafe.sbt.packager.docker._
+import NativePackagerHelper._
 
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
@@ -104,14 +105,16 @@ lazy val root = (project in file("."))
     .settings(
         // Docker configuration
         Docker / packageName := "iw-incubator",
-        dockerBaseImage := "eclipse-temurin:21-jre-alpine",
+        Docker / publish / aggregate := false,
+        Docker / publishLocal / aggregate := false,
+        dockerBaseImage := "eclipse-temurin:21-jre",
         dockerExposedPorts := Seq(8080),
         dockerUpdateLatest := true,
         dockerEnvVars := Map(
             "BLAZE_HOST" -> "0.0.0.0",
             "BLAZE_PORT" -> "8080",
-            "BASEURI" -> "/",
-            "VITE_FILE" -> "/opt/docker/vite/manifest.json",
+            "VITE_FILE" -> "/opt/docker/vite/.vite/manifest.json",
+            "VITE_DISTPATH" -> "/opt/docker/vite",
             "JAVA_OPTS" -> "-Xmx512m -Xms256m",
             "LOG_LEVEL" -> "INFO"
         ),
@@ -129,7 +132,10 @@ lazy val root = (project in file("."))
             "||",
             "exit",
             "1"
-        )
+        ),
+        Docker / mappings ++= directory(viteBuild.value).map { case (f, p) =>
+            f -> s"/opt/docker/$p"
+        }
     )
     .dependsOn(budget, webUi)
     .aggregate(webUi, core, budget, preview)
