@@ -35,6 +35,18 @@ object TransactionImportError:
       */
     case class NoTransactionsFound(startDate: LocalDate, endDate: LocalDate)
         extends TransactionImportError
+        
+    /** Error indicating all transactions found already exist in the database.
+      *
+      * @param startDate
+      *   The start date of the queried range
+      * @param endDate
+      *   The end date of the queried range
+      * @param count
+      *   The number of duplicate transactions found
+      */
+    case class AllTransactionsDuplicate(startDate: LocalDate, endDate: LocalDate, count: Int)
+        extends TransactionImportError
 
     /** Error indicating a failure in saving the imported transactions.
       *

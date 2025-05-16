@@ -9,7 +9,6 @@ import works.iterative.incubator.components.ScalatagsAppShell
 import scalatags.Text.Frag
 import scalatags.Text.all.raw
 import works.iterative.incubator.budget.ui.transaction_import.models.*
-import works.iterative.incubator.budget.ui.transaction_import.TransactionImportPresenter.getImportViewModel
 
 /** Tapir module for transaction import functionality.
   *

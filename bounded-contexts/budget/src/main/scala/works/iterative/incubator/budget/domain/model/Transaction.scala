@@ -108,8 +108,8 @@ end Transaction
 object Transaction:
     /** Creates a new Transaction with validation.
       *
-      * @param accountId
-      *   ID of the source account
+      * @param id
+      *   ID of the transaction
       * @param date
       *   Date when the transaction occurred
       * @param amount

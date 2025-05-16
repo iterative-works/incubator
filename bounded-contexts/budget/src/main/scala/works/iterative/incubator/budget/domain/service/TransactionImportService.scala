@@ -170,23 +170,78 @@ final case class TransactionImportServiceLive(
                     markBatchFailed(inProgressBatch, err.toString).ignore
                 )
 
-            // Step 5: Save transactions to repository
-            _ <- transactionRepository
-                .saveAll(transactions)
-                .mapError(err =>
-                    TransactionStorageError(s"Failed to save transactions: $err", None)
-                )
+            // Step 5: Filter out transactions that already exist in the database
+            filterResult <- filterExistingTransactions(transactions)
                 .tapError(err =>
                     // On failure, mark the batch as failed
                     markBatchFailed(inProgressBatch, err.toString).ignore
                 )
+            (newTransactions, skippedCount) = filterResult
 
-            // Step 6: Mark the batch as completed
+            // Log information about skipped transactions
+            _ <- ZIO.when(skippedCount > 0)(
+                ZIO.logInfo(
+                    s"Skipping $skippedCount transactions that already exist in the database for account ${accountId.value}"
+                )
+            )
+
+            // Step 6: Save only new transactions to repository
+            // Handle the case where all transactions are duplicates
+            _ <- if newTransactions.isEmpty && skippedCount > 0 then
+                val message =
+                    s"No new transactions to save for account ${accountId.value} in period $startDate to $endDate - all ${skippedCount} transactions were duplicates"
+                ZIO.logInfo(message) *>
+                    // Still proceed with the import process, considering this a successful import with 0 new transactions
+                    ZIO.unit
+            else if newTransactions.isEmpty then
+                ZIO.logInfo(
+                    s"No new transactions to save for account ${accountId.value} in period $startDate to $endDate"
+                ) *>
+                    ZIO.unit
+            else
+                ZIO.logInfo(
+                    s"Saving ${newTransactions.size} new transactions for account ${accountId.value}"
+                ) *>
+                    transactionRepository
+                        .saveAll(newTransactions)
+                        .mapError(err =>
+                            TransactionStorageError(s"Failed to save transactions: $err", None)
+                        )
+                        .tapError(err =>
+                            // On failure, mark the batch as failed
+                            markBatchFailed(inProgressBatch, err.toString).ignore
+                        )
+
+            // Step 7: Mark the batch as completed
+            // Include both new and skipped transactions in the total count
+            totalCount = newTransactions.size + skippedCount
+            _ <- ZIO.logInfo(
+                s"Import completed: ${newTransactions.size} new transactions saved, $skippedCount duplicates skipped"
+            )
+
+            // Create meaningful message for the UI based on what happened
+            completionMessage = if newTransactions.isEmpty && skippedCount > 0 then
+                s"All $skippedCount transactions were already imported"
+            else if skippedCount > 0 then
+                s"Imported ${newTransactions.size} new transactions, skipped $skippedCount duplicates"
+            else
+                s"Successfully imported ${newTransactions.size} transactions"
+
+            // Only store messages for special cases
+            messageToStore = if newTransactions.isEmpty && skippedCount > 0 then
+                Some(s"All $skippedCount transactions were already imported")
+            else if skippedCount > 0 && skippedCount >= newTransactions.size then
+                Some(
+                    s"Imported ${newTransactions.size} new transactions, skipped $skippedCount duplicates"
+                )
+            else
+                None // Normal case - don't need to store a message
+
             completedBatch <- ZIO
-                .fromEither(inProgressBatch.markCompleted(transactions.size))
+                .fromEither(inProgressBatch.markCompleted(totalCount, messageToStore))
                 .mapError(msg => ImportBatchError(s"Failed to mark batch as completed: $msg", None))
 
-            // Step 7: Save the updated batch
+            // Step 8: Save the updated batch
             _ <- importBatchRepository
                 .save(completedBatch)
                 .mapError(err => ImportBatchError(s"Failed to save completed batch: $err", None))
@@ -240,9 +295,63 @@ final case class TransactionImportServiceLive(
                 if transactions.isEmpty then
                     ZIO.fail(NoTransactionsFound(startDate, endDate))
                 else
-                    ZIO.succeed(transactions)
+                    ZIO.logInfo(
+                        s"Found ${transactions.size} transactions from bank API for account ${accountId.value} in period $startDate to $endDate"
+                    ) *> ZIO.succeed(transactions)
             }
 
+    /** Helper method to filter out transactions that already exist in the database.
+      *
+      * @param transactions
+      *   The transactions to filter
+      * @return
+      *   A ZIO effect that returns a tuple of (new transactions, count of skipped transactions)
+      */
+    private def filterExistingTransactions(
+        transactions: List[Transaction]
+    ): ZIO[Any, TransactionImportError, (List[Transaction], Int)] =
+        // If no transactions, return empty list with 0 skipped
+        if transactions.isEmpty then
+            ZIO.succeed((List.empty, 0))
+        else
+            // Check for existing transactions in batch by account ID and transaction date range
+            // We use the fact that all transactions in this batch are for the same account
+            val accountId = transactions.head.accountId
+            val minDate = transactions.map(_.date).min
+            val maxDate = transactions.map(_.date).max
+
+            for
+                // Fetch all existing transactions for this account and date range
+                existingTransactions <- transactionRepository
+                    .findByAccountAndDateRange(accountId, minDate, maxDate)
+                    .mapError(err =>
+                        TransactionStorageError(
+                            s"Failed to check for existing transactions: $err",
+                            None
+                        )
+                    )
+
+                // Extract IDs of existing transactions
+                existingIds = existingTransactions.map(_.id).toSet
+
+                // Filter out transactions that already exist
+                newTransactions = transactions.filterNot(tx => existingIds.contains(tx.id))
+                skippedCount = transactions.size - newTransactions.size
+
+                // Log specific transactions that are being skipped for troubleshooting
+                _ <- ZIO.when(skippedCount > 0 && skippedCount <= 5)(
+                    ZIO.foreach(transactions.filter(tx => existingIds.contains(tx.id))) { tx =>
+                        ZIO.logDebug(
+                            s"Skipping duplicate transaction: ID=${tx.id.value}, Date=${tx.date}, Amount=${tx.amount}, Description=${tx.description}"
+                        )
+                    }
+                ) *> ZIO.when(skippedCount > 5)(
+                    ZIO.logDebug(
+                        s"Skipping ${skippedCount} duplicate transactions (showing first 5 only)"
+                    )
+                )
+            yield (newTransactions, skippedCount)
+            end for
     /** Helper method to mark an import batch as failed.
       *
       * @param batch

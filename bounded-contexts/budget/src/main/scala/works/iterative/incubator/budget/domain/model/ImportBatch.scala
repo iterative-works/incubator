@@ -78,10 +78,12 @@ case class ImportBatch(
       *
       * @param transactionCount
       *   Number of transactions imported
+      * @param message
+      *   Optional message describing the import results
       * @return
       *   A new ImportBatch with updated status, count, and timestamps
       */
-    def markCompleted(transactionCount: Int): Either[String, ImportBatch] =
+    def markCompleted(transactionCount: Int, message: Option[String] = None): Either[String, ImportBatch] =
         if status != ImportStatus.InProgress then
             Left(s"Cannot complete import with status $status")
         else
@@ -90,6 +92,7 @@ case class ImportBatch(
                 this.copy(
                     status = ImportStatus.Completed,
                     transactionCount = transactionCount,
+                    errorMessage = message,  // Use the message field to provide feedback
                     endTime = Some(now),
                     updatedAt = now
                 )
