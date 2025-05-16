@@ -196,26 +196,27 @@ final case class FioTokenManagerLive(
       *   The decrypted raw token
       */
     override def decryptToken(encryptedToken: String): ZIO[Any, String, String] =
-        ZIO.attemptBlocking {
-            val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
-            val keySpec = new SecretKeySpec(encryptionKey, "AES")
+        ZIO.logInfo(s"Encrypted token: $encryptedToken") *>
+            ZIO.attemptBlocking {
+                val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+                val keySpec = new SecretKeySpec(encryptionKey, "AES")
 
-            // Decode from Base64
-            val combined = Base64.getDecoder.decode(encryptedToken)
+                // Decode from Base64
+                val combined = Base64.getDecoder.decode(encryptedToken)
 
-            // Extract IV
-            val ivBytes = combined.take(16)
-            val ivSpec = new IvParameterSpec(ivBytes)
+                // Extract IV
+                val ivBytes = combined.take(16)
+                val ivSpec = new IvParameterSpec(ivBytes)
 
-            // Extract encrypted data
-            val encrypted = combined.drop(16)
+                // Extract encrypted data
+                val encrypted = combined.drop(16)
 
-            // Initialize the cipher for decryption
-            cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec)
+                // Initialize the cipher for decryption
+                cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec)
 
-            // Decrypt the token
-            new String(cipher.doFinal(encrypted), "UTF-8")
-        }.mapError(e => s"Token decryption failed: ${e.getMessage}")
+                // Decrypt the token
+                new String(cipher.doFinal(encrypted), "UTF-8")
+            }.mapError(e => s"Token decryption failed: ${e.getMessage}")
 
     /** Clears the token cache.
       *

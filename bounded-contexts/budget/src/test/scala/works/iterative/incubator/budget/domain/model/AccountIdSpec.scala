@@ -13,7 +13,7 @@ object AccountIdSpec extends ZIOSpecDefault:
             assertTrue(
                 id.bankId == bankId &&
                     id.bankAccountId == bankAccountId &&
-                    id.value == s"$bankId-$bankAccountId"
+                    id.value == s"$bankAccountId/$bankId"
             )
         ,
         test("create should reject null bankId") {
@@ -63,7 +63,7 @@ object AccountIdSpec extends ZIOSpecDefault:
             assertTrue(
                 id.bankId.nonEmpty &&
                     id.bankAccountId.nonEmpty &&
-                    id.value.contains("-") &&
+                    id.value.contains("/") &&
                     id.bankId == bankId &&
                     id.bankAccountId == accountId
             )
@@ -71,7 +71,7 @@ object AccountIdSpec extends ZIOSpecDefault:
         test("fromString should parse valid composite ID"):
             val bankId = "bank123"
             val bankAccountId = "account456"
-            val idString = s"$bankId-$bankAccountId"
+            val idString = s"$bankAccountId/$bankId"
             val result = AccountId.fromString(idString)
             assertTrue(
                 result.isRight &&
@@ -105,7 +105,7 @@ object AccountIdSpec extends ZIOSpecDefault:
             val bankAccountId = "account456"
             val id = AccountId(bankId, bankAccountId)
             assertTrue(
-                id.value == s"$bankId-$bankAccountId"
+                id.value == s"$bankAccountId/$bankId"
             )
         ,
         test("toString should return the same as value"):

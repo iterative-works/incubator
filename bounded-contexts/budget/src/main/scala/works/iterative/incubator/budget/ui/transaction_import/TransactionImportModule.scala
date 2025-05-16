@@ -9,6 +9,7 @@ import works.iterative.incubator.components.ScalatagsAppShell
 import scalatags.Text.Frag
 import scalatags.Text.all.raw
 import works.iterative.incubator.budget.ui.transaction_import.models.*
+import works.iterative.incubator.budget.ui.transaction_import.TransactionImportPresenter.getImportViewModel
 
 /** Tapir module for transaction import functionality.
   *
@@ -59,7 +60,8 @@ class TransactionImportModule(
             // Parse form data
             command <- ZIO.succeed(TransactionImportCommand.fromFormData(formData))
             // Get view model from form data and mark as submitting
-            baseViewModel = TransactionImportFormViewModel.fromFormData(formData).submitting
+            baseViewModel <- TransactionImportPresenter.getImportViewModel().map: baseModel =>
+                TransactionImportFormViewModel.applyFormData(baseModel, formData).submitting
 
             // Validate and process the command (synchronously)
             result <- TransactionImportPresenter.validateAndProcess(command)

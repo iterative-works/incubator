@@ -224,10 +224,18 @@ class MockTransactionImportPresenter extends TransactionImportPresenter:
       *   A ZIO effect that returns a list of AccountOption
       */
     override def getAccounts(): ZIO[Any, String, List[AccountOption]] =
-        ZIO.succeed(AccountSelectorViewModel.defaultAccounts)
+        ZIO.succeed(MockTransactionImportPresenter.defaultAccounts)
+    end getAccounts
 end MockTransactionImportPresenter
 
 object MockTransactionImportPresenter:
+    /** Default list of available accounts for presentation purposes. */
+    val defaultAccounts: List[AccountOption] = List(
+        AccountOption("0100-1234567890", "Fio Bank - Main Account"),
+        AccountOption("0300-0987654321", "ČSOB - Business Account"),
+        AccountOption("0100-5647382910", "Komerční banka - Savings")
+    )
+
     /** Create a new instance of MockTransactionImportPresenter.
       *
       * @return

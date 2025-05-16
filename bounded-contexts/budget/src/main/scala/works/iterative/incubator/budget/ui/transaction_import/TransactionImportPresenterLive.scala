@@ -9,6 +9,7 @@ import zio.*
 
 // Import domain ImportStatus with a different name to avoid conflict
 import works.iterative.incubator.budget.domain.model.{ImportStatus as DomainImportStatus}
+import works.iterative.incubator.budget.infrastructure.adapter.fio.FioAccountRepository
 
 /** Live implementation of the TransactionImportPresenter.
   *
@@ -24,7 +25,7 @@ import works.iterative.incubator.budget.domain.model.{ImportStatus as DomainImpo
   */
 final case class TransactionImportPresenterLive(
     transactionImportService: TransactionImportService,
-    accountId: AccountId
+    fioAccountRepository: FioAccountRepository
 ) extends TransactionImportPresenter:
 
     /** The ID of the most recent import batch, cached to track status */
@@ -35,18 +36,15 @@ final case class TransactionImportPresenterLive(
             // Get available accounts
             accounts <- getAccounts()
 
-            // Prepare the account ID string
-            accountIdStr = accountId.value
-
-        // Create a fresh view model with default state - we don't show previous imports
-        // when first loading the form
+            // Create a fresh view model with default state - we don't show previous imports
+            // when first loading the form
         yield TransactionImportFormViewModel(
             startDate = LocalDate.now().withDayOfMonth(1),
             endDate = LocalDate.now(),
             importStatus = ImportStatus.NotStarted,
             importResults = None,
             accounts = accounts,
-            selectedAccountId = Some(accountIdStr)
+            selectedAccountId = None
         )).mapError(err => s"Failed to get import form view model: $err")
 
     /** Validate and process a transaction import command.
@@ -62,7 +60,7 @@ final case class TransactionImportPresenterLive(
         ZIO.attempt {
             // Parse form fields
             val (startDateResult, endDateResult) = command.toLocalDates
-            val accountIdResult = parseAccountId(command.accountId)
+            val accountIdResult = AccountId.fromString(command.accountId)
 
             // Build validation errors
             val errors = Map.newBuilder[String, String]
@@ -183,39 +181,9 @@ final case class TransactionImportPresenterLive(
     /** Get the list of available accounts.
       */
     override def getAccounts(): ZIO[Any, String, List[AccountOption]] =
-        // TODO: In a real implementation, fetch accounts from a repository
-        ZIO.succeed(
-            List(
-                AccountOption("0100-1234567890", "Fio Bank - Main Account"),
-                AccountOption("0300-0987654321", "ČSOB - Business Account"),
-                AccountOption("0100-5647382910", "Komerční banka - Savings")
-            )
-        )
-
-    /** Helper method to parse account ID string.
-      */
-    private def parseAccountId(accountIdStr: String): Either[String, AccountId] =
-        if accountIdStr.isEmpty then
-            Left("Please select an account")
-        else
-            try
-                // For tests where we pass testAccountId.toString
-                if accountIdStr == this.accountId.toString then
-                    Right(this.accountId)
-                else
-                    // Expected format: "bankId-accountId"
-                    val parts = accountIdStr.split("-", 2)
-                    if parts.length != 2 then
-                        Left(
-                            s"Invalid account ID format: $accountIdStr (expected format: bankId-accountId)"
-                        )
-                    else
-                        val (bankId, accountId) = (parts(0), parts(1))
-                        Right(AccountId(bankId, accountId))
-                    end if
-            catch
-                case _: Exception =>
-                    Left(s"Invalid account ID: $accountIdStr")
+        fioAccountRepository.getAll().map: accounts =>
+            accounts.map: account =>
+                AccountOption(account.sourceAccountId.value, account.sourceAccountId.value)
 
     /** Converts domain ImportStatus to UI ImportStatus.
       */
@@ -235,12 +203,15 @@ object TransactionImportPresenterLive:
       * @return
       *   A ZLayer that requires TransactionImportService and provides a TransactionImportPresenter
       */
-    val layer: ZLayer[TransactionImportService, Nothing, TransactionImportPresenter] =
+    val layer: ZLayer[
+        TransactionImportService & FioAccountRepository,
+        Nothing,
+        TransactionImportPresenter
+    ] =
         ZLayer {
             for
                 transactionImportService <- ZIO.service[TransactionImportService]
-                // TODO: In a real implementation, this would come from configuration or user selection
-                accountId = AccountId("fio", "default-account")
-            yield TransactionImportPresenterLive(transactionImportService, accountId)
+                fioAccountRepository <- ZIO.service[FioAccountRepository]
+            yield TransactionImportPresenterLive(transactionImportService, fioAccountRepository)
         }
 end TransactionImportPresenterLive

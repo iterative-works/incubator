@@ -59,6 +59,9 @@ final case class InMemoryFioAccountRepository(
       */
     override def nextId(): ZIO[Any, String, Long] =
         ZIO.succeed(idCounter.getAndIncrement())
+
+    override def getAll(): ZIO[Any, String, List[FioAccount]] =
+        accountsRef.get.map(_.values.toList)
 end InMemoryFioAccountRepository
 
 /** Companion object for InMemoryFioAccountRepository.

@@ -16,7 +16,7 @@ case class AccountId(bankId: String, bankAccountId: String):
       * @return
       *   a string representation of the composite ID
       */
-    def value: String = s"$bankId-$bankAccountId"
+    def value: String = s"$bankAccountId/$bankId"
 
     /** String representation of this identifier
       * @return
@@ -37,15 +37,15 @@ object AccountId:
         if s == null || s.isEmpty then
             Left("Account ID string must not be null or empty")
         else
-            val parts = s.split("-", 2)
+            val parts = s.split("/", 2)
             if parts.length != 2 then
-                Left(s"Invalid composite ID format: $s. Expected format: 'bankId-bankAccountId'")
-            else if parts(0).isEmpty then
-                Left("Bank ID part must not be empty")
+                Left(s"Invalid composite ID format: $s. Expected format: 'bankAccountId/bankId'")
             else if parts(1).isEmpty then
+                Left("Bank ID part must not be empty")
+            else if parts(0).isEmpty then
                 Left("Bank account ID part must not be empty")
             else
-                Right(AccountId(parts(0), parts(1)))
+                Right(AccountId(parts(1), parts(0)))
             end if
 
     /** Creates an AccountId for the specified bank and bank account.

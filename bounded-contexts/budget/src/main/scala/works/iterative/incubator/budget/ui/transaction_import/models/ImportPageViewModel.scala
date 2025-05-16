@@ -25,7 +25,7 @@ import java.time.LocalDate
   * Category: View Model Layer: UI/Presentation
   */
 case class ImportPageViewModel(
-    accounts: List[AccountOption] = AccountSelectorViewModel.defaultAccounts,
+    accounts: List[AccountOption] = Nil,
     selectedAccountId: Option[String] = None,
     startDate: LocalDate = LocalDate.now().withDayOfMonth(1),
     endDate: LocalDate = LocalDate.now(),

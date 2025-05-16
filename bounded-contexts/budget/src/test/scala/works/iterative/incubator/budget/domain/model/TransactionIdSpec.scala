@@ -13,7 +13,7 @@ object TransactionIdSpec extends ZIOSpecDefault:
             assertTrue(
                 id.sourceAccount == accountId &&
                     id.bankTransactionId == bankTransactionId &&
-                    id.value == s"${accountId.toString}-$bankTransactionId"
+                    id.value == s"${accountId.toString}#$bankTransactionId"
             )
         ,
         test("create should reject null sourceAccount") {
@@ -62,7 +62,7 @@ object TransactionIdSpec extends ZIOSpecDefault:
             val bankId = "bank1"
             val accountId = "account123"
             val bankTransactionId = "tx987654"
-            val idString = s"$bankId-$accountId-$bankTransactionId"
+            val idString = s"$accountId/$bankId#$bankTransactionId"
             val result = TransactionId.fromString(idString)
             assertTrue(
                 result.isRight &&
@@ -101,7 +101,7 @@ object TransactionIdSpec extends ZIOSpecDefault:
             val bankTransactionId = "tx987654"
             val id = TransactionId(accountId, bankTransactionId)
             assertTrue(
-                id.value == s"${accountId.toString}-$bankTransactionId"
+                id.value == s"${accountId.toString}#$bankTransactionId"
             )
         ,
         test("toString should return the same as value"):

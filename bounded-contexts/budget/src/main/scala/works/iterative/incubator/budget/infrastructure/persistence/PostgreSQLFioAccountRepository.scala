@@ -75,7 +75,7 @@ class PostgreSQLFioAccountRepository(xa: Transactor) extends FioAccountRepositor
     override def nextId(): ZIO[Any, String, Long] =
         xa.transact {
             // Get all existing accounts
-            val accounts = repo.findAll(Spec[FioAccountDTO])
+            val accounts = repo.findAll
 
             // Find the maximum ID currently in use, or use 0 if no accounts exist
             val maxId = if accounts.isEmpty then 0L else accounts.map(_.id).max
@@ -83,6 +83,13 @@ class PostgreSQLFioAccountRepository(xa: Transactor) extends FioAccountRepositor
             // Return the next ID (max + 1)
             maxId + 1L
         }.mapError(e => s"Failed to generate next sequence number: ${e.getMessage}")
+
+    override def getAll(): ZIO[Any, String, List[FioAccount]] =
+        xa.connect:
+            repo.findAll.map(FioAccountMapper.toDomain).collect:
+                case Right(acc) => acc
+            .toList
+        .mapError(e => s"Failed to retrieve all FioAccounts: ${e.getMessage}")
 end PostgreSQLFioAccountRepository
 
 object PostgreSQLFioAccountRepository:

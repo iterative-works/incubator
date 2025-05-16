@@ -9,6 +9,7 @@ import java.time.format.DateTimeFormatter
 import zio.*
 import zio.test.*
 import zio.test.Assertion.*
+import works.iterative.incubator.budget.infrastructure.adapter.fio.InMemoryFioAccountRepository
 
 /** Test suite for TransactionImportPresenterLive.
   */
@@ -109,6 +110,7 @@ object TransactionImportPresenterLiveSpec extends ZIOSpecDefault:
         InMemoryImportBatchRepository.layer,
         FioBankServiceNormal.layer,
         TransactionImportService.live,
-        TransactionImportPresenterLive.layer
+        TransactionImportPresenterLive.layer,
+        InMemoryFioAccountRepository.layer
     )
 end TransactionImportPresenterLiveSpec

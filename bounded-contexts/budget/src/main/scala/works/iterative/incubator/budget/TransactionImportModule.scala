@@ -15,6 +15,12 @@ import works.iterative.incubator.budget.ui.transaction_import.{
     TransactionImportPresenterLive
 }
 import zio.*
+import works.iterative.incubator.budget.infrastructure.adapter.fio.InMemoryFioAccountRepository
+import works.iterative.incubator.budget.infrastructure.persistence.PostgreSQLTransactionRepository
+import works.iterative.incubator.budget.infrastructure.adapter.fio.FioBankTransactionService
+import works.iterative.incubator.budget.infrastructure.persistence.PostgreSQLImportBatchRepository
+import works.iterative.incubator.budget.infrastructure.persistence.PostgreSQLFioAccountRepository
+import works.iterative.sqldb.PostgreSQLTransactor
 
 /** Module providing all required dependencies for transaction import functionality.
   *
@@ -45,7 +51,8 @@ object TransactionImportModule:
             TransactionImportService.live,
             InMemoryTransactionRepository.layer,
             InMemoryImportBatchRepository.layer,
-            MockBankTransactionService.layer
+            MockBankTransactionService.layer,
+            InMemoryFioAccountRepository.layer
         )
 
     /** Layer for production use (not fully implemented yet).
@@ -56,12 +63,13 @@ object TransactionImportModule:
       * TODO: Replace in-memory repositories with real implementations. TODO: Replace mock bank
       * service with real bank API integration.
       */
-    val liveLayer: ULayer[TransactionImportPresenter] =
-        ZLayer.make[TransactionImportPresenter](
+    val liveLayer: ZLayer[PostgreSQLTransactor, Throwable, TransactionImportPresenter] =
+        ZLayer.makeSome[PostgreSQLTransactor, TransactionImportPresenter](
             TransactionImportPresenterLive.layer,
             TransactionImportService.live,
-            InMemoryTransactionRepository.layer, // TODO: Replace with real implementation
-            InMemoryImportBatchRepository.layer, // TODO: Replace with real implementation
-            MockBankTransactionService.layer // TODO: Replace with real implementation
+            PostgreSQLTransactionRepository.layer,
+            PostgreSQLImportBatchRepository.layer,
+            FioBankTransactionService.fullLayer,
+            PostgreSQLFioAccountRepository.layer
         )
 end TransactionImportModule

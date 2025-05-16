@@ -5,6 +5,7 @@ import scalatags.Text.all.*
 import zio.*
 import works.iterative.incubator.budget.ui.transaction_import.models.AccountSelectorViewModel
 import works.iterative.incubator.budget.ui.transaction_import.components.AccountSelector
+import works.iterative.incubator.budget.ui.transaction_import.MockTransactionImportPresenter
 
 /** Preview module for the AccountSelector component Shows the component in various states for
   * testing and development
@@ -22,7 +23,7 @@ class AccountSelectorPreviewModule(
         name = "default",
         description = "Default state with multiple accounts and no selection",
         viewModel = AccountSelectorViewModel(
-            accounts = AccountSelectorViewModel.defaultAccounts,
+            accounts = MockTransactionImportPresenter.defaultAccounts,
             selectedAccountId = None,
             validationError = None
         )
@@ -32,7 +33,7 @@ class AccountSelectorPreviewModule(
         name = "selected",
         description = "With an account selected",
         viewModel = AccountSelectorViewModel(
-            accounts = AccountSelectorViewModel.defaultAccounts,
+            accounts = MockTransactionImportPresenter.defaultAccounts,
             selectedAccountId = Some("0100-1234567890"),
             validationError = None
         )
@@ -42,7 +43,7 @@ class AccountSelectorPreviewModule(
         name = "with-error",
         description = "With validation error",
         viewModel = AccountSelectorViewModel(
-            accounts = AccountSelectorViewModel.defaultAccounts,
+            accounts = MockTransactionImportPresenter.defaultAccounts,
             selectedAccountId = None,
             validationError = Some("Please select an account to continue")
         )
@@ -62,7 +63,7 @@ class AccountSelectorPreviewModule(
         name = "disabled",
         description = "Component is disabled during import process",
         viewModel = AccountSelectorViewModel(
-            accounts = AccountSelectorViewModel.defaultAccounts,
+            accounts = MockTransactionImportPresenter.defaultAccounts,
             selectedAccountId = Some("0100-1234567890"),
             validationError = None
         )

@@ -43,6 +43,13 @@ trait FioAccountRepository:
       *   A ZIO effect that returns a new ID
       */
     def nextId(): ZIO[Any, String, Long]
+
+    /** Returns all FioAccounts in the repository.
+      *
+      * @return
+      *   A ZIO effect that returns a list of all FioAccounts or an error string
+      */
+    def getAll(): ZIO[Any, String, List[FioAccount]]
 end FioAccountRepository
 
 /** Companion object for FioAccountRepository.
@@ -89,6 +96,14 @@ object FioAccountRepository:
       */
     def nextId(): ZIO[FioAccountRepository, String, Long] =
         ZIO.serviceWithZIO(_.nextId())
+
+    /** Accesses the repository to retrieve all FioAccounts.
+      *
+      * @return
+      *   A ZIO effect that requires FioAccountRepository and returns a list of FioAccounts
+      */
+    def getAll(): ZIO[FioAccountRepository, String, List[FioAccount]] =
+        ZIO.serviceWithZIO(_.getAll())
 
     /** Creates a new FioAccount with an automatically generated ID.
       *

@@ -15,7 +15,7 @@ case class TransactionId(sourceAccount: AccountId, bankTransactionId: String):
       * @return
       *   a string representation of the composite ID
       */
-    def value: String = s"${sourceAccount.toString}-$bankTransactionId"
+    def value: String = s"${sourceAccount.toString}#$bankTransactionId"
 
     /** String representation of this identifier
       * @return
@@ -37,19 +37,19 @@ object TransactionId:
         if s == null || s.isEmpty then
             Left("Transaction ID string must not be null or empty")
         else
-            val parts = s.split("-", 3)
-            if parts.length < 3 then
+            val parts = s.split("#", 2)
+            if parts.length < 2 then
                 Left(
-                    s"Invalid composite ID format: $s. Expected format: 'bankId-bankAccountId-bankTransactionId'"
+                    s"Invalid composite ID format: $s. Expected format: 'bankAccountId/bankId#bankTransactionId'"
                 )
             else if parts(0).isEmpty then
                 Left("Bank ID or source account ID part must not be empty")
-            else if parts(parts.length - 1).isEmpty then
+            else if parts(1).isEmpty then
                 Left("Bank transaction ID part must not be empty")
             else
                 // New format: bankId-bankAccountId-bankTransactionId
-                AccountId.create(parts(0), parts(1)) match
-                    case Right(accountId) => Right(TransactionId(accountId, parts(2)))
+                AccountId.fromString(parts(0)) match
+                    case Right(accountId) => Right(TransactionId(accountId, parts(1)))
                     case Left(error)      => Left(error)
             end if
 

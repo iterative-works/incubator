@@ -29,7 +29,7 @@ import scala.util.Try
   */
 case class TransactionImportFormViewModel(
     // Form data
-    accounts: List[AccountOption] = AccountSelectorViewModel.defaultAccounts,
+    accounts: List[AccountOption] = Nil,
     selectedAccountId: Option[String] = None,
     startDate: LocalDate = LocalDate.now().withDayOfMonth(1),
     endDate: LocalDate = LocalDate.now(),
@@ -131,18 +131,21 @@ object TransactionImportFormViewModel:
       * @return
       *   A new view model with values from the form data
       */
-    def fromFormData(formData: Map[String, String]): TransactionImportFormViewModel =
+    def applyFormData(
+        baseModel: TransactionImportFormViewModel,
+        formData: Map[String, String]
+    ): TransactionImportFormViewModel =
         val startDate = Try(LocalDate.parse(formData.getOrElse("startDate", "")))
             .getOrElse(LocalDate.now().withDayOfMonth(1))
         val endDate = Try(LocalDate.parse(formData.getOrElse("endDate", "")))
             .getOrElse(LocalDate.now())
 
-        TransactionImportFormViewModel(
+        baseModel.copy(
             selectedAccountId = Option(formData.getOrElse("accountId", "")).filter(_.nonEmpty),
             startDate = startDate,
             endDate = endDate
         )
-    end fromFormData
+    end applyFormData
 
     /** Creates a view model with default values.
       *
