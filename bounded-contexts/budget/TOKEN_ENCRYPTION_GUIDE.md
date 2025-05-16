@@ -17,23 +17,7 @@ We've created a simple command-line tool that follows the exact same encryption 
 
 ### Using the Tool
 
-The simplest way to encrypt a token is using our dedicated tool:
-
-```bash
-sbtn "runMain works.iterative.incubator.budget.tools.EncryptFioToken <encryption-key> <token>"
-```
-
-For example:
-
-```bash
-sbtn "runMain works.iterative.incubator.budget.tools.EncryptFioToken superSecretKey123456789012345678901 my-fio-token-123456"
-```
-
-This will output the encrypted token ready for database insertion.
-
-### Additional Features
-
-We also provide an alternative tool with both encryption and decryption capabilities:
+We provide a simple tool with both encryption and decryption capabilities:
 
 ```bash
 # For encryption
@@ -58,9 +42,9 @@ For production use, this should be a secure value at least 32 characters long. T
 Once you have the encrypted token, you can insert it directly into the database:
 
 ```sql
-INSERT INTO fio_accounts 
+INSERT INTO fio_accounts
 (id, source_account_id, encrypted_token, created_at, updated_at)
-VALUES 
+VALUES
 (nextval('fio_account_id_seq'), 'your-bank-id-your-account-id', 'your-encrypted-token', NOW(), NOW());
 ```
 
@@ -74,7 +58,7 @@ Here's a complete example:
 
 1. Encrypt the token:
    ```bash
-   sbtn "runMain works.iterative.incubator.budget.tools.EncryptFioToken secret-key-for-development fio-token-12345678"
+   sbtn "runMain works.iterative.incubator.budget.tools.FioTokenCrypto encrypt secret-key-for-development fio-token-12345678"
    ```
 
 2. Copy the encrypted output:
@@ -84,9 +68,9 @@ Here's a complete example:
 
 3. Insert into database:
    ```sql
-   INSERT INTO fio_accounts 
+   INSERT INTO fio_accounts
    (id, source_account_id, encrypted_token, created_at, updated_at)
-   VALUES 
+   VALUES
    (nextval('fio_account_id_seq'), 'fio-12345678', 'A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8S9t0U1v2W3x4Y5z6==', NOW(), NOW());
    ```
 
